@@ -68,6 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             alt="Devnix"
             width={56}
             height={56}
+            style={{ width: 56, height: "auto" }}
             className="object-contain"
           />
           <div className="text-center">
