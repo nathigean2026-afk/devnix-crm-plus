@@ -181,18 +181,19 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   className="flex items-center justify-between cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    {mounted && theme === "dark" ? (
-                      <Moon className="size-4" />
-                    ) : (
-                      <Sun className="size-4" />
-                    )}
-                    <span className="text-sm">
+                    {/* render placeholder icon server-side to avoid hydration mismatch */}
+                    <span className="size-4 flex items-center justify-center">
+                      {mounted ? (
+                        theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />
+                      ) : (
+                        <Sun className="size-4 opacity-0" />
+                      )}
+                    </span>
+                    <span className="text-sm" suppressHydrationWarning>
                       {mounted ? (theme === "dark" ? "Modo Escuro" : "Modo Claro") : "Aparência"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    Alternar
-                  </div>
+                  <span className="text-xs text-muted-foreground">Alternar</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleSignOut}
