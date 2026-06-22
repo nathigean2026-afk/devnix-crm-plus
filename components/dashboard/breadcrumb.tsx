@@ -43,14 +43,14 @@ export function DashboardBreadcrumb() {
           }
 
           return (
-            <BreadcrumbItem key={seg}>
-              <BreadcrumbLink asChild>
-                <Link href={href} className="text-muted-foreground hover:text-foreground transition-colors">
+            <>
+              <BreadcrumbItem key={seg}>
+                <BreadcrumbLink href={href} className="text-muted-foreground hover:text-foreground transition-colors">
                   {label}
-                </Link>
-              </BreadcrumbLink>
-              <BreadcrumbSeparator className="text-muted-foreground" />
-            </BreadcrumbItem>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator key={`sep-${seg}`} className="text-muted-foreground" />
+            </>
           )
         })}
       </BreadcrumbList>

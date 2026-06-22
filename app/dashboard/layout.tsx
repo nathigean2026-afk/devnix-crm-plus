@@ -4,12 +4,6 @@ import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
 
 export default async function DashboardLayout({
