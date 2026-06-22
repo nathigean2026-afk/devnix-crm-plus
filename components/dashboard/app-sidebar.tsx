@@ -6,6 +6,7 @@ import {
   Wrench,
   FileText,
   DollarSign,
+  BarChart2,
   Settings,
   LogOut,
   ChevronDown,
@@ -60,6 +61,7 @@ const navItems = [
     group: "Financeiro",
     items: [
       { href: "/dashboard/financeiro", label: "Financeiro", icon: DollarSign },
+      { href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart2 },
     ],
   },
 ]
@@ -174,26 +176,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  suppressHydrationWarning
                   onSelect={(e) => {
                     e.preventDefault()
                     if (mounted) setTheme(theme === "dark" ? "light" : "dark")
                   }}
-                  className="flex items-center justify-between cursor-pointer"
+                  className="flex items-center gap-2 cursor-pointer"
                 >
-                  <div className="flex items-center gap-2">
-                    {/* render placeholder icon server-side to avoid hydration mismatch */}
-                    <span className="size-4 flex items-center justify-center">
-                      {mounted ? (
-                        theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />
-                      ) : (
-                        <Sun className="size-4 opacity-0" />
-                      )}
-                    </span>
-                    <span className="text-sm" suppressHydrationWarning>
-                      {mounted ? (theme === "dark" ? "Modo Escuro" : "Modo Claro") : "Aparência"}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Alternar</span>
+                  {mounted && theme === "dark"
+                    ? <Moon className="size-4" />
+                    : <Sun className="size-4" />
+                  }
+                  <span suppressHydrationWarning>
+                    {mounted ? (theme === "dark" ? "Modo Escuro" : "Modo Claro") : "Aparência"}
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleSignOut}

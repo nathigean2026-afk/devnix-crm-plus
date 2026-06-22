@@ -293,6 +293,67 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/dashboard/financeiro")
 }
 
+// ── Reports ───────────────────────────────────────────────────────────────────
+export async function getReportData() {
+  const userId = await getUserId()
+
+  const [allTransactions, allQuotes, allClients, allServices] = await Promise.all([
+    db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(transactions.dueDate),
+    db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(desc(quotes.createdAt)),
+    db.select().from(clients).where(eq(clients.userId, userId)),
+    db.select().from(services).where(eq(services.userId, userId)),
+  ])
+
+  // Receita x Despesa por mês (últimos 6 meses)
+  const monthMap: Record<string, { month: string; receita: number; despesa: number }> = {}
+  const now = new Date()
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })
+    monthMap[key] = { month: label, receita: 0, despesa: 0 }
+  }
+
+  for (const t of allTransactions) {
+    if (t.status !== "pago") continue
+    const dateStr = t.paidAt ?? t.dueDate ?? null
+    if (!dateStr) continue
+    const d = new Date(dateStr)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    if (!monthMap[key]) continue
+    if (t.type === "receita") monthMap[key].receita += Number(t.amount)
+    else monthMap[key].despesa += Number(t.amount)
+  }
+  const monthlyChart = Object.values(monthMap)
+
+  // Status dos orçamentos para gráfico de pizza
+  const quotesStatusCount: Record<string, number> = {}
+  for (const q of allQuotes) {
+    quotesStatusCount[q.status] = (quotesStatusCount[q.status] ?? 0) + 1
+  }
+  const quotesChart = Object.entries(quotesStatusCount).map(([status, count]) => ({ status, count }))
+
+  // Totais gerais
+  const totalReceita = allTransactions.filter(t => t.type === "receita" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
+  const totalDespesa = allTransactions.filter(t => t.type === "despesa" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
+  const totalPendente = allTransactions.filter(t => t.status === "pendente" && t.type === "receita").reduce((a, t) => a + Number(t.amount), 0)
+  const totalAprovados = allQuotes.filter(q => q.status === "aprovado").length
+  const taxaConversao = allQuotes.length > 0 ? Math.round((totalAprovados / allQuotes.length) * 100) : 0
+
+  return {
+    monthlyChart,
+    quotesChart,
+    totalReceita,
+    totalDespesa,
+    totalPendente,
+    totalClients: allClients.length,
+    totalQuotes: allQuotes.length,
+    totalAprovados,
+    taxaConversao,
+    totalServices: allServices.length,
+  }
+}
+
 // ── Dashboard Stats ───────────────────────────────────────────────────────────
 export async function getDashboardStats() {
   const userId = await getUserId()
@@ -308,6 +369,7 @@ export async function getDashboardStats() {
     expensesResult,
     recentClients,
     recentQuotes,
+    allTransactions,
   ] = await Promise.all([
     db.select({ count: sql<number>`COUNT(*)` }).from(clients).where(eq(clients.userId, userId)),
     db.select({ count: sql<number>`COUNT(*)` }).from(clients).where(and(eq(clients.userId, userId), eq(clients.status, "ativo"))),
@@ -319,7 +381,28 @@ export async function getDashboardStats() {
     db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.type, "despesa"), eq(transactions.status, "pago"))),
     db.select().from(clients).where(eq(clients.userId, userId)).orderBy(desc(clients.createdAt)).limit(5),
     db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(desc(quotes.createdAt)).limit(5),
+    db.select().from(transactions).where(eq(transactions.userId, userId)),
   ])
+
+  // Gráfico mensal — últimos 6 meses
+  const monthMap: Record<string, { month: string; receita: number; despesa: number }> = {}
+  const now = new Date()
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    monthMap[key] = { month: d.toLocaleDateString("pt-BR", { month: "short" }), receita: 0, despesa: 0 }
+  }
+  for (const t of allTransactions) {
+    if (t.status !== "pago") continue
+    const dateStr = t.paidAt ?? t.dueDate ?? null
+    if (!dateStr) continue
+    const d = new Date(dateStr)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    if (!monthMap[key]) continue
+    if (t.type === "receita") monthMap[key].receita += Number(t.amount)
+    else monthMap[key].despesa += Number(t.amount)
+  }
+  const monthlyChart = Object.values(monthMap)
 
   return {
     totalClients: Number(totalClientsResult[0]?.count ?? 0),
@@ -332,5 +415,6 @@ export async function getDashboardStats() {
     expenses: Number(expensesResult[0]?.sum ?? 0),
     recentClients,
     recentQuotes,
+    monthlyChart,
   }
 }
