@@ -151,22 +151,19 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                >
-                  <Avatar className="size-8 shrink-0">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.name}</span>
-                    <span className="text-xs text-sidebar-foreground truncate">{user.email}</span>
-                  </div>
-                  <ChevronDown className="size-4 group-data-[collapsible=icon]:hidden shrink-0" />
-                </SidebarMenuButton>
+              <DropdownMenuTrigger
+                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring transition-colors"
+              >
+                <Avatar className="size-8 shrink-0">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col flex-1 min-w-0 group-data-[collapsible=icon]:hidden text-left">
+                  <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.name}</span>
+                  <span className="text-xs text-sidebar-foreground truncate">{user.email}</span>
+                </div>
+                <ChevronDown className="size-4 group-data-[collapsible=icon]:hidden shrink-0 ml-auto" />
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56 bg-popover border-border">
                 <DropdownMenuItem asChild>
