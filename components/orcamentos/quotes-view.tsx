@@ -11,11 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -58,6 +58,35 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  function getClientPhone(q: Quote): string {
+    const phone = clients.find(c => c.id === q.clientId)?.phone ?? ""
+    return phone.replace(/\D/g, "")
+  }
+  function getClientEmail(q: Quote): string {
+    return clients.find(c => c.id === q.clientId)?.email ?? ""
+  }
+  function handleShareWhatsApp(q: Quote) {
+    const client = clients.find(c => c.id === q.clientId)
+    const url = `${baseUrl}/orcamento/${q.id}`
+    const text = `Olá${client ? ` ${client.name}` : ""}! Segue seu orçamento *#${String(q.number).padStart(4, "0")} — ${q.title}*\nTotal: ${formatCurrency(q.total)}\n\nAcesse aqui: ${url}`
+    const phone = getClientPhone(q)
+    window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
+  }
+  function handleShareEmail(q: Quote) {
+    const email = getClientEmail(q)
+    const url = `${baseUrl}/orcamento/${q.id}`
+    const subject = `Orçamento #${String(q.number).padStart(4, "0")} — ${q.title}`
+    const body = `Olá!\n\nSegue seu orçamento.\n\nAcesse aqui: ${url}\n\nQualquer dúvida estou à disposição.`
+    window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`)
+  }
+  function handleShareTelegram(q: Quote) {
+    const url = `${baseUrl}/orcamento/${q.id}`
+    const text = `Orçamento #${String(q.number).padStart(4, "0")}: ${q.title} — ${formatCurrency(q.total)}`
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank")
+  }
 
   const filtered = quotes.filter((q) => {
     const matchSearch = q.title.toLowerCase().includes(search.toLowerCase())
@@ -209,13 +238,26 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                             <MoreHorizontal className="size-4" />
                             <span className="sr-only">Abrir menu</span>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover border-border">
+                          <DropdownMenuContent align="end" className="bg-popover border-border w-52">
                             <DropdownMenuItem asChild className="text-foreground cursor-pointer">
                               <a href={`/orcamento/${q.id}`} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="size-4" />Ver orçamento
+                                <ExternalLink className="size-4 mr-2" />Ver orçamento
                               </a>
                             </DropdownMenuItem>
-                            <Separator className="my-1 bg-border" />
+                            <DropdownMenuSeparator className="bg-border" />
+                            <DropdownMenuItem onClick={() => handleShareWhatsApp(q)} className="text-foreground cursor-pointer">
+                              <MessageCircle className="size-4 mr-2 text-green-500" />
+                              Enviar por WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleShareEmail(q)} className="text-foreground cursor-pointer">
+                              <Mail className="size-4 mr-2 text-blue-400" />
+                              Enviar por E-mail
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleShareTelegram(q)} className="text-foreground cursor-pointer">
+                              <Send className="size-4 mr-2 text-sky-400" />
+                              Enviar por Telegram
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
                             {Object.entries(statusConfig).map(([k, v]) => (
                               q.status !== k && (
                                 <DropdownMenuItem key={k} onClick={() => handleStatusChange(q.id, k)} className="text-foreground cursor-pointer">
@@ -223,9 +265,9 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                                 </DropdownMenuItem>
                               )
                             ))}
-                            <Separator className="my-1 bg-border" />
+                            <DropdownMenuSeparator className="bg-border" />
                             <DropdownMenuItem onClick={() => handleDelete(q.id)} className="text-destructive cursor-pointer focus:text-destructive">
-                              <Trash2 className="size-4" />Excluir
+                              <Trash2 className="size-4 mr-2" />Excluir
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

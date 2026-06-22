@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, MoreHorizontal, Trash2, Search, DollarSign, TrendingUp, TrendingDown, CheckCircle } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, DollarSign, TrendingUp, TrendingDown, CheckCircle, Info } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -98,6 +98,15 @@ export function FinanceView({ initialTransactions, clients }: FinanceViewProps) 
         <Button onClick={() => { setForm(emptyForm); setOpen(true) }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <Plus data-icon="inline-start" />Novo Lançamento
         </Button>
+      </div>
+
+      {/* Aviso de auto-lançamento */}
+      <div className="flex items-start gap-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-3 text-sm text-blue-300">
+        <Info className="size-4 mt-0.5 shrink-0" />
+        <p>
+          <span className="font-semibold">Receitas automáticas:</span> quando uma Ordem de Serviço é marcada como{" "}
+          <span className="font-semibold">Concluída</span>, a receita é lançada aqui automaticamente. Cadastre apenas as despesas manualmente.
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -256,17 +265,16 @@ export function FinanceView({ initialTransactions, clients }: FinanceViewProps) 
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label className="text-foreground text-sm">Categoria</Label>
-                <Select value={form.category || "__none__"} onValueChange={(v) => setForm({ ...form, category: v === "__none__" ? "" : v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    <SelectItem value="__none__">Sem categoria</SelectItem>
-                    {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Label className="text-foreground text-sm">Categoria</Label>
+              <Select value={form.category || ""} onValueChange={(v) => setForm({ ...form, category: v })}>
+                <SelectTrigger className="bg-input border-border text-foreground">
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Status</Label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
@@ -283,12 +291,11 @@ export function FinanceView({ initialTransactions, clients }: FinanceViewProps) 
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-foreground text-sm">Cliente (opcional)</Label>
-              <Select value={form.clientId || "__none__"} onValueChange={(v) => setForm({ ...form, clientId: v === "__none__" ? "" : v })}>
+              <Select value={form.clientId || ""} onValueChange={(v) => setForm({ ...form, clientId: v })}>
                 <SelectTrigger className="bg-input border-border text-foreground">
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Nenhum cliente" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
-                  <SelectItem value="__none__">Nenhum</SelectItem>
                   {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>

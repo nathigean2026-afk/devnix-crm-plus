@@ -1,10 +1,12 @@
+"use client"
+
 import type { Client, Quote, QuoteItem } from "@/lib/db/schema"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { MapPin, Mail, Phone, Calendar, Hash } from "lucide-react"
+import { MapPin, Mail, Phone, Calendar, Hash, Printer, MessageCircle, Send } from "lucide-react"
 
 interface PublicQuoteViewProps {
   quote: Quote
@@ -27,9 +29,43 @@ function formatCurrency(value: string | number) {
 export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) {
   const sc = statusConfig[quote.status] ?? statusConfig.rascunho
 
+  function handleShareWhatsApp() {
+    const url = typeof window !== "undefined" ? window.location.href : ""
+    const phone = client?.phone?.replace(/\D/g, "") ?? ""
+    const text = `Olá${client ? ` ${client.name}` : ""}! Segue seu orçamento *#${String(quote.number).padStart(4, "0")} — ${quote.title}*\nTotal: ${formatCurrency(quote.total)}\n\nAcesse: ${url}`
+    window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
+  }
+  function handleShareTelegram() {
+    const url = typeof window !== "undefined" ? window.location.href : ""
+    const text = `Orçamento #${String(quote.number).padStart(4, "0")}: ${quote.title} — ${formatCurrency(quote.total)}`
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank")
+  }
+
   return (
     <div className="min-h-screen bg-background py-10 px-4">
       <div className="max-w-3xl mx-auto">
+        {/* Barra de ações */}
+        <div className="flex items-center justify-end gap-2 mb-4 print:hidden">
+          <button
+            onClick={handleShareWhatsApp}
+            className="flex items-center gap-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 transition-colors font-medium"
+          >
+            <MessageCircle className="size-4" />WhatsApp
+          </button>
+          <button
+            onClick={handleShareTelegram}
+            className="flex items-center gap-2 text-sm bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-4 py-2 transition-colors font-medium"
+          >
+            <Send className="size-4" />Telegram
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 text-sm border border-border hover:bg-muted text-foreground rounded-lg px-4 py-2 transition-colors font-medium"
+          >
+            <Printer className="size-4" />Imprimir / PDF
+          </button>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">

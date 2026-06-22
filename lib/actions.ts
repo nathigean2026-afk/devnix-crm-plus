@@ -391,7 +391,43 @@ export async function createServiceOrder(data: {
 export async function updateServiceOrderStatus(id: string, status: string) {
   const userId = await getUserId()
   await db.update(serviceOrders).set({ status, updatedAt: new Date(), ...(status === "concluido" ? { completedAt: new Date() } : {}) }).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, userId)))
+
+  // Auto-lançamento financeiro ao concluir OS
+  if (status === "concluido") {
+    const [order] = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
+    if (order && Number(order.total) > 0) {
+      const [client] = await db.select().from(clients).where(eq(clients.id, order.clientId)).limit(1)
+      await db.insert(transactions).values({
+        id: crypto.randomUUID(),
+        userId,
+        clientId: order.clientId,
+        type: "receita",
+        description: `OS #${String(order.number).padStart(4, "0")} — ${order.title}`,
+        amount: order.total,
+        category: "Serviço",
+        status: "pago",
+        paidAt: new Date().toISOString().split("T")[0],
+        dueDate: new Date().toISOString().split("T")[0],
+      })
+      revalidatePath("/dashboard/financeiro")
+    }
+  }
+
   revalidatePath("/dashboard/ordens-servico")
+}
+
+export async function getServiceOrderForReceipt(id: string) {
+  // Público — o ID da OS é o token de acesso, não requer autenticação
+  try {
+    const [order] = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
+    if (!order) return null
+    const items = await db.select().from(serviceOrderItems).where(eq(serviceOrderItems.serviceOrderId, id))
+    const [client] = await db.select().from(clients).where(eq(clients.id, order.clientId)).limit(1)
+    const [profile] = await db.select().from(businessProfile).where(eq(businessProfile.userId, order.userId)).limit(1)
+    return { ...order, items, client: client ?? null, profile: profile ?? null }
+  } catch {
+    return null
+  }
 }
 
 export async function deleteServiceOrder(id: string) {

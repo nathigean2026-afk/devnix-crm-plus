@@ -32,6 +32,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -51,6 +52,11 @@ import {
   ClipboardList,
   X,
   ExternalLink,
+  Send,
+  MessageCircle,
+  Mail,
+  Share2,
+  Receipt,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -96,14 +102,40 @@ const emptyForm = {
   internalNotes: "",
 }
 
+// Monta texto padrão para compartilhamento
+function buildShareText(order: ServiceOrder, clients: Client[], baseUrl: string): string {
+  const client = clients.find(c => c.id === order.clientId)
+  const url = `${baseUrl}/ordem-servico/${order.id}`
+  return `Olá${client ? ` ${client.name}` : ""}! Segue a sua Ordem de Serviço #${String(order.number).padStart(4, "0")}: *${order.title}*\nTotal: ${formatCurrency(order.total)}\n\nAcesse aqui: ${url}`
+}
+
+function buildReceiptText(order: ServiceOrder, clients: Client[], baseUrl: string): string {
+  const client = clients.find(c => c.id === order.clientId)
+  const url = `${baseUrl}/recibo/${order.id}`
+  return `Olá${client ? ` ${client.name}` : ""}! Segue o recibo do serviço *${order.title}* — Total: ${formatCurrency(order.total)}\n\nVeja o recibo: ${url}`
+}
+
+function getClientEmail(order: ServiceOrder, clients: Client[]): string {
+  return clients.find(c => c.id === order.clientId)?.email ?? ""
+}
+
+function getClientPhone(order: ServiceOrder, clients: Client[]): string {
+  const phone = clients.find(c => c.id === order.clientId)?.phone ?? ""
+  return phone.replace(/\D/g, "")
+}
+
 export function ServiceOrdersView({ initialOrders, clients, services }: ServiceOrdersViewProps) {
   const [orders, setOrders] = useState(initialOrders)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("todos")
   const [open, setOpen] = useState(false)
+  const [sendOpen, setSendOpen] = useState(false)
+  const [sendTarget, setSendTarget] = useState<{ order: ServiceOrder; type: "os" | "recibo" } | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<ServiceOrderItem[]>([])
   const [isPending, startTransition] = useTransition()
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
   const filtered = orders.filter((o) => {
     const matchSearch = o.title.toLowerCase().includes(search.toLowerCase())
@@ -176,7 +208,11 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     try {
       await updateServiceOrderStatus(id, status)
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
-      toast.success("Status atualizado!")
+      if (status === "concluido") {
+        toast.success("OS concluída! Receita lançada automaticamente no financeiro.")
+      } else {
+        toast.success("Status atualizado!")
+      }
     } catch {
       toast.error("Erro ao atualizar status")
     }
@@ -195,6 +231,46 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
 
   function getClientName(clientId: string) {
     return clients.find(c => c.id === clientId)?.name ?? clientId
+  }
+
+  function openSendDialog(order: ServiceOrder, type: "os" | "recibo") {
+    setSendTarget({ order, type })
+    setSendOpen(true)
+  }
+
+  function handleShareWhatsApp(order: ServiceOrder, type: "os" | "recibo") {
+    const text = type === "os"
+      ? buildShareText(order, clients, baseUrl)
+      : buildReceiptText(order, clients, baseUrl)
+    const phone = getClientPhone(order, clients)
+    const url = phone
+      ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`
+    window.open(url, "_blank")
+  }
+
+  function handleShareEmail(order: ServiceOrder, type: "os" | "recibo") {
+    const email = getClientEmail(order, clients)
+    const link = type === "os"
+      ? `${baseUrl}/ordem-servico/${order.id}`
+      : `${baseUrl}/recibo/${order.id}`
+    const subject = type === "os"
+      ? `Ordem de Serviço #${String(order.number).padStart(4, "0")} — ${order.title}`
+      : `Recibo — ${order.title}`
+    const body = type === "os"
+      ? `Olá!\n\nSegue a sua Ordem de Serviço.\n\nAcesse aqui: ${link}\n\nQualquer dúvida estou à disposição.`
+      : `Olá!\n\nSegue o recibo do serviço.\n\nAcesse aqui: ${link}\n\nObrigado pela preferência!`
+    window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`)
+  }
+
+  function handleShareTelegram(order: ServiceOrder, type: "os" | "recibo") {
+    const link = type === "os"
+      ? `${baseUrl}/ordem-servico/${order.id}`
+      : `${baseUrl}/recibo/${order.id}`
+    const text = type === "os"
+      ? `OS #${String(order.number).padStart(4, "0")}: ${order.title} — ${formatCurrency(order.total)}`
+      : `Recibo: ${order.title} — ${formatCurrency(order.total)}`
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, "_blank")
   }
 
   return (
@@ -284,14 +360,66 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                             <MoreHorizontal className="size-4" />
                             <span className="sr-only">Abrir menu</span>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover border-border">
+                          <DropdownMenuContent align="end" className="bg-popover border-border w-52">
                             <DropdownMenuItem asChild className="text-foreground cursor-pointer">
                               <a href={`/ordem-servico/${o.id}`} target="_blank" rel="noopener noreferrer">
                                 <ExternalLink className="size-4 mr-2" />
                                 Ver / Imprimir OS
                               </a>
                             </DropdownMenuItem>
-                            <Separator className="my-1 bg-border" />
+                            <DropdownMenuItem asChild className="text-foreground cursor-pointer">
+                              <a href={`/recibo/${o.id}`} target="_blank" rel="noopener noreferrer">
+                                <Receipt className="size-4 mr-2" />
+                                Ver Recibo
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
+                            {/* Envio da OS */}
+                            <DropdownMenuItem
+                              onClick={() => handleShareWhatsApp(o, "os")}
+                              className="text-foreground cursor-pointer"
+                            >
+                              <MessageCircle className="size-4 mr-2 text-green-500" />
+                              Enviar OS por WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleShareEmail(o, "os")}
+                              className="text-foreground cursor-pointer"
+                            >
+                              <Mail className="size-4 mr-2 text-blue-400" />
+                              Enviar OS por E-mail
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleShareTelegram(o, "os")}
+                              className="text-foreground cursor-pointer"
+                            >
+                              <Send className="size-4 mr-2 text-sky-400" />
+                              Enviar OS por Telegram
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
+                            {/* Envio do Recibo */}
+                            <DropdownMenuItem
+                              onClick={() => handleShareWhatsApp(o, "recibo")}
+                              className="text-foreground cursor-pointer"
+                            >
+                              <MessageCircle className="size-4 mr-2 text-green-500" />
+                              Enviar Recibo por WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleShareEmail(o, "recibo")}
+                              className="text-foreground cursor-pointer"
+                            >
+                              <Mail className="size-4 mr-2 text-blue-400" />
+                              Enviar Recibo por E-mail
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleShareTelegram(o, "recibo")}
+                              className="text-foreground cursor-pointer"
+                            >
+                              <Send className="size-4 mr-2 text-sky-400" />
+                              Enviar Recibo por Telegram
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
                             {Object.entries(statusConfig).map(([k, v]) => (
                               o.status !== k && (
                                 <DropdownMenuItem
@@ -303,7 +431,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                                 </DropdownMenuItem>
                               )
                             ))}
-                            <Separator className="my-1 bg-border" />
+                            <DropdownMenuSeparator className="bg-border" />
                             <DropdownMenuItem
                               onClick={() => handleDelete(o.id)}
                               className="text-destructive cursor-pointer focus:text-destructive"
@@ -327,12 +455,13 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="bg-card border-border text-foreground max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Nova Ordem de Serviço</DialogTitle>
+            <DialogTitle className="text-foreground text-xl">Nova Ordem de Serviço</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+            {/* Dados principais */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label className="text-foreground text-sm">Título *</Label>
+                <Label className="text-foreground text-sm font-medium">Título *</Label>
                 <Input
                   required
                   value={form.title}
@@ -342,7 +471,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                 />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label className="text-foreground text-sm">Cliente *</Label>
+                <Label className="text-foreground text-sm font-medium">Cliente *</Label>
                 <Select value={form.clientId} onValueChange={v => setForm({ ...form, clientId: v })}>
                   <SelectTrigger className="bg-input border-border text-foreground w-full">
                     <SelectValue placeholder="Selecione um cliente..." />
@@ -355,7 +484,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label className="text-foreground text-sm">Chave Pix (para esta OS)</Label>
+                <Label className="text-foreground text-sm font-medium">Chave Pix (para esta OS)</Label>
                 <Input
                   value={form.pixKey}
                   onChange={e => setForm({ ...form, pixKey: e.target.value })}
@@ -375,12 +504,12 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                 </Button>
               </div>
               {items.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4 border border-dashed border-border rounded-md">
+                <div className="text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg bg-muted/10">
                   Clique em &quot;Adicionar Item&quot; para começar
-                </p>
+                </div>
               )}
               {items.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-md p-3 bg-muted/20">
+                <div key={item.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-lg p-3 bg-muted/20">
                   <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
                     <Label className="text-muted-foreground text-xs">Serviço / Descrição</Label>
                     <Select
@@ -515,7 +644,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 border border-border rounded-md p-4 bg-muted/20">
+                <div className="flex flex-col gap-2 border border-border rounded-lg p-4 bg-muted/20">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="text-foreground">{formatCurrency(subtotal)}</span>
@@ -533,7 +662,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                   </div>
                   {form.cashPrice && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">A vista</span>
+                      <span className="text-muted-foreground">À vista</span>
                       <span className="text-green-400 font-semibold">{formatCurrency(form.cashPrice)}</span>
                     </div>
                   )}
@@ -555,7 +684,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
             {/* Observações */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label className="text-foreground text-sm">Observações (visíveis ao cliente)</Label>
+                <Label className="text-foreground text-sm font-medium">Observações (visíveis ao cliente)</Label>
                 <Textarea
                   value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })}
@@ -564,7 +693,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="text-foreground text-sm">Notas internas</Label>
+                <Label className="text-foreground text-sm font-medium">Notas internas</Label>
                 <Textarea
                   value={form.internalNotes}
                   onChange={e => setForm({ ...form, internalNotes: e.target.value })}
