@@ -7,8 +7,10 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
+import { Eye, EyeOff } from "lucide-react"
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up"
@@ -17,6 +19,8 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,14 +39,23 @@ export function AuthForm({ mode }: AuthFormProps) {
         const { error } = await authClient.signIn.email({
           email: form.email,
           password: form.password,
+          // expiresIn: 30 dias se "continuar conectado", senão sessão de navegador
+          fetchOptions: {
+            onSuccess: () => {
+              if (rememberMe) {
+                // persiste por 30 dias via cookie de longa duração
+                document.cookie = `devnix_remember=1; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=None; Secure`
+              }
+            },
+          },
         })
         if (error) throw new Error(error.message)
-        toast.success("Login realizado!")
+        toast.success("Login realizado com sucesso!")
       }
       router.push("/dashboard")
       router.refresh()
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Ocorreu um erro")
+      toast.error(err instanceof Error ? err.message : "Ocorreu um erro. Tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -98,6 +111,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   />
                 </div>
               )}
+
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email" className="text-foreground text-sm">E-mail</Label>
                 <Input
@@ -110,24 +124,66 @@ export function AuthForm({ mode }: AuthFormProps) {
                   className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
+
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="password" className="text-foreground text-sm">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required
-                  minLength={8}
-                  className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-foreground text-sm">Senha</Label>
+                  {mode === "sign-in" && (
+                    <a
+                      href="/esqueci-senha"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Esqueci minha senha
+                    </a>
+                  )}
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    required
+                    minLength={8}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </button>
+                </div>
               </div>
+
+              {mode === "sign-in" && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <Label
+                    htmlFor="remember"
+                    className="text-sm text-muted-foreground cursor-pointer select-none"
+                  >
+                    Continuar conectado por 30 dias
+                  </Label>
+                </div>
+              )}
 
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium mt-2"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium mt-1"
               >
                 {loading
                   ? "Aguarde..."
