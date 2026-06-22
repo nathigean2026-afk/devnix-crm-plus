@@ -173,10 +173,25 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     Configurações
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
-                  <div className="flex items-center justify-between px-2 py-1.5 cursor-default">
-                    <span className="text-sm text-foreground">Aparência</span>
-                    <ThemeToggle />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    if (mounted) setTheme(theme === "dark" ? "light" : "dark")
+                  }}
+                  className="flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    {mounted && theme === "dark" ? (
+                      <Moon className="size-4" />
+                    ) : (
+                      <Sun className="size-4" />
+                    )}
+                    <span className="text-sm">
+                      {mounted ? (theme === "dark" ? "Modo Escuro" : "Modo Claro") : "Aparência"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    Alternar
                   </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem
