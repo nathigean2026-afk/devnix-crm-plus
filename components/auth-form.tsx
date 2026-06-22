@@ -39,15 +39,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         const { error } = await authClient.signIn.email({
           email: form.email,
           password: form.password,
-          // expiresIn: 30 dias se "continuar conectado", senão sessão de navegador
-          fetchOptions: {
-            onSuccess: () => {
-              if (rememberMe) {
-                // persiste por 30 dias via cookie de longa duração
-                document.cookie = `devnix_remember=1; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=None; Secure`
-              }
-            },
-          },
+          rememberMe,
         })
         if (error) throw new Error(error.message)
         toast.success("Login realizado com sucesso!")

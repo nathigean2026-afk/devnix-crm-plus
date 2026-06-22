@@ -36,6 +36,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navItems = [
   {
@@ -165,6 +166,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     <Settings className="size-4" />
                     Configurações
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                  <div className="flex items-center justify-between px-2 py-1.5 cursor-default">
+                    <span className="text-sm text-foreground">Aparência</span>
+                    <ThemeToggle />
+                  </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleSignOut}

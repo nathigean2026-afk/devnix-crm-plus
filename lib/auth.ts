@@ -9,6 +9,11 @@ const getBaseURL = () => {
   return process.env.V0_RUNTIME_URL ?? "http://localhost:3000"
 }
 
+// Captura dinamicamente o host da v0 preview a partir do V0_RUNTIME_URL
+const v0RuntimeHost = process.env.V0_RUNTIME_URL
+  ? new URL(process.env.V0_RUNTIME_URL).origin
+  : undefined
+
 const trustedOrigins = [
   process.env.BETTER_AUTH_URL,
   process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -18,6 +23,7 @@ const trustedOrigins = [
     ? `https://${process.env.VERCEL_URL}`
     : undefined,
   process.env.V0_RUNTIME_URL,
+  v0RuntimeHost,
   "http://localhost:3000",
 ].filter(Boolean) as string[]
 
