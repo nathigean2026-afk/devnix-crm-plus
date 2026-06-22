@@ -9,11 +9,6 @@ const getBaseURL = () => {
   return process.env.V0_RUNTIME_URL ?? "http://localhost:3000"
 }
 
-// Captura dinamicamente o host da v0 preview a partir do V0_RUNTIME_URL
-const v0RuntimeHost = process.env.V0_RUNTIME_URL
-  ? new URL(process.env.V0_RUNTIME_URL).origin
-  : undefined
-
 const trustedOrigins = [
   process.env.BETTER_AUTH_URL,
   process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -23,8 +18,10 @@ const trustedOrigins = [
     ? `https://${process.env.VERCEL_URL}`
     : undefined,
   process.env.V0_RUNTIME_URL,
-  v0RuntimeHost,
   "http://localhost:3000",
+  // Suporta wildcard nativo do Better Auth para o preview iframe da v0
+  "https://*.vusercontent.net",
+  "https://*.vercel.app",
 ].filter(Boolean) as string[]
 
 export const auth = betterAuth({
@@ -34,12 +31,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  ...(process.env.NODE_ENV === "development" && {
-    advanced: {
-      defaultCookieAttributes: {
-        sameSite: "none",
-        secure: true,
-      },
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
     },
-  }),
+  },
 })
