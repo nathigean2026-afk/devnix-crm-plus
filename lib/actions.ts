@@ -403,14 +403,17 @@ export async function updateServiceOrderStatus(id: string, status: string) {
   if (status === "concluido") {
     const [order] = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
     if (order && Number(order.total) > 0) {
-      const [client] = await db.select().from(clients).where(eq(clients.id, order.clientId)).limit(1)
+      // Usa o menor valor disponível: à vista > total
+      const amountToRecord = order.cashPrice && Number(order.cashPrice) > 0
+        ? order.cashPrice
+        : order.total
       await db.insert(transactions).values({
         id: crypto.randomUUID(),
         userId,
         clientId: order.clientId,
         type: "receita",
         description: `OS #${String(order.number).padStart(4, "0")} — ${order.title}`,
-        amount: order.total,
+        amount: amountToRecord,
         category: "Serviço",
         status: "pago",
         paidAt: new Date().toISOString().split("T")[0],
@@ -421,6 +424,26 @@ export async function updateServiceOrderStatus(id: string, status: string) {
   }
 
   revalidatePath("/dashboard/ordens-servico")
+}
+
+export async function getClientHistory(clientId: string) {
+  const userId = await getUserId()
+  const orders = await db
+    .select()
+    .from(serviceOrders)
+    .where(and(eq(serviceOrders.userId, userId), eq(serviceOrders.clientId, clientId)))
+    .orderBy(desc(serviceOrders.createdAt))
+  const clientQuotes = await db
+    .select()
+    .from(quotes)
+    .where(and(eq(quotes.userId, userId), eq(quotes.clientId, clientId)))
+    .orderBy(desc(quotes.createdAt))
+  const txns = await db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.userId, userId), eq(transactions.clientId, clientId)))
+    .orderBy(desc(transactions.createdAt))
+  return { orders, quotes: clientQuotes, transactions: txns }
 }
 
 export async function getServiceOrderForReceipt(id: string) {

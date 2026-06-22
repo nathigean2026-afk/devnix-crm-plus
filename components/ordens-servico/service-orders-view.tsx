@@ -321,12 +321,68 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
               <p className="text-muted-foreground text-sm">Nenhuma ordem de serviço encontrada</p>
             </div>
           ) : (
+            <>
+              {/* Mobile: cards */}
+              <div className="flex flex-col divide-y divide-border md:hidden">
+                {filtered.map((o) => {
+                  const sc = statusConfig[o.status] ?? statusConfig.aberto
+                  return (
+                    <div key={o.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-mono text-muted-foreground">
+                            #{String(o.number).padStart(4, "0")}
+                          </span>
+                          <Badge className={`${sc.color} text-xs`}>{sc.label}</Badge>
+                        </div>
+                        <p className="font-medium text-foreground text-sm truncate">{o.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getClientName(o.clientId)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-foreground">{formatCurrency(o.total)}</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            <MoreHorizontal className="size-4" />
+                            <span className="sr-only">Menu</span>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover border-border w-52">
+                            <DropdownMenuItem asChild className="text-foreground cursor-pointer">
+                              <a href={`/ordem-servico/${o.id}`} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="size-4 mr-2" />Ver / Imprimir OS
+                              </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
+                            <DropdownMenuItem onClick={() => handleShareWhatsApp(o, "os")} className="text-foreground cursor-pointer">
+                              <MessageCircle className="size-4 mr-2 text-green-500" />Enviar por WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
+                            {Object.entries(statusConfig).map(([k, v]) => (
+                              o.status !== k && (
+                                <DropdownMenuItem key={k} onClick={() => handleStatusChange(o.id, k)} className="text-foreground cursor-pointer">
+                                  Marcar como {v.label}
+                                </DropdownMenuItem>
+                              )
+                            ))}
+                            <DropdownMenuSeparator className="bg-border" />
+                            <DropdownMenuItem onClick={() => handleDelete(o.id)} className="text-destructive cursor-pointer focus:text-destructive">
+                              <Trash2 className="size-4 mr-2" />Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Desktop: tabela */}
+              <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-muted-foreground">#</TableHead>
                   <TableHead className="text-muted-foreground">Título</TableHead>
-                  <TableHead className="text-muted-foreground hidden md:table-cell">Cliente</TableHead>
+                  <TableHead className="text-muted-foreground">Cliente</TableHead>
                   <TableHead className="text-muted-foreground">Total</TableHead>
                   <TableHead className="text-muted-foreground">Status</TableHead>
                   <TableHead className="text-muted-foreground hidden lg:table-cell">Data</TableHead>
@@ -342,7 +398,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                         #{String(o.number).padStart(4, "0")}
                       </TableCell>
                       <TableCell className="font-medium text-foreground">{o.title}</TableCell>
-                      <TableCell className="text-muted-foreground hidden md:table-cell">
+                      <TableCell className="text-muted-foreground">
                         {getClientName(o.clientId)}
                       </TableCell>
                       <TableCell className="font-semibold text-foreground">
@@ -447,6 +503,8 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                 })}
               </TableBody>
             </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
