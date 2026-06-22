@@ -147,29 +147,27 @@ function SidebarFooter({
   return (
     <div className="border-t border-sidebar-border p-2 shrink-0">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className={cn(
-              "flex items-center rounded-md text-sm text-sidebar-foreground w-full transition-colors",
-              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-              collapsed ? "justify-center p-1.5" : "gap-2 px-2 py-2"
-            )}
-          >
-            <Avatar className="size-8 shrink-0">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            {!collapsed && (
-              <>
-                <div className="flex flex-col flex-1 min-w-0 text-left">
-                  <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.name}</span>
-                  <span className="text-xs text-sidebar-foreground/60 truncate">{user.email}</span>
-                </div>
-                <ChevronDown className="size-3.5 shrink-0 text-sidebar-foreground/60" />
-              </>
-            )}
-          </button>
+        <DropdownMenuTrigger
+          className={cn(
+            "flex items-center rounded-md text-sm text-sidebar-foreground w-full transition-colors",
+            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            collapsed ? "justify-center p-1.5" : "gap-2 px-2 py-2"
+          )}
+        >
+          <Avatar className="size-8 shrink-0">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <>
+              <div className="flex flex-col flex-1 min-w-0 text-left">
+                <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.name}</span>
+                <span className="text-xs text-sidebar-foreground/60 truncate">{user.email}</span>
+              </div>
+              <ChevronDown className="size-3.5 shrink-0 text-sidebar-foreground/60" />
+            </>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align={collapsed ? "center" : "start"} className="w-56 bg-popover border-border">
           <DropdownMenuItem asChild>
@@ -215,7 +213,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
           alt="Devnix"
           width={32}
           height={32}
-          style={{ width: 32, height: "auto" }}
           className="object-contain"
         />
       </div>
