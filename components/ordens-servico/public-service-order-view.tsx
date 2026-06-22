@@ -37,53 +37,71 @@ function formatDateLong(dateStr: string | Date | null | undefined): string {
   return `${d.getUTCDate()} de ${months[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
 }
 
-// Sanitiza string para o payload Pix: apenas A-Z, 0-9 e espaço, máx N chars
+// Remove acentos e caracteres especiais — crítico para o payload Pix
 function sanitizePix(str: string, max: number): string {
   return str
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/[^A-Za-z0-9 ]/g, "")  // Remove caracteres especiais
-    .toUpperCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
     .trim()
+    .toUpperCase()
     .slice(0, max)
 }
 
-// Gera payload EMV Pix válido (compatível com Banco Central)
+// Remove tudo que não seja letra, número e os separadores permitidos no campo 01
+function cleanPixKey(key: string): string {
+  const k = key.trim()
+  // E-mail: mantém como está
+  if (k.includes("@")) return k
+  // Chave aleatória (UUID): mantém como está
+  if (/^[0-9a-f-]{36}$/i.test(k)) return k
+  // Telefone: mantém apenas +, dígitos
+  if (k.startsWith("+")) return k.replace(/[^\d+]/g, "")
+  // CPF/CNPJ: mantém apenas dígitos
+  return k.replace(/\D/g, "")
+}
+
+// Gera payload EMV Pix válido (Banco Central do Brasil)
 function buildPixPayload(pixKey: string, name: string, city: string, amount: number): string {
+  const cleanKey = cleanPixKey(pixKey)
+
   function tlv(id: string, value: string): string {
-    const len = value.length.toString().padStart(2, "0")
+    const len = String(value.length).padStart(2, "0")
     return `${id}${len}${value}`
   }
 
-  const merchantAccountInfo =
-    tlv("00", "BR.GOV.BCB.PIX") +
-    tlv("01", pixKey.trim())
-
+  const mai = tlv("00", "BR.GOV.BCB.PIX") + tlv("01", cleanKey)
   const merchantName = sanitizePix(name || "RECEBEDOR", 25)
   const merchantCity = sanitizePix(city || "BRASIL", 15)
   const amountStr = amount > 0 ? amount.toFixed(2) : ""
 
   let payload =
-    tlv("00", "01") +                          // Payload format indicator
-    tlv("26", merchantAccountInfo) +           // Merchant account info
-    tlv("52", "0000") +                        // MCC
-    tlv("53", "986") +                         // Currency BRL
-    (amountStr ? tlv("54", amountStr) : "") +  // Amount
-    tlv("58", "BR") +                          // Country
-    tlv("59", merchantName) +                  // Merchant name
-    tlv("60", merchantCity) +                  // Merchant city
-    tlv("62", tlv("05", "***"))                // Additional data
+    tlv("00", "01") +
+    tlv("26", mai) +
+    tlv("52", "0000") +
+    tlv("53", "986") +
+    (amountStr ? tlv("54", amountStr) : "") +
+    tlv("58", "BR") +
+    tlv("59", merchantName) +
+    tlv("60", merchantCity) +
+    tlv("62", tlv("05", "***"))
 
-  // CRC16/CCITT
   payload += "6304"
+
+  // CRC16-CCITT (XMODEM)
   let crc = 0xffff
   for (let i = 0; i < payload.length; i++) {
-    crc ^= payload.charCodeAt(i) << 8
+    crc ^= (payload.charCodeAt(i) << 8)
     for (let j = 0; j < 8; j++) {
-      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1)
-      crc &= 0xffff
+      if (crc & 0x8000) {
+        crc = ((crc << 1) ^ 0x1021) & 0xffff
+      } else {
+        crc = (crc << 1) & 0xffff
+      }
     }
   }
+
   return payload + crc.toString(16).toUpperCase().padStart(4, "0")
 }
 

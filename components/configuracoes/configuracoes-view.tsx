@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell } from "lucide-react"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 interface ConfiguracoesViewProps {
   user: { name: string; email: string; id: string }
@@ -24,6 +25,108 @@ const pixTypeLabels: Record<string, string> = {
   email: "E-mail",
   telefone: "Telefone",
   aleatoria: "Chave Aleatória",
+}
+
+// Simula dados de licença — substituir por dados reais do banco quando disponível
+function getLicenseInfo() {
+  // Hardcoded: licença de 30 dias a partir de hoje para demo
+  const createdAt = new Date()
+  createdAt.setDate(createdAt.getDate() - 5) // Iniciou 5 dias atrás
+  const expiresAt = new Date(createdAt)
+  expiresAt.setDate(expiresAt.getDate() + 30)
+  const now = new Date()
+  const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  return { expiresAt, daysLeft, plan: "Pro" }
+}
+
+function LicenseCard() {
+  const [alertEnabled, setAlertEnabled] = useState(false)
+  const { expiresAt, daysLeft, plan } = getLicenseInfo()
+
+  const expiryStr = expiresAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+  const isWarning = daysLeft <= 7
+  const isExpired = daysLeft <= 0
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-2">
+          <BadgeCheck className="size-5 text-primary" />
+          <CardTitle className="text-foreground text-lg">Licença</CardTitle>
+        </div>
+        <CardDescription className="text-muted-foreground">
+          Informações sobre sua assinatura ativa.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center justify-between py-3 border-b border-border">
+          <div>
+            <p className="text-sm font-medium text-foreground">Plano atual</p>
+            <p className="text-xs text-muted-foreground">Devnix CRM Plus — {plan}</p>
+          </div>
+          <span className="text-xs text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full font-medium">Ativo</span>
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-b border-border">
+          <div>
+            <p className="text-sm font-medium text-foreground">Validade</p>
+            <p className="text-xs text-muted-foreground">Expira em {expiryStr}</p>
+          </div>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+            isExpired
+              ? "bg-red-500/10 text-red-500"
+              : isWarning
+              ? "bg-yellow-500/10 text-yellow-600"
+              : "bg-blue-500/10 text-blue-600"
+          }`}>
+            {isExpired ? "Expirada" : `${daysLeft} dias restantes`}
+          </span>
+        </div>
+
+        {isWarning && !isExpired && (
+          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-3">
+            <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">
+              Sua licenca expira em {daysLeft} {daysLeft === 1 ? "dia" : "dias"}.
+            </p>
+            <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-0.5">
+              Renove agora para não perder o acesso ao sistema.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Bell className="size-4 text-muted-foreground" />
+              Alerta 7 dias antes do vencimento
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 ml-6">
+              {alertEnabled
+                ? "Voce receberá uma notificação quando faltarem 7 dias."
+                : "Ative para ser avisado antes de sua licença expirar."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={alertEnabled}
+            onClick={() => setAlertEnabled(!alertEnabled)}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+              alertEnabled ? "bg-primary" : "bg-muted-foreground/30"
+            )}
+          >
+            <span
+              className={cn(
+                "pointer-events-none inline-block size-4 rounded-full bg-white shadow transition-transform duration-200",
+                alertEnabled ? "translate-x-4" : "translate-x-0"
+              )}
+            />
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export function ConfiguracoesView({ user, profile }: ConfiguracoesViewProps) {
@@ -337,14 +440,17 @@ export function ConfiguracoesView({ user, profile }: ConfiguracoesViewProps) {
             </div>
             <span className="text-xs text-green-600 bg-green-500/10 px-2 py-1 rounded">Ativa</span>
           </div>
-          <div className="flex items-center justify-between py-3">
-            <div>
+          <div className="flex items-start justify-between py-3">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">ID da conta</p>
-              <p className="text-xs text-muted-foreground font-mono">{user.id.slice(0, 20)}...</p>
+              <p className="text-xs text-muted-foreground font-mono break-all select-all">{user.id}</p>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Licença */}
+      <LicenseCard />
 
       <div className="flex justify-end pb-4">
         <Button

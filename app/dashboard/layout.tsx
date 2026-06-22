@@ -2,8 +2,6 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
 
 export default async function DashboardLayout({
@@ -15,18 +13,16 @@ export default async function DashboardLayout({
   if (!session?.user) redirect("/sign-in")
 
   return (
-    <SidebarProvider>
+    <div className="flex h-screen overflow-hidden bg-background">
       <AppSidebar user={{ name: session.user.name, email: session.user.email }} />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/50 px-4">
-          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          <Separator orientation="vertical" className="h-4 bg-border" />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-card/50 px-6">
           <DashboardBreadcrumb />
         </header>
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   )
 }

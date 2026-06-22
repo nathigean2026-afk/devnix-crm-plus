@@ -13,25 +13,13 @@ import {
   Moon,
   Sun,
   ClipboardList,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { toast } from "sonner"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-  useSidebar,
-} from "@/components/ui/sidebar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,12 +61,12 @@ interface AppSidebarProps {
   user: { name: string; email: string }
 }
 
-function FooterUser({ user }: AppSidebarProps) {
+export function AppSidebar({ user }: AppSidebarProps) {
+  const pathname = usePathname()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const { state } = useSidebar()
-  const collapsed = state === "collapsed"
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -96,126 +84,141 @@ function FooterUser({ user }: AppSidebarProps) {
     .toUpperCase()
     .slice(0, 2)
 
-  const isDark = mounted ? theme === "dark" : true
+  const isDark = mounted ? theme === "dark" : false
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            "flex w-full items-center rounded-md px-2 py-2 text-sm text-sidebar-foreground outline-none",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring transition-colors",
-            collapsed ? "justify-center gap-0" : "gap-2"
-          )}
-        >
-          <Avatar className="size-8 shrink-0">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <>
-              <div className="flex flex-col flex-1 min-w-0 text-left">
-                <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.name}</span>
-                <span className="text-xs text-sidebar-foreground truncate">{user.email}</span>
-              </div>
-              <ChevronDown className="size-4 shrink-0 ml-auto" />
-            </>
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-56 bg-popover border-border">
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-2 cursor-pointer">
-            <Settings className="size-4" />
-            Configurações
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            if (mounted) setTheme(isDark ? "light" : "dark")
-          }}
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          <span suppressHydrationWarning>
-            {mounted ? (isDark ? "Mudar para Claro" : "Mudar para Escuro") : "Aparência"}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleSignOut}
-          className="flex items-center gap-2 text-destructive cursor-pointer focus:text-destructive"
-        >
-          <LogOut className="size-4" />
-          Sair
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-export function AppSidebar({ user }: AppSidebarProps) {
-  const pathname = usePathname()
-
-  return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-3 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="size-8 shrink-0 flex items-center justify-center">
-            <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-              alt="Devnix"
-              width={32}
-              height={32}
-              style={{ width: 32, height: "auto" }}
-              className="object-contain"
-            />
-          </div>
-          <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
-            <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight truncate">Devnix CRM Plus</p>
-            <p className="text-xs text-sidebar-foreground truncate">Soluções Web Inteligentes</p>
-          </div>
+    <aside
+      className={cn(
+        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-[width] duration-200 ease-in-out shrink-0",
+        collapsed ? "w-[60px]" : "w-[240px]"
+      )}
+    >
+      {/* Header */}
+      <div className={cn(
+        "flex items-center border-b border-sidebar-border shrink-0",
+        collapsed ? "justify-center px-0 py-3 h-[60px]" : "gap-3 px-4 py-3 h-[60px]"
+      )}>
+        <div className="size-8 shrink-0 flex items-center justify-center">
+          <Image
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
+            alt="Devnix"
+            width={32}
+            height={32}
+            style={{ width: 32, height: "auto" }}
+            className="object-contain"
+          />
         </div>
-      </SidebarHeader>
+        {!collapsed && (
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight truncate">Devnix CRM Plus</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">Soluções Web Inteligentes</p>
+          </div>
+        )}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="ml-auto shrink-0 size-7 rounded-md flex items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+        >
+          {collapsed
+            ? <PanelLeftOpen className="size-4" />
+            : <PanelLeftClose className="size-4" />
+          }
+        </button>
+      </div>
 
-      <SidebarContent className="py-2">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
         {navItems.map((group) => (
-          <SidebarGroup key={group.group}>
-            <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-              {group.group}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const isActive =
-                    item.href === "/dashboard"
-                      ? pathname === "/dashboard"
-                      : pathname.startsWith(item.href)
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                        <Link href={item.href}>
-                          <item.icon className="size-4 shrink-0" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <div key={group.group} className="mb-1">
+            {!collapsed && (
+              <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 select-none">
+                {group.group}
+              </p>
+            )}
+            {collapsed && <div className="mt-3" />}
+            <ul className="flex flex-col gap-0.5 px-2">
+              {group.items.map((item) => {
+                const isActive =
+                  item.href === "/dashboard"
+                    ? pathname === "/dashboard"
+                    : pathname.startsWith(item.href)
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={cn(
+                        "flex items-center rounded-md text-sm transition-colors w-full",
+                        collapsed ? "justify-center size-10 mx-auto" : "gap-3 px-3 py-2",
+                        isActive
+                          ? "bg-primary text-primary-foreground font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         ))}
-      </SidebarContent>
+      </nav>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <FooterUser user={user} />
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+      {/* Footer */}
+      <div className="border-t border-sidebar-border p-2 shrink-0">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                "flex items-center rounded-md text-sm text-sidebar-foreground w-full transition-colors",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                collapsed ? "justify-center p-1.5" : "gap-2 px-2 py-2"
+              )}
+            >
+              <Avatar className="size-8 shrink-0">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {!collapsed && (
+                <>
+                  <div className="flex flex-col flex-1 min-w-0 text-left">
+                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{user.name}</span>
+                    <span className="text-xs text-sidebar-foreground/60 truncate">{user.email}</span>
+                  </div>
+                  <ChevronDown className="size-3.5 shrink-0 text-sidebar-foreground/60" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align={collapsed ? "center" : "start"} className="w-56 bg-popover border-border">
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/configuracoes" className="flex items-center gap-2 cursor-pointer">
+                <Settings className="size-4" />
+                Configurações
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => { if (mounted) setTheme(isDark ? "light" : "dark") }}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              <span suppressHydrationWarning>
+                {mounted ? (isDark ? "Mudar para Claro" : "Mudar para Escuro") : "Aparência"}
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-destructive cursor-pointer focus:text-destructive"
+            >
+              <LogOut className="size-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </aside>
   )
 }
