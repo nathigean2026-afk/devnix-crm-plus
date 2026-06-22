@@ -298,7 +298,11 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                 <Label className="text-foreground text-sm">Cliente *</Label>
                 <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
                   <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Selecione..." />
+                    <SelectValue placeholder="Selecione...">
+                      {form.clientId
+                        ? (clients.find(c => c.id === form.clientId)?.name ?? "Selecione...")
+                        : "Selecione..."}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {clients.map((c) => (

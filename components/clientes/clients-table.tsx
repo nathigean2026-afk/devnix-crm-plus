@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient, updateClient, deleteClient, getClientHistory } from "@/lib/actions"
 import type { Client, Quote, ServiceOrder, Transaction } from "@/lib/db/schema"
 import { toast } from "sonner"
@@ -73,15 +73,16 @@ type ClientHistory = {
 
 function ClientHistoryPanel({ clientId }: { clientId: string }) {
   const [history, setHistory] = useState<ClientHistory | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  if (!history && !loading) {
+  useEffect(() => {
     setLoading(true)
+    setHistory(null)
     getClientHistory(clientId).then((data) => {
       setHistory(data)
       setLoading(false)
     })
-  }
+  }, [clientId])
 
   if (loading || !history) {
     return (
