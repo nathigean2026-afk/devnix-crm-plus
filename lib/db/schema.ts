@@ -135,6 +135,60 @@ export const transactions = pgTable("transactions", {
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
 
+export const businessProfile = pgTable("business_profile", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull().unique(),
+  name: text("name").notNull().default(""),
+  document: text("document"),
+  phone: text("phone"),
+  email: text("email"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  website: text("website"),
+  pixKey: text("pixKey"),
+  pixType: text("pixType").default("cpf"),
+  logo: text("logo"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const serviceOrders = pgTable("service_orders", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull(),
+  clientId: text("clientId").notNull(),
+  quoteId: text("quoteId"),
+  number: integer("number").notNull(),
+  title: text("title").notNull(),
+  status: text("status").notNull().default("aberto"),
+  pixKey: text("pixKey"),
+  pixType: text("pixType").default("cpf"),
+  subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull().default("0"),
+  discount: numeric("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+  discountType: text("discountType").default("valor"),
+  discountExpiry: date("discountExpiry"),
+  total: numeric("total", { precision: 10, scale: 2 }).notNull().default("0"),
+  cashPrice: numeric("cashPrice", { precision: 10, scale: 2 }),
+  cardPrice: numeric("cardPrice", { precision: 10, scale: 2 }),
+  cardInstallments: integer("cardInstallments").default(1),
+  notes: text("notes"),
+  internalNotes: text("internalNotes"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const serviceOrderItems = pgTable("service_order_items", {
+  id: text("id").primaryKey(),
+  serviceOrderId: text("serviceOrderId").notNull(),
+  serviceId: text("serviceId"),
+  description: text("description").notNull(),
+  quantity: numeric("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
+  unitPrice: numeric("unitPrice", { precision: 10, scale: 2 }).notNull().default("0"),
+  total: numeric("total", { precision: 10, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect
 export type Client = typeof clients.$inferSelect
@@ -142,3 +196,6 @@ export type Service = typeof services.$inferSelect
 export type Quote = typeof quotes.$inferSelect
 export type QuoteItem = typeof quoteItems.$inferSelect
 export type Transaction = typeof transactions.$inferSelect
+export type BusinessProfile = typeof businessProfile.$inferSelect
+export type ServiceOrder = typeof serviceOrders.$inferSelect
+export type ServiceOrderItem = typeof serviceOrderItems.$inferSelect

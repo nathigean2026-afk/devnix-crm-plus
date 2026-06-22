@@ -3,9 +3,12 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import {
+  businessProfile,
   clients,
   quoteItems,
   quotes,
+  serviceOrderItems,
+  serviceOrders,
   services,
   transactions,
 } from "@/lib/db/schema"
@@ -291,6 +294,121 @@ export async function deleteTransaction(id: string) {
     .delete(transactions)
     .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
   revalidatePath("/dashboard/financeiro")
+}
+
+// ── Business Profile ──────────────────────────────────────────────────────────
+export async function getBusinessProfile() {
+  const userId = await getUserId()
+  const rows = await db.select().from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+  return rows[0] ?? null
+}
+
+export async function upsertBusinessProfile(data: {
+  name?: string
+  document?: string
+  phone?: string
+  email?: string
+  address?: string
+  city?: string
+  state?: string
+  website?: string
+  pixKey?: string
+  pixType?: string
+  logo?: string
+}) {
+  const userId = await getUserId()
+  const existing = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+  if (existing[0]) {
+    await db.update(businessProfile).set({ ...data, updatedAt: new Date() }).where(eq(businessProfile.userId, userId))
+  } else {
+    await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId, name: data.name ?? "", ...data })
+  }
+  revalidatePath("/dashboard/configuracoes")
+}
+
+// ── Service Orders ────────────────────────────────────────────────────────────
+export async function getServiceOrders() {
+  const userId = await getUserId()
+  return db.select().from(serviceOrders).where(eq(serviceOrders.userId, userId)).orderBy(desc(serviceOrders.createdAt))
+}
+
+export async function getNextServiceOrderNumber(userId: string) {
+  const result = await db.select({ max: sql<number>`COALESCE(MAX(number), 0)` }).from(serviceOrders).where(eq(serviceOrders.userId, userId))
+  return (result[0]?.max ?? 0) + 1
+}
+
+export async function createServiceOrder(data: {
+  clientId: string
+  quoteId?: string
+  title: string
+  pixKey?: string
+  pixType?: string
+  subtotal: string
+  discount: string
+  discountType?: string
+  discountExpiry?: string
+  total: string
+  cashPrice?: string
+  cardPrice?: string
+  cardInstallments?: number
+  notes?: string
+  internalNotes?: string
+  items: { serviceId?: string; description: string; quantity: string; unitPrice: string; total: string }[]
+}) {
+  const userId = await getUserId()
+  const number = await getNextServiceOrderNumber(userId)
+  const orderId = crypto.randomUUID()
+
+  await db.insert(serviceOrders).values({
+    id: orderId,
+    userId,
+    clientId: data.clientId,
+    quoteId: data.quoteId,
+    number,
+    title: data.title,
+    pixKey: data.pixKey,
+    pixType: data.pixType,
+    subtotal: data.subtotal,
+    discount: data.discount,
+    discountType: data.discountType,
+    discountExpiry: data.discountExpiry,
+    total: data.total,
+    cashPrice: data.cashPrice,
+    cardPrice: data.cardPrice,
+    cardInstallments: data.cardInstallments,
+    notes: data.notes,
+    internalNotes: data.internalNotes,
+  })
+
+  if (data.items.length > 0) {
+    await db.insert(serviceOrderItems).values(data.items.map(item => ({ id: crypto.randomUUID(), serviceOrderId: orderId, ...item })))
+  }
+
+  revalidatePath("/dashboard/ordens-servico")
+  return orderId
+}
+
+export async function updateServiceOrderStatus(id: string, status: string) {
+  const userId = await getUserId()
+  await db.update(serviceOrders).set({ status, updatedAt: new Date(), ...(status === "concluido" ? { completedAt: new Date() } : {}) }).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, userId)))
+  revalidatePath("/dashboard/ordens-servico")
+}
+
+export async function deleteServiceOrder(id: string) {
+  const userId = await getUserId()
+  await db.delete(serviceOrderItems).where(eq(serviceOrderItems.serviceOrderId, id))
+  await db.delete(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, userId)))
+  revalidatePath("/dashboard/ordens-servico")
+}
+
+export async function getServiceOrderWithItems(id: string) {
+  // Public — no auth required: the order ID is the access token
+  const order = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
+  if (!order[0]) return null
+  const items = await db.select().from(serviceOrderItems).where(eq(serviceOrderItems.serviceOrderId, id))
+  const client = await db.select().from(clients).where(eq(clients.id, order[0].clientId)).limit(1)
+  const profile = await db.select().from(businessProfile).where(eq(businessProfile.userId, order[0].userId)).limit(1)
+  return { ...order[0], items, client: client[0] ?? null, profile: profile[0] ?? null }
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────

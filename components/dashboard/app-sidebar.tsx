@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Moon,
   Sun,
+  ClipboardList,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -55,6 +56,7 @@ const navItems = [
     items: [
       { href: "/dashboard/servicos", label: "Serviços", icon: Wrench },
       { href: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
+      { href: "/dashboard/ordens-servico", label: "Ordens de Serviço", icon: ClipboardList },
     ],
   },
   {
