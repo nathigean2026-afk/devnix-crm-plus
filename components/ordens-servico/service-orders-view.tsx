@@ -341,25 +341,25 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                   className="bg-input border-border text-foreground"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <Label className="text-foreground text-sm">Cliente *</Label>
                 <Select value={form.clientId} onValueChange={v => setForm({ ...form, clientId: v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger className="bg-input border-border text-foreground w-full">
+                    <SelectValue placeholder="Selecione um cliente..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
+                  <SelectContent className="bg-popover border-border max-h-60">
                     {clients.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <Label className="text-foreground text-sm">Chave Pix (para esta OS)</Label>
                 <Input
                   value={form.pixKey}
                   onChange={e => setForm({ ...form, pixKey: e.target.value })}
-                  placeholder="Deixe em branco para usar a chave padrão"
+                  placeholder="Deixe em branco para usar a chave padrão das Configurações"
                   className="bg-input border-border text-foreground"
                 />
               </div>
