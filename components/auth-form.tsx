@@ -34,7 +34,10 @@ export function AuthForm({ mode }: AuthFormProps) {
           password: form.password,
         })
         if (error) throw new Error(error.message)
-        toast.success("Conta criada com sucesso!")
+        toast.success("Conta criada com sucesso! Escolha seu plano para continuar.")
+        router.push("/planos")
+        router.refresh()
+        return
       } else {
         const { error } = await authClient.signIn.email({
           email: form.email,

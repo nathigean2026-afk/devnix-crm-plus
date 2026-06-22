@@ -11,15 +11,47 @@ import {
   serviceOrders,
   services,
   transactions,
+  user,
 } from "@/lib/db/schema"
 import { and, desc, eq, like, sql } from "drizzle-orm"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 async function getUserId() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) throw new Error("Não autorizado")
   return session.user.id
+}
+
+// ── Licenca ───────────────────────────────────────────────────────────────────
+
+export async function getUserLicense() {
+  const userId = await getUserId()
+  const [u] = await db
+    .select({ accessExpiresAt: user.accessExpiresAt })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1)
+  const now = new Date()
+  const expiresAt = u?.accessExpiresAt ?? null
+  const isActive = expiresAt ? expiresAt > now : false
+  const daysLeft = expiresAt
+    ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0
+  return { isActive, expiresAt, daysLeft }
+}
+
+export async function activateLicense(plan: "7d" | "30d" | "1y") {
+  const userId = await getUserId()
+  const now = new Date()
+  const expiresAt = new Date(now)
+  if (plan === "7d") expiresAt.setDate(expiresAt.getDate() + 7)
+  else if (plan === "30d") expiresAt.setDate(expiresAt.getDate() + 30)
+  else expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+  await db.update(user).set({ accessExpiresAt: expiresAt }).where(eq(user.id, userId))
+  revalidatePath("/dashboard")
+  redirect("/dashboard")
 }
 
 // ── Clients ──────────────────────────────────────────────────────────────────
@@ -506,7 +538,7 @@ export async function getServiceOrderWithItems(id: string) {
   return { ...order[0], items, client: client[0] ?? null, profile: profile[0] ?? null }
 }
 
-// ── Reports ───────────────────────────────────────────────────────────────────
+// ── Reports ────────────────────────────────────────���──────────────────────────
 export async function getReportData() {
   const userId = await getUserId()
 

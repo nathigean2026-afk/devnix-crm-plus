@@ -3,6 +3,9 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
+import { db } from "@/lib/db"
+import { user } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +14,17 @@ export default async function DashboardLayout({
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect("/sign-in")
+
+  // Verifica licenca ativa
+  const [u] = await db
+    .select({ accessExpiresAt: user.accessExpiresAt })
+    .from(user)
+    .where(eq(user.id, session.user.id))
+    .limit(1)
+
+  const now = new Date()
+  const isLicenseActive = u?.accessExpiresAt ? u.accessExpiresAt > now : false
+  if (!isLicenseActive) redirect("/planos")
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

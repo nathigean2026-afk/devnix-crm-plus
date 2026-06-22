@@ -14,9 +14,16 @@ import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, Badg
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
+interface LicenseInfo {
+  isActive: boolean
+  expiresAt: Date | null
+  daysLeft: number
+}
+
 interface ConfiguracoesViewProps {
   user: { name: string; email: string; id: string }
   profile: BusinessProfile | null
+  license: LicenseInfo
 }
 
 const pixTypeLabels: Record<string, string> = {
@@ -27,25 +34,15 @@ const pixTypeLabels: Record<string, string> = {
   aleatoria: "Chave Aleatória",
 }
 
-// Simula dados de licença — substituir por dados reais do banco quando disponível
-function getLicenseInfo() {
-  // Hardcoded: licença de 30 dias a partir de hoje para demo
-  const createdAt = new Date()
-  createdAt.setDate(createdAt.getDate() - 5) // Iniciou 5 dias atrás
-  const expiresAt = new Date(createdAt)
-  expiresAt.setDate(expiresAt.getDate() + 30)
-  const now = new Date()
-  const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  return { expiresAt, daysLeft, plan: "Pro" }
-}
-
-function LicenseCard() {
+function LicenseCard({ license }: { license: LicenseInfo }) {
   const [alertEnabled, setAlertEnabled] = useState(false)
-  const { expiresAt, daysLeft, plan } = getLicenseInfo()
+  const { expiresAt, daysLeft, isActive } = license
 
-  const expiryStr = expiresAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
-  const isWarning = daysLeft <= 7
-  const isExpired = daysLeft <= 0
+  const expiryStr = expiresAt
+    ? expiresAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+    : "—"
+  const isWarning = isActive && daysLeft <= 7
+  const isExpired = !isActive
 
   return (
     <Card className="bg-card border-border">
@@ -94,6 +91,19 @@ function LicenseCard() {
           </div>
         )}
 
+        <div className="flex items-center justify-between py-3 border-b border-border">
+          <div>
+            <p className="text-sm font-medium text-foreground">Renovar licenca</p>
+            <p className="text-xs text-muted-foreground">Adquira mais dias de acesso.</p>
+          </div>
+          <a
+            href="/planos?renovar=1"
+            className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-medium hover:bg-primary/90 transition-colors"
+          >
+            Ver planos
+          </a>
+        </div>
+
         <div className="flex items-center justify-between py-2">
           <div>
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -129,7 +139,7 @@ function LicenseCard() {
   )
 }
 
-export function ConfiguracoesView({ user, profile }: ConfiguracoesViewProps) {
+export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewProps) {
   const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -450,7 +460,7 @@ export function ConfiguracoesView({ user, profile }: ConfiguracoesViewProps) {
       </Card>
 
       {/* Licença */}
-      <LicenseCard />
+      <LicenseCard license={license} />
 
       <div className="flex justify-end pb-4">
         <Button
