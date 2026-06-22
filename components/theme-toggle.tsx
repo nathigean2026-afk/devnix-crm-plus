@@ -13,13 +13,7 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" className="size-8" aria-label="Alternar tema">
-        <Sun className="size-4" />
-      </Button>
-    )
-  }
+  if (!mounted) return null
 
   return (
     <Button

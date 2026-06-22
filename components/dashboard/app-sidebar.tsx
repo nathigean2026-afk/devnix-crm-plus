@@ -9,6 +9,8 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Moon,
+  Sun,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -36,7 +38,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 const navItems = [
   {
@@ -68,6 +71,9 @@ interface AppSidebarProps {
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   const handleSignOut = async () => {
     await authClient.signOut()
