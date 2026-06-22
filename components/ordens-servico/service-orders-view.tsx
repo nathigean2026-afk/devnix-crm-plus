@@ -134,6 +134,8 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<ServiceOrderItem[]>([])
   const [isPending, startTransition] = useTransition()
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [pendingConclude, setPendingConclude] = useState<{ id: string; hasCash: boolean; hasCard: boolean } | null>(null)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
@@ -204,18 +206,38 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     })
   }
 
-  async function handleStatusChange(id: string, status: string) {
+  function handleStatusChange(id: string, status: string) {
+    if (status === "concluido") {
+      // Intercepta para perguntar forma de pagamento
+      const order = orders.find(o => o.id === id)
+      const hasCash = !!(order?.cashPrice && Number(order.cashPrice) > 0)
+      const hasCard = !!(order?.cardPrice && Number(order.cardPrice) > 0)
+      setPendingConclude({ id, hasCash, hasCard })
+      setPaymentModalOpen(true)
+      return
+    }
+    confirmStatusChange(id, status, undefined)
+  }
+
+  async function confirmStatusChange(id: string, status: string, paymentMethod: "cash" | "card" | "other" | undefined) {
     try {
-      await updateServiceOrderStatus(id, status)
+      await updateServiceOrderStatus(id, status, paymentMethod)
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
       if (status === "concluido") {
-        toast.success("OS concluída! Receita lançada automaticamente no financeiro.")
+        toast.success("OS concluida! Receita lancada automaticamente no financeiro.")
       } else {
         toast.success("Status atualizado!")
       }
     } catch {
       toast.error("Erro ao atualizar status")
     }
+  }
+
+  function handlePaymentChoice(method: "cash" | "card" | "other") {
+    if (!pendingConclude) return
+    setPaymentModalOpen(false)
+    confirmStatusChange(pendingConclude.id, "concluido", method)
+    setPendingConclude(null)
   }
 
   async function handleDelete(id: string) {
@@ -779,6 +801,60 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: forma de pagamento ao concluir OS */}
+      <Dialog open={paymentModalOpen} onOpenChange={(v) => { if (!v) { setPaymentModalOpen(false); setPendingConclude(null) } }}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Como foi realizado o pagamento?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Selecione a forma de pagamento para registrar o valor correto no financeiro.
+          </p>
+          <div className="flex flex-col gap-3 mt-2">
+            {pendingConclude?.hasCash && (
+              <button
+                onClick={() => handlePaymentChoice("cash")}
+                className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 px-4 py-3 text-left transition-colors"
+              >
+                <div className="size-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-green-400 text-sm font-bold">$</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">A vista / Pix</p>
+                  <p className="text-xs text-muted-foreground">Sera lancado o valor a vista</p>
+                </div>
+              </button>
+            )}
+            {pendingConclude?.hasCard && (
+              <button
+                onClick={() => handlePaymentChoice("card")}
+                className="flex items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-3 text-left transition-colors"
+              >
+                <div className="size-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-blue-400 text-sm font-bold">CC</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Cartao de credito</p>
+                  <p className="text-xs text-muted-foreground">Sera lancado o valor do cartao</p>
+                </div>
+              </button>
+            )}
+            <button
+              onClick={() => handlePaymentChoice("other")}
+              className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 px-4 py-3 text-left transition-colors"
+            >
+              <div className="size-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <span className="text-muted-foreground text-sm font-bold">?</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Outro / Total</p>
+                <p className="text-xs text-muted-foreground">Usa o valor total da OS</p>
+              </div>
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
