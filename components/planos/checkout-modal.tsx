@@ -86,7 +86,7 @@ export function CheckoutModal({ planId, planName, onClose }: CheckoutModalProps)
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 shrink-0">
           <p className="text-xs text-gray-400 text-center">
-            Pagamento processado com seguranca pelo Stripe. Suportamos cartao de credito e Pix.
+            Pagamento processado com seguranca pelo Stripe. Aceitamos cartao de credito.
           </p>
         </div>
       </div>

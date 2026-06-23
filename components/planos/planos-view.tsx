@@ -230,7 +230,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         </div>
 
         <p className="mt-8 text-xs text-muted-foreground text-center max-w-sm text-pretty">
-          Pagamento 100% seguro via Stripe. Aceitamos cartao de credito e Pix. Apos confirmacao do pagamento, sua licenca e ativada automaticamente.
+          Pagamento 100% seguro via Stripe. Aceitamos cartao de credito. Apos confirmacao do pagamento, sua licenca e ativada automaticamente.
         </p>
       </main>
 
