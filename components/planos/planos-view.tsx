@@ -16,9 +16,9 @@ interface PlanosViewProps {
 const plans = [
   {
     id: "7d" as const,
-    label: "Teste",
+    label: "Start",
     duration: "7 dias",
-    price: "R$ 19,90",
+    price: "R$ 7,00",
     period: "por 7 dias",
     description: "Ideal para conhecer a plataforma sem compromisso.",
     icon: Zap,
@@ -34,9 +34,9 @@ const plans = [
   },
   {
     id: "30d" as const,
-    label: "Mensal",
+    label: "Business",
     duration: "30 dias",
-    price: "R$ 49,90",
+    price: "R$ 24,00",
     period: "por mes",
     description: "Para profissionais que precisam de controle mensal.",
     icon: CalendarDays,
@@ -53,9 +53,9 @@ const plans = [
   },
   {
     id: "1y" as const,
-    label: "Anual",
+    label: "Enterprise",
     duration: "1 ano",
-    price: "R$ 399,90",
+    price: "R$ 260,00",
     period: "por ano",
     description: "Melhor custo-beneficio para uso continuo.",
     icon: CalendarRange,
@@ -66,7 +66,7 @@ const plans = [
       "Orcamentos e financeiro",
       "Relatorios completos",
       "Suporte VIP",
-      "Economia de R$ 198,90",
+      "Economia de R$ 28,00 vs mensal",
     ],
     highlight: false,
     badge: "Melhor valor",
@@ -214,7 +214,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
 
                 {/* CTA */}
                 <button
-                  onClick={() => setCheckoutPlan({ id: plan.id, name: `${plan.label} — ${plan.price}` })}
+                  onClick={() => setCheckoutPlan({ id: plan.id, name: `Plano ${plan.label} — ${plan.price}` })}
                   className={cn(
                     "w-full py-2.5 rounded-lg text-sm font-semibold transition-all",
                     plan.highlight

@@ -12,23 +12,23 @@ export interface LicensePlan {
 export const LICENSE_PLANS: LicensePlan[] = [
   {
     id: "7d",
-    name: "Devnix CRM Plus — Teste (7 dias)",
+    name: "Devnix CRM Plus — Start",
     description: "Acesso completo por 7 dias",
-    priceInCents: 1990, // R$ 19,90
+    priceInCents: 700, // R$ 7,00
     durationDays: 7,
   },
   {
     id: "30d",
-    name: "Devnix CRM Plus — Mensal",
+    name: "Devnix CRM Plus — Business",
     description: "Acesso completo por 30 dias",
-    priceInCents: 4990, // R$ 49,90
+    priceInCents: 2400, // R$ 24,00
     durationDays: 30,
   },
   {
     id: "1y",
-    name: "Devnix CRM Plus — Anual",
+    name: "Devnix CRM Plus — Enterprise",
     description: "Acesso completo por 12 meses",
-    priceInCents: 39990, // R$ 399,90
+    priceInCents: 26000, // R$ 260,00
     durationDays: 365,
   },
 ]

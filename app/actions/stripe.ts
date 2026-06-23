@@ -20,7 +20,9 @@ export async function startCheckoutSession(planId: string): Promise<string> {
   const checkoutSession = await stripe.checkout.sessions.create({
     ui_mode: "embedded",
     redirect_on_completion: "never",
-    payment_method_types: ["card", "pix"],
+    // Deixar o Stripe gerenciar automaticamente os metodos de pagamento disponiveis
+    // (cartao de credito, Pix, etc.) conforme configurado no Dashboard
+    automatic_payment_methods: { enabled: true },
     currency: "brl",
     line_items: [
       {
