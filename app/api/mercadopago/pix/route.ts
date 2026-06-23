@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
     }
 
     const pixData = result?.point_of_interaction?.transaction_data
-    console.log("[v0] pixData qr_code:", !!pixData?.qr_code, "qr_code_base64:", !!pixData?.qr_code_base64, "len:", pixData?.qr_code_base64?.length ?? 0)
 
     return NextResponse.json({
       paymentId: result.id,
