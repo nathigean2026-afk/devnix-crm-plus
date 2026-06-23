@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { activateLicense } from "@/lib/actions"
-import { toast } from "sonner"
+import { useState } from "react"
 import Image from "next/image"
 import { Check, Zap, CalendarDays, CalendarRange, LogOut } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { CheckoutModal } from "./checkout-modal"
 
 interface PlanosViewProps {
   user: { name: string; email: string }
@@ -76,20 +75,7 @@ const plans = [
 
 export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  const [selectedPlan, setSelectedPlan] = useState<"7d" | "30d" | "1y" | null>(null)
-
-  function handleActivate(planId: "7d" | "30d" | "1y") {
-    setSelectedPlan(planId)
-    startTransition(async () => {
-      try {
-        await activateLicense(planId)
-      } catch {
-        toast.error("Erro ao ativar licenca. Tente novamente.")
-        setSelectedPlan(null)
-      }
-    })
-  }
+  const [checkoutPlan, setCheckoutPlan] = useState<{ id: string; name: string } | null>(null)
 
   async function handleSignOut() {
     await authClient.signOut()
@@ -132,7 +118,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         <div className="text-center mb-10 md:mb-14 max-w-lg">
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1.5 rounded-full mb-4">
             <span className="size-1.5 rounded-full bg-primary" />
-            Ative sua licenca para comecar
+            {isRenovar ? "Renovacao de licenca" : "Ative sua licenca para comecar"}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance leading-tight">
             {isRenovar ? "Renovar sua licenca" : "Escolha o plano ideal para o seu negocio"}
@@ -142,13 +128,26 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
               ? "Renove sua licenca para continuar usando todas as funcionalidades."
               : "Acesso completo a todas as funcionalidades. Cancele quando quiser."}
           </p>
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-green-500" />
+              Cartao de credito
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-green-500" />
+              Pix
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-blue-500" />
+              Pagamento seguro
+            </div>
+          </div>
         </div>
 
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
           {plans.map((plan) => {
             const Icon = plan.icon
-            const isLoading = isPending && selectedPlan === plan.id
             return (
               <div
                 key={plan.id}
@@ -177,7 +176,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                     "size-9 rounded-lg flex items-center justify-center",
                     plan.highlight ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                   )}>
-                    <Icon className="size-4.5" />
+                    <Icon className="size-4" />
                   </div>
                   <div>
                     <p className="font-semibold text-foreground text-sm">{plan.label}</p>
@@ -215,16 +214,15 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
 
                 {/* CTA */}
                 <button
-                  onClick={() => handleActivate(plan.id)}
-                  disabled={isPending}
+                  onClick={() => setCheckoutPlan({ id: plan.id, name: `${plan.label} — ${plan.price}` })}
                   className={cn(
                     "w-full py-2.5 rounded-lg text-sm font-semibold transition-all",
                     plan.highlight
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-                      : "bg-muted text-foreground hover:bg-muted/80 border border-border disabled:opacity-60"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-foreground hover:bg-muted/80 border border-border"
                   )}
                 >
-                  {isLoading ? "Ativando..." : `Ativar por ${plan.price}`}
+                  Pagar {plan.price}
                 </button>
               </div>
             )
@@ -232,9 +230,18 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         </div>
 
         <p className="mt-8 text-xs text-muted-foreground text-center max-w-sm text-pretty">
-          Ao ativar um plano, voce concorda com os termos de uso. Os valores sao cobrados no ato da ativacao.
+          Pagamento 100% seguro via Stripe. Aceitamos cartao de credito e Pix. Apos confirmacao do pagamento, sua licenca e ativada automaticamente.
         </p>
       </main>
+
+      {/* Modal de checkout Stripe */}
+      {checkoutPlan && (
+        <CheckoutModal
+          planId={checkoutPlan.id}
+          planName={checkoutPlan.name}
+          onClose={() => setCheckoutPlan(null)}
+        />
+      )}
     </div>
   )
 }
