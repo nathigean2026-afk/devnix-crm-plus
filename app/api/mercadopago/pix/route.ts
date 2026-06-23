@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
     const payment = new Payment(client)
 
     const baseUrl = req.nextUrl.origin
+    // notification_url so e valida quando e uma URL HTTPS publica (producao)
+    // Em preview/localhost o MP rejeita com erro 4020
+    const isPublicUrl = baseUrl.startsWith("https://") && !baseUrl.includes("localhost")
 
     const result = await payment.create({
       body: {
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
           first_name: session.user.name?.split(" ")[0] ?? "Cliente",
           last_name: session.user.name?.split(" ").slice(1).join(" ") ?? "",
         },
-        notification_url: `${baseUrl}/api/mercadopago/webhook`,
+        ...(isPublicUrl ? { notification_url: `${baseUrl}/api/mercadopago/webhook` } : {}),
         metadata: {
           user_id: session.user.id,
           plan_id: plan.id,
