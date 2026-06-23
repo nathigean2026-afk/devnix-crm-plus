@@ -51,9 +51,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true })
 }
 
-// Desabilita o body parser padrao do Next.js — Stripe precisa do body bruto para verificar assinatura
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
+// No App Router, lemos o body como texto manualmente (req.text())
+// A config de bodyParser do Pages Router nao se aplica aqui
+export const dynamic = "force-dynamic"
