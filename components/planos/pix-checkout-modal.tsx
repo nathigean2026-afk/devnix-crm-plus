@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { QRCodeSVG } from "qrcode.react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Copy, CheckCircle2, Loader2, RefreshCw, X, ShieldCheck } from "lucide-react"
@@ -21,17 +22,12 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
   const router = useRouter()
   const [state, setState] = useState<PixState>("loading")
   const [qrCode, setQrCode] = useState<string>("")
-  const [qrCodeBase64, setQrCodeBase64] = useState<string>("")
-  const [qrCodeBlobUrl, setQrCodeBlobUrl] = useState<string>("")
   const [paymentId, setPaymentId] = useState<string>("")
   const [copied, setCopied] = useState(false)
 
   const generatePix = useCallback(async () => {
     setState("loading")
     setQrCode("")
-    setQrCodeBase64("")
-    // Revoga o Blob URL anterior para evitar memory leak
-    setQrCodeBlobUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return "" })
     setPaymentId("")
     try {
       const res = await fetch("/api/mercadopago/pix", {
@@ -41,18 +37,8 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao gerar Pix")
+      // Usa o qrCode (string copia-cola) para gerar o QR Code SVG no cliente
       setQrCode(data.qrCode ?? "")
-      setQrCodeBase64(data.qrCodeBase64 ?? "")
-
-      // Converte base64 em Blob URL para evitar bloqueio de CSP com data: URIs
-      if (data.qrCodeBase64) {
-        const byteChars = atob(data.qrCodeBase64)
-        const bytes = new Uint8Array(byteChars.length)
-        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i)
-        const blob = new Blob([bytes], { type: "image/png" })
-        setQrCodeBlobUrl(URL.createObjectURL(blob))
-      }
-
       setPaymentId(String(data.paymentId))
       setState("ready")
     } catch {
@@ -159,18 +145,17 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
           )}
 
           {/* QR Code pronto */}
-          {(state === "ready" || state === "polling") && qrCodeBlobUrl && (
+          {(state === "ready" || state === "polling") && qrCode && (
             <div className="flex flex-col items-center gap-4">
-              {/* QR Code com borda limpa */}
+              {/* QR Code SVG gerado no cliente a partir da string copia-cola */}
               <div className="relative">
                 <div className="rounded-2xl border border-border bg-white p-4 shadow-lg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={qrCodeBlobUrl}
-                    alt="QR Code Pix"
-                    width={176}
-                    height={176}
-                    className="block"
+                  <QRCodeSVG
+                    value={qrCode}
+                    size={176}
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    level="M"
                   />
                 </div>
                 {state === "polling" && (
