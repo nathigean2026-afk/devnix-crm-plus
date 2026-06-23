@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import MercadoPagoConfig, { Payment } from "mercadopago"
 
 export const dynamic = "force-dynamic"
 
@@ -10,16 +9,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const client = new MercadoPagoConfig({
-      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+      },
+      next: { revalidate: 0 },
     })
 
-    const paymentClient = new Payment(client)
-    const payment = await paymentClient.get({ id: paymentId })
-
-    return NextResponse.json({ status: payment.status })
+    const data = await res.json()
+    return NextResponse.json({ status: data.status ?? "unknown" })
   } catch (err) {
-    console.error("[MP Status]", err)
+    console.error("[v0] MP Status erro:", err)
     return NextResponse.json({ error: "Erro ao consultar status" }, { status: 500 })
   }
 }
