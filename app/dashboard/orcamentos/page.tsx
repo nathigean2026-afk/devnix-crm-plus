@@ -2,6 +2,7 @@ import { getQuotes, getClients, getServices } from "@/lib/actions"
 import { QuotesView } from "@/components/orcamentos/quotes-view"
 import type { Metadata } from "next"
 
+export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Orçamentos" }
 
 export default async function OrcamentosPage() {

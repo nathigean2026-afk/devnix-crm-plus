@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { createQuote, updateQuoteStatus, deleteQuote } from "@/lib/actions"
 import type { Client, Quote, Service } from "@/lib/db/schema"
 import { toast } from "sonner"
@@ -51,6 +52,7 @@ const emptyForm = {
 }
 
 export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps) {
+  const router = useRouter()
   const [quotes, setQuotes] = useState(initialQuotes)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("todos")
@@ -58,8 +60,32 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
+  const prevQuotesRef = useRef(initialQuotes)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  // Sincroniza estado local quando o servidor retorna dados novos (ex: após polling)
+  useEffect(() => {
+    const prev = prevQuotesRef.current
+    const changed = initialQuotes.some((q) => {
+      const old = prev.find(p => p.id === q.id)
+      return !old || old.status !== q.status
+    }) || initialQuotes.length !== prev.length
+    if (changed) {
+      setQuotes(initialQuotes)
+      prevQuotesRef.current = initialQuotes
+    }
+  }, [initialQuotes])
+
+  // Polling a cada 20s enquanto houver orçamentos pendentes de resposta
+  useEffect(() => {
+    const hasPending = quotes.some(q => q.status === "enviado" || q.status === "rascunho")
+    if (!hasPending) return
+    const interval = setInterval(() => {
+      router.refresh()
+    }, 20000)
+    return () => clearInterval(interval)
+  }, [quotes, router])
 
   // Notifica via toast para orçamentos respondidos nas últimas 24h (respeita preferência do usuário)
   useEffect(() => {
@@ -361,21 +387,19 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
             <DialogTitle className="text-foreground">Novo Orçamento</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
-            {/* Header */}
+            {/* Título */}
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-foreground text-sm">Título *</Label>
+              <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Desenvolvimento de site institucional" className="bg-input border-border text-foreground" />
+            </div>
+
+            {/* Cliente + Válido até em colunas separadas e bem definidas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label className="text-foreground text-sm">Título *</Label>
-                <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="bg-input border-border text-foreground" />
-              </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Cliente *</Label>
-                <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Selecione...">
-                      {form.clientId
-                        ? (clients.find(c => c.id === form.clientId)?.name ?? "Selecione...")
-                        : "Selecione..."}
-                    </SelectValue>
+                <Select required value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
+                  <SelectTrigger className="bg-input border-border text-foreground w-full overflow-hidden">
+                    <SelectValue placeholder="Selecione um cliente..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {clients.map((c) => (
@@ -386,7 +410,12 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Válido até</Label>
-                <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} className="bg-input border-border text-foreground" />
+                <Input
+                  type="date"
+                  value={form.validUntil}
+                  onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
+                  className="bg-input border-border text-foreground w-full"
+                />
               </div>
             </div>
 
