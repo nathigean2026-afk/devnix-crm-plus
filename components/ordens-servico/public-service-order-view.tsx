@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import type { ServiceOrder, ServiceOrderItem, Client, BusinessProfile } from "@/lib/db/schema"
 import Image from "next/image"
 import QRCode from "qrcode"
-import { Building2, Phone, Mail, Globe, MapPin, QrCode, Printer, MessageCircle, Send, Receipt } from "lucide-react"
+import { Building2, Phone, Mail, Globe, MapPin, QrCode, Printer } from "lucide-react"
 
 interface PublicServiceOrderViewProps {
   order: ServiceOrder & {
@@ -334,40 +334,8 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
             </div>
           )}
 
-          {/* Botões de ação */}
+          {/* Botões de ação — apenas imprimir/PDF visível ao cliente */}
           <div className="flex items-center justify-end gap-2 pt-2 flex-wrap print:hidden">
-            <a
-              href={`/recibo/${order.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 transition-colors font-medium"
-            >
-              <Receipt className="size-4" />
-              Ver Recibo
-            </a>
-            <button
-              onClick={() => {
-                const url = window.location.href
-                const phone = client?.phone?.replace(/\D/g, "") ?? ""
-                const text = `Olá${client ? ` ${client.name}` : ""}! Sua OS #${String(order.number).padStart(4, "0")}: *${order.title}*\nTotal: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.total))}\n\nAcesse: ${url}`
-                window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
-              }}
-              className="flex items-center gap-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 transition-colors font-medium"
-            >
-              <MessageCircle className="size-4" />
-              WhatsApp
-            </button>
-            <button
-              onClick={() => {
-                const url = window.location.href
-                const text = `OS #${String(order.number).padStart(4, "0")}: ${order.title}`
-                window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank")
-              }}
-              className="flex items-center gap-2 text-sm bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-4 py-2 transition-colors font-medium"
-            >
-              <Send className="size-4" />
-              Telegram
-            </button>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-lg px-4 py-2 transition-colors"

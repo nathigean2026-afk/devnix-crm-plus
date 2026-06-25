@@ -261,12 +261,14 @@ export async function respondQuote(
     if (!quote) return { success: false, error: "Orçamento não encontrado." }
     if (quote.status !== "enviado" && quote.status !== "rascunho") return { success: false, error: "Este orçamento não está disponível para resposta." }
 
+    const now = new Date()
     await db
       .update(quotes)
       .set({
         status: decision,
         rejectionReason: decision === "recusado" ? (rejectionReason ?? null) : null,
-        updatedAt: new Date(),
+        respondedAt: now,
+        updatedAt: now,
       })
       .where(eq(quotes.id, id))
 

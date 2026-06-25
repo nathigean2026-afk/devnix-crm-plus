@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { clients, quoteItems, quotes } from "@/lib/db/schema"
+import { businessProfile, clients, quoteItems, quotes } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { notFound } from "next/navigation"
 import { PublicQuoteView } from "@/components/orcamentos/public-quote-view"
@@ -17,10 +17,18 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ id
   const quote = await db.select().from(quotes).where(eq(quotes.id, id)).limit(1)
   if (!quote[0]) notFound()
 
-  const [client, items] = await Promise.all([
+  const [client, items, profile] = await Promise.all([
     db.select().from(clients).where(eq(clients.id, quote[0].clientId)).limit(1),
     db.select().from(quoteItems).where(eq(quoteItems.quoteId, id)),
+    db.select().from(businessProfile).where(eq(businessProfile.userId, quote[0].userId)).limit(1),
   ])
 
-  return <PublicQuoteView quote={quote[0]} client={client[0] ?? null} items={items} />
+  return (
+    <PublicQuoteView
+      quote={quote[0]}
+      client={client[0] ?? null}
+      items={items}
+      providerPhone={profile[0]?.phone ?? null}
+    />
+  )
 }

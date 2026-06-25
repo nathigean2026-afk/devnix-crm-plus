@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { createQuote, updateQuoteStatus, deleteQuote } from "@/lib/actions"
 import type { Client, Quote, Service } from "@/lib/db/schema"
 import { toast } from "sonner"
@@ -60,6 +60,41 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [loading, setLoading] = useState(false)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  // Notifica via toast para orçamentos respondidos nas últimas 24h que ainda não foram vistos
+  useEffect(() => {
+    const STORAGE_KEY = "devnix_notified_quotes"
+    const alreadyNotified: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+
+    const recent = initialQuotes.filter((q) => {
+      const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
+      if (!respondedAt) return false
+      const ts = new Date(respondedAt).getTime()
+      return ts > cutoff && !alreadyNotified.includes(q.id)
+    })
+
+    if (recent.length === 0) return
+
+    recent.forEach((q) => {
+      const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
+      if (q.status === "aprovado") {
+        toast.success(`Orçamento aprovado por ${clientName}`, {
+          description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
+          duration: 8000,
+        })
+      } else if (q.status === "recusado") {
+        toast.error(`Orçamento recusado por ${clientName}`, {
+          description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
+          duration: 8000,
+        })
+      }
+    })
+
+    const newNotified = [...alreadyNotified, ...recent.map(q => q.id)]
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotified))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function getClientPhone(q: Quote): string {
     const phone = clients.find(c => c.id === q.clientId)?.phone ?? ""
@@ -221,8 +256,14 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                 {filtered.map((q) => {
                   const sc = statusConfig[q.status] ?? statusConfig.rascunho
                   const isRecusado = q.status === "recusado"
+                  const isAprovado = q.status === "aprovado"
+                  const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
+                  const isRecent = respondedAt
+                    ? Date.now() - new Date(respondedAt).getTime() < 24 * 60 * 60 * 1000
+                    : false
+                  const showNewBadge = isRecent && (isAprovado || isRecusado)
                   return (
-                    <TableRow key={q.id} className={`border-border hover:bg-muted/20 ${isRecusado ? "bg-red-500/5 border-l-2 border-l-red-500/50" : ""}`}>
+                    <TableRow key={q.id} className={`border-border hover:bg-muted/20 ${isRecusado ? "bg-red-500/5 border-l-2 border-l-red-500/40" : isAprovado && isRecent ? "bg-green-500/5 border-l-2 border-l-green-500/40" : ""}`}>
                       <TableCell className="text-muted-foreground font-mono text-sm">#{String(q.number).padStart(4, "0")}</TableCell>
                       <TableCell className="font-medium text-foreground">
                         <div className="flex flex-col gap-0.5">
@@ -232,12 +273,25 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                               Motivo: {(q as Quote & { rejectionReason?: string }).rejectionReason}
                             </span>
                           )}
+                          {respondedAt && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Respondido em {new Date(respondedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground hidden md:table-cell">{getClientName(q.clientId)}</TableCell>
                       <TableCell className="font-semibold text-foreground">{formatCurrency(q.total)}</TableCell>
                       <TableCell>
-                        <Badge className={sc.color}>{sc.label}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={sc.color}>{sc.label}</Badge>
+                          {showNewBadge && (
+                            <span className="relative flex size-2">
+                              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />
+                              <span className={`relative inline-flex rounded-full size-2 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                         {format(new Date(q.createdAt), "dd/MM/yyyy", { locale: ptBR })}

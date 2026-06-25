@@ -6,24 +6,25 @@ import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import {
   MapPin, Mail, Phone, Calendar, Hash, Printer,
-  MessageCircle, Send, CheckCircle, XCircle, AlertCircle,
-  Loader2, ArrowLeft, FileCheck, ThumbsUp, ThumbsDown,
+  MessageCircle, CheckCircle, XCircle, AlertCircle,
+  Loader2, ArrowLeft, FileCheck, ThumbsUp, ThumbsDown, Clock,
 } from "lucide-react"
 import { useState } from "react"
 import { respondQuote } from "@/lib/actions"
 
 interface PublicQuoteViewProps {
-  quote: Quote
+  quote: Quote & { respondedAt?: Date | string | null }
   client: Client | null
   items: QuoteItem[]
+  providerPhone?: string | null
 }
 
 const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
-  rascunho:  { label: "Rascunho",              color: "bg-muted text-muted-foreground border-border",                dot: "bg-gray-400" },
-  enviado:   { label: "Aguardando resposta",    color: "bg-blue-500/15 text-blue-400 border-blue-500/20",            dot: "bg-blue-400" },
-  aprovado:  { label: "Aprovado",               color: "bg-green-500/15 text-green-400 border-green-500/20",         dot: "bg-green-400" },
-  recusado:  { label: "Recusado",               color: "bg-red-500/15 text-red-400 border-red-500/20",               dot: "bg-red-400" },
-  cancelado: { label: "Cancelado",              color: "bg-muted text-muted-foreground border-border",               dot: "bg-gray-400" },
+  rascunho:  { label: "Rascunho",              color: "bg-muted text-muted-foreground border-border",             dot: "bg-gray-400" },
+  enviado:   { label: "Aguardando resposta",    color: "bg-blue-500/15 text-blue-400 border-blue-500/20",          dot: "bg-blue-400 animate-pulse" },
+  aprovado:  { label: "Aprovado",               color: "bg-green-500/15 text-green-400 border-green-500/20",       dot: "bg-green-400" },
+  recusado:  { label: "Recusado",               color: "bg-red-500/15 text-red-400 border-red-500/20",             dot: "bg-red-400" },
+  cancelado: { label: "Cancelado",              color: "bg-muted text-muted-foreground border-border",             dot: "bg-gray-400" },
 }
 
 function formatCurrency(value: string | number) {
@@ -37,12 +38,23 @@ function formatLocalDate(dateStr: string | null | undefined): string {
   return `${d}/${m}/${y}`
 }
 
+/** Formata timestamp com data e hora local */
+function formatDateTime(ts: Date | string | null | undefined): string {
+  if (!ts) return ""
+  const d = new Date(ts)
+  if (isNaN(d.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function formatTimestamp(ts: Date | string): string {
   const d = new Date(ts)
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) {
+export function PublicQuoteView({ quote, client, items, providerPhone }: PublicQuoteViewProps) {
+  const alreadyRespondedAt = (quote as PublicQuoteViewProps["quote"]).respondedAt
+
   const [step, setStep] = useState<"idle" | "reject-form" | "loading" | "done-accept" | "done-reject">(
     quote.status === "aprovado" ? "done-accept"
     : quote.status === "recusado" ? "done-reject"
@@ -51,27 +63,41 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
   const [rejectionReason, setRejectionReason] = useState(
     (quote as Quote & { rejectionReason?: string }).rejectionReason ?? ""
   )
+  const [respondedAt, setRespondedAt] = useState<Date | null>(
+    alreadyRespondedAt ? new Date(alreadyRespondedAt) : null
+  )
   const [error, setError] = useState<string | null>(null)
 
   const canRespond = quote.status === "rascunho" || quote.status === "enviado"
   const currentStatus = step === "done-accept" ? "aprovado" : step === "done-reject" ? "recusado" : quote.status
   const sc = statusConfig[currentStatus] ?? statusConfig.rascunho
 
-  function openWhatsAppShare() {
-    const url = window.location.href
-    const phone = client?.phone?.replace(/\D/g, "") ?? ""
-    const text = `Olá${client ? ` ${client.name}` : ""}! Aqui está seu orçamento *#${String(quote.number).padStart(4, "0")} — ${quote.title}*\nTotal: ${formatCurrency(quote.total)}\n\nAcesse e responda: ${url}`
-    window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
-  }
-
+  /** Abre WhatsApp direto no número do prestador com a mensagem de notificação */
   function notifyProviderWhatsApp(type: "aprovado" | "recusado") {
     const url = window.location.href
     const clientName = client?.name ?? "Cliente"
     const label = `#${String(quote.number).padStart(4, "0")} — ${quote.title}`
+    const dateStr = respondedAt ? formatDateTime(respondedAt) : formatDateTime(new Date())
+
     const msg = type === "aprovado"
-      ? `Boa notícia! O orçamento *${label}* foi *APROVADO* por *${clientName}*.\nTotal: ${formatCurrency(quote.total)}\n\nUma OS foi gerada automaticamente no sistema.`
-      : `O orçamento *${label}* foi *RECUSADO* por *${clientName}*${rejectionReason ? `.\nMotivo: "${rejectionReason}"` : "."}\n\nRevise: ${url}`
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")
+      ? `✅ *Orçamento Aprovado!*\n\nO orçamento *${label}* foi *APROVADO* por *${clientName}*.\n📅 Data: ${dateStr}\n💰 Total: ${formatCurrency(quote.total)}\n\nUma OS foi gerada automaticamente no sistema.\n🔗 ${url}`
+      : `❌ *Orçamento Recusado*\n\nO orçamento *${label}* foi *RECUSADO* por *${clientName}*.\n📅 Data: ${dateStr}\n💬 Motivo: "${rejectionReason || "Não informado"}"\n\nRevise e envie uma nova proposta:\n🔗 ${url}`
+
+    const phone = providerPhone?.replace(/\D/g, "") ?? ""
+    window.open(
+      phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`,
+      "_blank"
+    )
+  }
+
+  function openWhatsAppShare() {
+    const url = window.location.href
+    const phone = client?.phone?.replace(/\D/g, "") ?? ""
+    const text = `Olá${client ? ` ${client.name}` : ""}! Aqui está seu orçamento *#${String(quote.number).padStart(4, "0")} — ${quote.title}*\nTotal: ${formatCurrency(quote.total)}\n\nAcesse e responda: ${url}`
+    window.open(
+      phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`,
+      "_blank"
+    )
   }
 
   async function handleAccept() {
@@ -83,6 +109,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
       setStep("idle")
       return
     }
+    setRespondedAt(new Date())
     setStep("done-accept")
   }
 
@@ -99,6 +126,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
       setStep("reject-form")
       return
     }
+    setRespondedAt(new Date())
     setStep("done-reject")
   }
 
@@ -133,7 +161,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
         {/* ── Card principal ── */}
         <div className="rounded-2xl border border-border overflow-hidden" style={{ background: "var(--card)" }}>
 
-          {/* Header do orçamento */}
+          {/* Header */}
           <div className="px-6 py-6 border-b border-border" style={{ background: "var(--secondary)" }}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
@@ -157,6 +185,13 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                   <span className={`size-1.5 rounded-full ${sc.dot}`} />
                   {sc.label}
                 </Badge>
+                {/* Data/hora da resposta */}
+                {respondedAt && (
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="size-2.5" />
+                    {formatDateTime(respondedAt)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -212,8 +247,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
               <p className="text-sm text-muted-foreground text-center py-6">Nenhum item adicionado.</p>
             ) : (
               <div className="rounded-xl border border-border overflow-hidden">
-                {/* Header da tabela — visível só em telas maiores */}
-                <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 bg-muted/40 px-4 py-2.5 border-b border-border">
+                <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-2.5 border-b border-border" style={{ background: "var(--muted)" }}>
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Descrição</span>
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide text-right">Qtd</span>
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide text-right">Unit.</span>
@@ -224,14 +258,12 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                     key={item.id}
                     className={`px-4 py-3 border-b border-border last:border-0 ${i % 2 === 1 ? "bg-muted/10" : ""}`}
                   >
-                    {/* Mobile: stack */}
                     <div className="flex flex-col gap-1 sm:hidden">
                       <p className="text-sm font-medium text-foreground">{item.description}</p>
                       <p className="text-xs text-muted-foreground">
                         {Number(item.quantity).toLocaleString("pt-BR")} × {formatCurrency(item.unitPrice)} = <span className="font-semibold text-foreground">{formatCurrency(item.total)}</span>
                       </p>
                     </div>
-                    {/* Desktop: grid */}
                     <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                       <span className="text-sm text-foreground">{item.description}</span>
                       <span className="text-sm text-muted-foreground text-right w-12">{Number(item.quantity).toLocaleString("pt-BR")}</span>
@@ -280,9 +312,9 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
               {/* Estado: loading */}
               {step === "loading" && (
                 <div className="flex flex-col items-center gap-4 py-8">
-                  <div className="relative">
-                    <div className="size-16 rounded-full border-4 border-border" />
-                    <Loader2 className="size-16 absolute inset-0 text-foreground animate-spin" strokeWidth={1.5} />
+                  <div className="relative size-16">
+                    <div className="absolute inset-0 rounded-full border-4 border-border" />
+                    <Loader2 className="absolute inset-0 size-16 text-foreground animate-spin" strokeWidth={1.5} />
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-foreground">Processando sua resposta…</p>
@@ -291,7 +323,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                 </div>
               )}
 
-              {/* Estado: aprovado com sucesso */}
+              {/* Estado: aprovado */}
               {step === "done-accept" && (
                 <div className="flex flex-col items-center gap-5 py-6 text-center">
                   <div className="size-16 rounded-full bg-green-500/15 flex items-center justify-center">
@@ -302,6 +334,12 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                     <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
                       Ótimo! Sua confirmação foi registrada e uma ordem de serviço foi gerada automaticamente.
                     </p>
+                    {respondedAt && (
+                      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-2">
+                        <Clock className="size-3" />
+                        Registrado em {formatDateTime(respondedAt)}
+                      </p>
+                    )}
                   </div>
                   <button
                     onClick={() => notifyProviderWhatsApp("aprovado")}
@@ -313,7 +351,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                 </div>
               )}
 
-              {/* Estado: recusado com sucesso */}
+              {/* Estado: recusado */}
               {step === "done-reject" && (
                 <div className="flex flex-col items-center gap-5 py-6 text-center">
                   <div className="size-16 rounded-full bg-red-500/15 flex items-center justify-center">
@@ -324,6 +362,12 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                     <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
                       Agradecemos o retorno. O prestador receberá o motivo e poderá ajustar a proposta.
                     </p>
+                    {respondedAt && (
+                      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-2">
+                        <Clock className="size-3" />
+                        Registrado em {formatDateTime(respondedAt)}
+                      </p>
+                    )}
                   </div>
                   <button
                     onClick={() => notifyProviderWhatsApp("recusado")}
@@ -335,7 +379,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
                 </div>
               )}
 
-              {/* Estado: idle — escolha inicial */}
+              {/* Estado: idle */}
               {step === "idle" && (
                 <div className="flex flex-col gap-4">
                   <div className="text-center pb-2">
@@ -417,26 +461,40 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
             </div>
           )}
 
-          {/* Orçamento já respondido — exibe estado fixo */}
+          {/* Orçamento já respondido — estado fixo com data/hora */}
           {!canRespond && (quote.status === "aprovado" || quote.status === "recusado") && (
             <div className="px-6 py-5 print:hidden">
               {quote.status === "aprovado" ? (
-                <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3.5">
-                  <CheckCircle className="size-5 text-green-400 shrink-0" strokeWidth={1.5} />
-                  <div>
-                    <p className="text-sm font-semibold text-green-400">Orçamento aprovado</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Uma ordem de serviço foi gerada automaticamente.</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3.5">
+                    <CheckCircle className="size-5 text-green-400 shrink-0" strokeWidth={1.5} />
+                    <div>
+                      <p className="text-sm font-semibold text-green-400">Orçamento aprovado</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Uma ordem de serviço foi gerada automaticamente.</p>
+                      {alreadyRespondedAt && (
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                          <Clock className="size-2.5" />
+                          {formatDateTime(alreadyRespondedAt)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3.5">
-                    <XCircle className="size-5 text-red-400 shrink-0" strokeWidth={1.5} />
+                  <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3.5">
+                    <XCircle className="size-5 text-red-400 shrink-0 mt-0.5" strokeWidth={1.5} />
                     <div>
                       <p className="text-sm font-semibold text-red-400">Orçamento recusado</p>
                       {(quote as Quote & { rejectionReason?: string }).rejectionReason && (
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Motivo: {(quote as Quote & { rejectionReason?: string }).rejectionReason}
+                        </p>
+                      )}
+                      {alreadyRespondedAt && (
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                          <Clock className="size-2.5" />
+                          {formatDateTime(alreadyRespondedAt)}
                         </p>
                       )}
                     </div>
