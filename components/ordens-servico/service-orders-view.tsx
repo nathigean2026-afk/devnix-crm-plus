@@ -554,10 +554,12 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                 <Label className="text-foreground text-sm font-medium">Cliente *</Label>
                 <Select value={form.clientId} onValueChange={v => setForm({ ...form, clientId: v })}>
                   <SelectTrigger className="bg-input border-border text-foreground w-full">
-                    <SelectValue placeholder="Selecione um cliente...">
-                      {form.clientId
-                        ? (clients.find(c => c.id === form.clientId)?.name ?? "Selecione um cliente...")
-                        : "Selecione um cliente..."}
+                    <SelectValue>
+                      <span className={form.clientId ? "text-foreground" : "text-muted-foreground"}>
+                        {form.clientId
+                          ? clients.find(c => c.id === form.clientId)?.name ?? "Selecione um cliente..."
+                          : "Selecione um cliente..."}
+                      </span>
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border max-h-60">

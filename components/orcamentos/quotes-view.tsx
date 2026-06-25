@@ -397,9 +397,15 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Cliente *</Label>
-                <Select required value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground w-full overflow-hidden">
-                    <SelectValue placeholder="Selecione um cliente..." />
+                <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
+                  <SelectTrigger className="bg-input border-border text-foreground w-full">
+                    <SelectValue>
+                      <span className={form.clientId ? "text-foreground" : "text-muted-foreground"}>
+                        {form.clientId
+                          ? clients.find((c) => c.id === form.clientId)?.name ?? "Selecione um cliente..."
+                          : "Selecione um cliente..."}
+                      </span>
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {clients.map((c) => (
