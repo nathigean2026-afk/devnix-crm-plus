@@ -59,7 +59,7 @@ function LicenseCard({ license }: { license: LicenseInfo }) {
         <div className="flex items-center justify-between py-3 border-b border-border">
           <div>
             <p className="text-sm font-medium text-foreground">Plano atual</p>
-            <p className="text-xs text-muted-foreground">Devnix CRM Plus — {plan}</p>
+            <p className="text-xs text-muted-foreground">Devnix CRM Plus</p>
           </div>
           <span className="text-xs text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full font-medium">Ativo</span>
         </div>
