@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { createQuote, updateQuoteStatus, deleteQuote } from "@/lib/actions"
 import type { Client, Quote, Service } from "@/lib/db/schema"
 import { toast } from "sonner"
@@ -51,6 +52,7 @@ const emptyForm = {
 }
 
 export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps) {
+  const router = useRouter()
   const [quotes, setQuotes] = useState(initialQuotes)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("todos")
@@ -58,8 +60,76 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
+  const prevQuotesRef = useRef(initialQuotes)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  // Sincroniza estado local quando o servidor retorna dados novos (ex: após polling)
+  useEffect(() => {
+    const prev = prevQuotesRef.current
+    const changed = initialQuotes.some((q) => {
+      const old = prev.find(p => p.id === q.id)
+      return !old || old.status !== q.status
+    }) || initialQuotes.length !== prev.length
+    if (changed) {
+      setQuotes(initialQuotes)
+      prevQuotesRef.current = initialQuotes
+    }
+  }, [initialQuotes])
+
+  // Polling a cada 20s enquanto houver orçamentos pendentes de resposta
+  useEffect(() => {
+    const hasPending = quotes.some(q => q.status === "enviado" || q.status === "rascunho")
+    if (!hasPending) return
+    const interval = setInterval(() => {
+      router.refresh()
+    }, 20000)
+    return () => clearInterval(interval)
+  }, [quotes, router])
+
+  // Notifica via toast para orçamentos respondidos nas últimas 24h (respeita preferência do usuário)
+  useEffect(() => {
+    const notifEnabled = localStorage.getItem("devnix_quote_notifications_enabled")
+    // Habilitado por padrão (null = nunca configurou = ativo)
+    if (notifEnabled === "false") return
+
+    const STORAGE_KEY = "devnix_notified_quotes"
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    const alreadyNotified: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
+
+    const recent = initialQuotes.filter((q) => {
+      const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
+      if (!respondedAt) return false
+      const ts = new Date(respondedAt).getTime()
+      return ts > cutoff && !alreadyNotified.includes(q.id)
+    })
+
+    if (recent.length === 0) return
+
+    // Pequeno delay para garantir que o Toaster esteja montado após hidratação
+    const timer = setTimeout(() => {
+      recent.forEach((q) => {
+        const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
+        if (q.status === "aprovado") {
+          toast.success(`Orçamento aprovado por ${clientName}`, {
+            description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
+            duration: 10000,
+          })
+        } else if (q.status === "recusado") {
+          toast.error(`Orçamento recusado por ${clientName}`, {
+            description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
+            duration: 10000,
+          })
+        }
+      })
+
+      const newNotified = [...alreadyNotified, ...recent.map(q => q.id)]
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotified))
+    }, 1200)
+
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function getClientPhone(q: Quote): string {
     const phone = clients.find(c => c.id === q.clientId)?.phone ?? ""
@@ -220,14 +290,43 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
               <TableBody>
                 {filtered.map((q) => {
                   const sc = statusConfig[q.status] ?? statusConfig.rascunho
+                  const isRecusado = q.status === "recusado"
+                  const isAprovado = q.status === "aprovado"
+                  const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
+                  const isRecent = respondedAt
+                    ? Date.now() - new Date(respondedAt).getTime() < 24 * 60 * 60 * 1000
+                    : false
+                  const showNewBadge = isRecent && (isAprovado || isRecusado)
                   return (
-                    <TableRow key={q.id} className="border-border hover:bg-muted/20">
+                    <TableRow key={q.id} className={`border-border hover:bg-muted/20 ${isRecusado ? "bg-red-500/5 border-l-2 border-l-red-500/40" : isAprovado && isRecent ? "bg-green-500/5 border-l-2 border-l-green-500/40" : ""}`}>
                       <TableCell className="text-muted-foreground font-mono text-sm">#{String(q.number).padStart(4, "0")}</TableCell>
-                      <TableCell className="font-medium text-foreground">{q.title}</TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex flex-col gap-0.5">
+                          <span>{q.title}</span>
+                          {isRecusado && (q as Quote & { rejectionReason?: string }).rejectionReason && (
+                            <span className="text-xs text-red-400 font-normal">
+                              Motivo: {(q as Quote & { rejectionReason?: string }).rejectionReason}
+                            </span>
+                          )}
+                          {respondedAt && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Respondido em {new Date(respondedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground hidden md:table-cell">{getClientName(q.clientId)}</TableCell>
                       <TableCell className="font-semibold text-foreground">{formatCurrency(q.total)}</TableCell>
                       <TableCell>
-                        <Badge className={sc.color}>{sc.label}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={sc.color}>{sc.label}</Badge>
+                          {showNewBadge && (
+                            <span className="relative flex size-2">
+                              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />
+                              <span className={`relative inline-flex rounded-full size-2 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                         {format(new Date(q.createdAt), "dd/MM/yyyy", { locale: ptBR })}
@@ -288,21 +387,19 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
             <DialogTitle className="text-foreground">Novo Orçamento</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
-            {/* Header */}
+            {/* Título */}
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-foreground text-sm">Título *</Label>
+              <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Desenvolvimento de site institucional" className="bg-input border-border text-foreground" />
+            </div>
+
+            {/* Cliente + Válido até em colunas separadas e bem definidas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label className="text-foreground text-sm">Título *</Label>
-                <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="bg-input border-border text-foreground" />
-              </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Cliente *</Label>
-                <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Selecione...">
-                      {form.clientId
-                        ? (clients.find(c => c.id === form.clientId)?.name ?? "Selecione...")
-                        : "Selecione..."}
-                    </SelectValue>
+                <Select required value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
+                  <SelectTrigger className="bg-input border-border text-foreground w-full overflow-hidden">
+                    <SelectValue placeholder="Selecione um cliente..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {clients.map((c) => (
@@ -313,7 +410,12 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Válido até</Label>
-                <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} className="bg-input border-border text-foreground" />
+                <Input
+                  type="date"
+                  value={form.validUntil}
+                  onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
+                  className="bg-input border-border text-foreground w-full"
+                />
               </div>
             </div>
 

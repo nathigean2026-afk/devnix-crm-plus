@@ -34,9 +34,18 @@ const pixTypeLabels: Record<string, string> = {
   aleatoria: "Chave Aleatória",
 }
 
+const NOTIF_KEY = "devnix_quote_notifications_enabled"
+
 function LicenseCard({ license }: { license: LicenseInfo }) {
   const [alertEnabled, setAlertEnabled] = useState(false)
+  const [quoteNotifEnabled, setQuoteNotifEnabled] = useState(true)
   const { expiresAt, daysLeft, isActive } = license
+
+  // Carrega preferência salva no localStorage
+  useState(() => {
+    const saved = localStorage.getItem(NOTIF_KEY)
+    if (saved !== null) setQuoteNotifEnabled(saved === "true")
+  })
 
   const expiryStr = expiresAt
     ? expiresAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
@@ -59,7 +68,7 @@ function LicenseCard({ license }: { license: LicenseInfo }) {
         <div className="flex items-center justify-between py-3 border-b border-border">
           <div>
             <p className="text-sm font-medium text-foreground">Plano atual</p>
-            <p className="text-xs text-muted-foreground">Devnix CRM Plus — {plan}</p>
+            <p className="text-xs text-muted-foreground">Devnix CRM Plus</p>
           </div>
           <span className="text-xs text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full font-medium">Ativo</span>
         </div>
@@ -104,7 +113,7 @@ function LicenseCard({ license }: { license: LicenseInfo }) {
           </a>
         </div>
 
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between py-2 border-b border-border">
           <div>
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
               <Bell className="size-4 text-muted-foreground" />
@@ -130,6 +139,42 @@ function LicenseCard({ license }: { license: LicenseInfo }) {
               className={cn(
                 "pointer-events-none inline-block size-4 rounded-full bg-white shadow transition-transform duration-200",
                 alertEnabled ? "translate-x-4" : "translate-x-0"
+              )}
+            />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Bell className="size-4 text-muted-foreground" />
+              Notificações de resposta de orçamento
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 ml-6">
+              {quoteNotifEnabled
+                ? "Você será notificado no site quando um cliente aprovar ou recusar um orçamento."
+                : "Notificações desativadas. Você não verá alertas de resposta de orçamento."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={quoteNotifEnabled}
+            onClick={() => {
+              const next = !quoteNotifEnabled
+              setQuoteNotifEnabled(next)
+              localStorage.setItem(NOTIF_KEY, String(next))
+              toast.success(next ? "Notificações de orçamento ativadas." : "Notificações de orçamento desativadas.")
+            }}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+              quoteNotifEnabled ? "bg-primary" : "bg-muted-foreground/30"
+            )}
+          >
+            <span
+              className={cn(
+                "pointer-events-none inline-block size-4 rounded-full bg-white shadow transition-transform duration-200",
+                quoteNotifEnabled ? "translate-x-4" : "translate-x-0"
               )}
             />
           </button>

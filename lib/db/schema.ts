@@ -101,6 +101,8 @@ export const quotes = pgTable("quotes", {
   validUntil: date("validUntil"),
   notes: text("notes"),
   internalNotes: text("internalNotes"),
+  rejectionReason: text("rejectionReason"),
+  respondedAt: timestamp("respondedAt"),
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull().default("0"),
   discount: numeric("discount", { precision: 10, scale: 2 }).notNull().default("0"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull().default("0"),
