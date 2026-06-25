@@ -259,7 +259,7 @@ export async function respondQuote(
     // Busca orçamento sem autenticação (público)
     const [quote] = await db.select().from(quotes).where(eq(quotes.id, id)).limit(1)
     if (!quote) return { success: false, error: "Orçamento não encontrado." }
-    if (quote.status !== "enviado") return { success: false, error: "Este orçamento não está disponível para resposta." }
+    if (quote.status !== "enviado" && quote.status !== "rascunho") return { success: false, error: "Este orçamento não está disponível para resposta." }
 
     await db
       .update(quotes)
