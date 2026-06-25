@@ -244,6 +244,82 @@ export async function updateQuoteStatus(id: string, status: string) {
   revalidatePath("/dashboard/orcamentos")
 }
 
+/**
+ * Ação pública — chamada pelo cliente via página /orcamento/[id]
+ * Não requer sessão; o ID do orçamento é o token de acesso.
+ * Se aprovado: cria OS automaticamente copiando itens do orçamento.
+ * Se recusado: salva o motivo informado pelo cliente.
+ */
+export async function respondQuote(
+  id: string,
+  decision: "aprovado" | "recusado",
+  rejectionReason?: string
+): Promise<{ success: boolean; serviceOrderId?: string; error?: string }> {
+  try {
+    // Busca orçamento sem autenticação (público)
+    const [quote] = await db.select().from(quotes).where(eq(quotes.id, id)).limit(1)
+    if (!quote) return { success: false, error: "Orçamento não encontrado." }
+    if (quote.status !== "enviado") return { success: false, error: "Este orçamento não está disponível para resposta." }
+
+    await db
+      .update(quotes)
+      .set({
+        status: decision,
+        rejectionReason: decision === "recusado" ? (rejectionReason ?? null) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(quotes.id, id))
+
+    revalidatePath(`/orcamento/${id}`)
+    revalidatePath("/dashboard/orcamentos")
+    revalidatePath("/dashboard/relatorios")
+
+    if (decision === "aprovado") {
+      // Cria OS automaticamente a partir do orçamento aprovado
+      const items = await db.select().from(quoteItems).where(eq(quoteItems.quoteId, id))
+      const number = await getNextServiceOrderNumber(quote.userId)
+      const orderId = crypto.randomUUID()
+
+      await db.insert(serviceOrders).values({
+        id: orderId,
+        userId: quote.userId,
+        clientId: quote.clientId,
+        quoteId: id,
+        number,
+        title: quote.title,
+        status: "aberto",
+        subtotal: quote.subtotal,
+        discount: quote.discount,
+        total: quote.total,
+        notes: quote.notes ?? undefined,
+        internalNotes: quote.internalNotes ?? undefined,
+      })
+
+      if (items.length > 0) {
+        await db.insert(serviceOrderItems).values(
+          items.map((item) => ({
+            id: crypto.randomUUID(),
+            serviceOrderId: orderId,
+            serviceId: item.serviceId ?? undefined,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          }))
+        )
+      }
+
+      revalidatePath("/dashboard/ordens-servico")
+      return { success: true, serviceOrderId: orderId }
+    }
+
+    return { success: true }
+  } catch (e) {
+    console.error("[v0] respondQuote error:", e)
+    return { success: false, error: "Erro interno. Tente novamente." }
+  }
+}
+
 export async function deleteQuote(id: string) {
   const userId = await getUserId()
   await db

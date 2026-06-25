@@ -6,7 +6,9 @@ import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { MapPin, Mail, Phone, Calendar, Hash, Printer, MessageCircle, Send } from "lucide-react"
+import { MapPin, Mail, Phone, Calendar, Hash, Printer, MessageCircle, Send, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { useState } from "react"
+import { respondQuote } from "@/lib/actions"
 
 interface PublicQuoteViewProps {
   quote: Quote
@@ -28,6 +30,15 @@ function formatCurrency(value: string | number) {
 
 export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) {
   const sc = statusConfig[quote.status] ?? statusConfig.rascunho
+  const [decision, setDecision] = useState<"aprovado" | "recusado" | null>(null)
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState<{ type: "aprovado" | "recusado"; serviceOrderId?: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Se o orçamento já foi respondido antes de carregar a página
+  const alreadyAnswered = quote.status === "aprovado" || quote.status === "recusado"
 
   function handleShareWhatsApp() {
     const url = typeof window !== "undefined" ? window.location.href : ""
@@ -35,16 +46,60 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
     const text = `Olá${client ? ` ${client.name}` : ""}! Segue seu orçamento *#${String(quote.number).padStart(4, "0")} — ${quote.title}*\nTotal: ${formatCurrency(quote.total)}\n\nAcesse: ${url}`
     window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
   }
+
   function handleShareTelegram() {
     const url = typeof window !== "undefined" ? window.location.href : ""
     const text = `Orçamento #${String(quote.number).padStart(4, "0")}: ${quote.title} — ${formatCurrency(quote.total)}`
     window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank")
   }
 
+  function notifyProviderWhatsApp(type: "aprovado" | "recusado") {
+    // Notifica o prestador via WhatsApp com link direto para a OS ou para o orçamento
+    const url = typeof window !== "undefined" ? window.location.href : ""
+    const clientName = client?.name ?? "Cliente"
+    const quoteLabel = `#${String(quote.number).padStart(4, "0")} — ${quote.title}`
+    const msg =
+      type === "aprovado"
+        ? `Boa notícia! O orçamento *${quoteLabel}* foi *APROVADO* por *${clientName}*.\n\nTotal: ${formatCurrency(quote.total)}\n\nAcesse o sistema para acompanhar a OS gerada automaticamente.`
+        : `O orçamento *${quoteLabel}* foi *RECUSADO* por *${clientName}*${rejectionReason ? `.\n\nMotivo: "${rejectionReason}"` : "."}\n\nAcesse o orçamento para revisar: ${url}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")
+  }
+
+  async function handleAccept() {
+    setLoading(true)
+    setError(null)
+    const result = await respondQuote(quote.id, "aprovado")
+    setLoading(false)
+    if (!result.success) {
+      setError(result.error ?? "Erro ao processar. Tente novamente.")
+      return
+    }
+    setDecision("aprovado")
+    setDone({ type: "aprovado", serviceOrderId: result.serviceOrderId })
+  }
+
+  async function handleReject() {
+    if (!rejectionReason.trim()) {
+      setError("Informe o motivo da recusa para que possamos melhorar o orçamento.")
+      return
+    }
+    setLoading(true)
+    setError(null)
+    const result = await respondQuote(quote.id, "recusado", rejectionReason.trim())
+    setLoading(false)
+    if (!result.success) {
+      setError(result.error ?? "Erro ao processar. Tente novamente.")
+      return
+    }
+    setDecision("recusado")
+    setDone({ type: "recusado" })
+  }
+
   return (
     <div className="min-h-screen bg-background py-10 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Barra de ações */}
+
+        {/* Barra de ações de compartilhamento */}
         <div className="flex items-center justify-end gap-2 mb-4 print:hidden">
           <button
             onClick={handleShareWhatsApp}
@@ -81,7 +136,9 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
               <p className="text-xs text-muted-foreground">Soluções Web Inteligentes</p>
             </div>
           </div>
-          <Badge className={sc.color}>{sc.label}</Badge>
+          <Badge className={done ? statusConfig[done.type].color : sc.color}>
+            {done ? statusConfig[done.type].label : sc.label}
+          </Badge>
         </div>
 
         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-xl">
@@ -90,7 +147,7 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-bold text-foreground text-balance">{quote.title}</h1>
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <Hash className="size-3.5" />
                     {String(quote.number).padStart(4, "0")}
@@ -191,6 +248,149 @@ export function PublicQuoteView({ quote, client, items }: PublicQuoteViewProps) 
             <div className="px-8 py-5 border-t border-border">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Observações</p>
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{quote.notes}</p>
+            </div>
+          )}
+
+          {/* ── Bloco de resposta do cliente ── */}
+          {!alreadyAnswered && (
+            <div className="px-8 py-6 border-t border-border bg-muted/10 print:hidden">
+              {!done ? (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Sua resposta</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Aceite o orçamento para prosseguirmos ou recuse informando o motivo.
+                    </p>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                      <AlertCircle className="size-4 text-red-400 mt-0.5 shrink-0" />
+                      <p className="text-sm text-red-400">{error}</p>
+                    </div>
+                  )}
+
+                  {!showRejectForm ? (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={handleAccept}
+                        disabled={loading}
+                        className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg px-6 py-3 transition-colors flex-1"
+                      >
+                        <CheckCircle className="size-5" />
+                        {loading ? "Processando..." : "Aceitar Orçamento"}
+                      </button>
+                      <button
+                        onClick={() => { setShowRejectForm(true); setError(null) }}
+                        disabled={loading}
+                        className="flex items-center justify-center gap-2 border border-red-500/40 hover:bg-red-500/10 disabled:opacity-60 text-red-400 font-semibold rounded-lg px-6 py-3 transition-colors flex-1"
+                      >
+                        <XCircle className="size-5" />
+                        Recusar Orçamento
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-medium text-foreground uppercase tracking-wide">
+                          Motivo da recusa <span className="text-red-400">*</span>
+                        </label>
+                        <textarea
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          placeholder="Ex: valor acima do esperado, prazo não compatível, preciso de ajustes nos itens..."
+                          rows={3}
+                          className="w-full bg-input border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleReject}
+                          disabled={loading}
+                          className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold rounded-lg px-6 py-3 transition-colors flex-1"
+                        >
+                          <XCircle className="size-5" />
+                          {loading ? "Enviando..." : "Confirmar Recusa"}
+                        </button>
+                        <button
+                          onClick={() => { setShowRejectForm(false); setError(null) }}
+                          disabled={loading}
+                          className="border border-border hover:bg-muted text-foreground rounded-lg px-4 py-3 transition-colors text-sm"
+                        >
+                          Voltar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Confirmação pós-resposta */
+                <div className="flex flex-col items-center gap-4 py-4 text-center">
+                  {done.type === "aprovado" ? (
+                    <>
+                      <div className="size-14 rounded-full bg-green-500/15 flex items-center justify-center">
+                        <CheckCircle className="size-8 text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-lg">Orçamento aprovado!</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Ótimo! Nosso time foi notificado e já vamos iniciar os preparativos.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => notifyProviderWhatsApp("aprovado")}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg px-6 py-3 transition-colors text-sm"
+                      >
+                        <MessageCircle className="size-4" />
+                        Notificar prestador pelo WhatsApp
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="size-14 rounded-full bg-red-500/15 flex items-center justify-center">
+                        <XCircle className="size-8 text-red-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-lg">Recusa registrada</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Agradecemos o seu retorno. O prestador receberá o motivo e poderá ajustar a proposta.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => notifyProviderWhatsApp("recusado")}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg px-6 py-3 transition-colors text-sm"
+                      >
+                        <MessageCircle className="size-4" />
+                        Notificar prestador pelo WhatsApp
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Orçamento já respondido anteriormente — exibe motivo se recusado */}
+          {alreadyAnswered && (
+            <div className="px-8 py-5 border-t border-border print:hidden">
+              {quote.status === "aprovado" ? (
+                <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
+                  <CheckCircle className="size-5 text-green-400 shrink-0" />
+                  <p className="text-sm text-green-400 font-medium">Este orçamento foi aprovado.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="size-5 text-red-400 shrink-0" />
+                    <p className="text-sm text-red-400 font-medium">Este orçamento foi recusado.</p>
+                  </div>
+                  {quote.rejectionReason && (
+                    <p className="text-sm text-muted-foreground pl-7">
+                      Motivo: {quote.rejectionReason}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

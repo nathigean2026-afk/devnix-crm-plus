@@ -220,10 +220,20 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
               <TableBody>
                 {filtered.map((q) => {
                   const sc = statusConfig[q.status] ?? statusConfig.rascunho
+                  const isRecusado = q.status === "recusado"
                   return (
-                    <TableRow key={q.id} className="border-border hover:bg-muted/20">
+                    <TableRow key={q.id} className={`border-border hover:bg-muted/20 ${isRecusado ? "bg-red-500/5 border-l-2 border-l-red-500/50" : ""}`}>
                       <TableCell className="text-muted-foreground font-mono text-sm">#{String(q.number).padStart(4, "0")}</TableCell>
-                      <TableCell className="font-medium text-foreground">{q.title}</TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex flex-col gap-0.5">
+                          <span>{q.title}</span>
+                          {isRecusado && (q as Quote & { rejectionReason?: string }).rejectionReason && (
+                            <span className="text-xs text-red-400 font-normal">
+                              Motivo: {(q as Quote & { rejectionReason?: string }).rejectionReason}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground hidden md:table-cell">{getClientName(q.clientId)}</TableCell>
                       <TableCell className="font-semibold text-foreground">{formatCurrency(q.total)}</TableCell>
                       <TableCell>
