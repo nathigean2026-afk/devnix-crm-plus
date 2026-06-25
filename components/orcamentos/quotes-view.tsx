@@ -61,11 +61,15 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
-  // Notifica via toast para orçamentos respondidos nas últimas 24h que ainda não foram vistos
+  // Notifica via toast para orçamentos respondidos nas últimas 24h (respeita preferência do usuário)
   useEffect(() => {
+    const notifEnabled = localStorage.getItem("devnix_quote_notifications_enabled")
+    // Habilitado por padrão (null = nunca configurou = ativo)
+    if (notifEnabled === "false") return
+
     const STORAGE_KEY = "devnix_notified_quotes"
-    const alreadyNotified: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
     const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    const alreadyNotified: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
 
     const recent = initialQuotes.filter((q) => {
       const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
@@ -76,23 +80,28 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
 
     if (recent.length === 0) return
 
-    recent.forEach((q) => {
-      const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
-      if (q.status === "aprovado") {
-        toast.success(`Orçamento aprovado por ${clientName}`, {
-          description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
-          duration: 8000,
-        })
-      } else if (q.status === "recusado") {
-        toast.error(`Orçamento recusado por ${clientName}`, {
-          description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
-          duration: 8000,
-        })
-      }
-    })
+    // Pequeno delay para garantir que o Toaster esteja montado após hidratação
+    const timer = setTimeout(() => {
+      recent.forEach((q) => {
+        const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
+        if (q.status === "aprovado") {
+          toast.success(`Orçamento aprovado por ${clientName}`, {
+            description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
+            duration: 10000,
+          })
+        } else if (q.status === "recusado") {
+          toast.error(`Orçamento recusado por ${clientName}`, {
+            description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
+            duration: 10000,
+          })
+        }
+      })
 
-    const newNotified = [...alreadyNotified, ...recent.map(q => q.id)]
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotified))
+      const newNotified = [...alreadyNotified, ...recent.map(q => q.id)]
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotified))
+    }, 1200)
+
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
