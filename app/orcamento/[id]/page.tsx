@@ -29,6 +29,7 @@ export default async function PublicQuotePage({ params }: { params: Promise<{ id
       client={client[0] ?? null}
       items={items}
       providerPhone={profile[0]?.phone ?? null}
+      profile={profile[0] ?? null}
     />
   )
 }

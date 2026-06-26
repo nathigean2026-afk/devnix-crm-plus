@@ -214,12 +214,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
       "flex items-center border-b border-sidebar-border shrink-0",
       (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "gap-3 px-4 py-3 h-[60px]"
     )}>
-      <div className="size-8 shrink-0 flex items-center justify-center">
+      <div className="size-8 shrink-0 flex items-center justify-center rounded-lg bg-primary">
         <Image
           src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
           alt="Devnix"
-          width={32}
-          height={32}
+          width={24}
+          height={24}
           className="object-contain"
         />
       </div>

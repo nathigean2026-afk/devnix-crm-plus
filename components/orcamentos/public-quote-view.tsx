@@ -1,13 +1,13 @@
 "use client"
 
-import type { Client, Quote, QuoteItem } from "@/lib/db/schema"
+import type { Client, Quote, QuoteItem, BusinessProfile } from "@/lib/db/schema"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import {
   MapPin, Mail, Phone, Calendar, Hash, Printer,
   MessageCircle, CheckCircle, XCircle, AlertCircle,
-  Loader2, ArrowLeft, FileCheck, ThumbsUp, ThumbsDown, Clock,
+  Loader2, ArrowLeft, FileCheck, ThumbsUp, ThumbsDown, Clock, Building2,
 } from "lucide-react"
 import { useState } from "react"
 import { respondQuote } from "@/lib/actions"
@@ -17,6 +17,7 @@ interface PublicQuoteViewProps {
   client: Client | null
   items: QuoteItem[]
   providerPhone?: string | null
+  profile?: BusinessProfile | null
 }
 
 const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
@@ -52,7 +53,7 @@ function formatTimestamp(ts: Date | string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-export function PublicQuoteView({ quote, client, items, providerPhone }: PublicQuoteViewProps) {
+export function PublicQuoteView({ quote, client, items, providerPhone, profile }: PublicQuoteViewProps) {
   const alreadyRespondedAt = (quote as PublicQuoteViewProps["quote"]).respondedAt
 
   const [step, setStep] = useState<"idle" | "reject-form" | "loading" | "done-accept" | "done-reject">(
@@ -166,17 +167,26 @@ export function PublicQuoteView({ quote, client, items, providerPhone }: PublicQ
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div className="size-10 rounded-xl border border-border flex items-center justify-center shrink-0 overflow-hidden" style={{ background: "var(--muted)" }}>
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-                    alt="Logo"
-                    width={28}
-                    height={28}
-                    className="object-contain"
-                    style={{ width: "auto", height: "28px" }}
-                  />
+                  {profile?.logo ? (
+                    <Image
+                      src={profile.logo}
+                      alt={profile.name ?? "Logo"}
+                      width={40}
+                      height={40}
+                      className="object-contain"
+                      style={{ width: 40, height: "auto" }}
+                    />
+                  ) : (
+                    <Building2 className="size-5 text-muted-foreground" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5 leading-tight">Devnix CRM Plus</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5 leading-tight">
+                    {profile?.name || "Devnix CRM Plus"}
+                  </p>
+                  {profile?.document && (
+                    <p className="text-[10px] text-muted-foreground/70 mb-0.5">{profile.document}</p>
+                  )}
                   <h1 className="text-xl font-bold text-foreground leading-snug break-words">{quote.title}</h1>
                 </div>
               </div>
@@ -506,8 +516,11 @@ export function PublicQuoteView({ quote, client, items, providerPhone }: PublicQ
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6 pb-4 print:hidden">
-          Orçamento gerado por <span className="font-semibold text-foreground">Devnix CRM Plus</span>
+        <p className="text-center text-xs text-muted-foreground mt-6 pb-4">
+          Orçamento gerado por{" "}
+          <span className="font-semibold text-foreground">
+            {profile?.name ? `${profile.name} via Devnix CRM Plus` : "Devnix CRM Plus"}
+          </span>
         </p>
       </div>
     </div>

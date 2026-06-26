@@ -345,6 +345,16 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
             </button>
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-100 px-8 py-4 text-center">
+          <p className="text-xs text-gray-400">
+            Ordem de Serviço gerada por{" "}
+            <span className="font-semibold text-gray-600">
+              {profile?.name ? `${profile.name} via Devnix CRM Plus` : "Devnix CRM Plus"}
+            </span>
+          </p>
+        </div>
       </div>
     </div>
   )

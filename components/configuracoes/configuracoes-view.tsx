@@ -65,25 +65,34 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 }
 
 // Overlay de bloqueio para campos restritos ao plano Start
-function PlanGate({ children, locked, planRequired = "Business" }: {
+function PlanGate({ children, locked, planRequired = "Business", featureName, featureBenefit }: {
   children: React.ReactNode
   locked: boolean
   planRequired?: string
+  featureName?: string
+  featureBenefit?: string
 }) {
   if (!locked) return <>{children}</>
   return (
     <div className="relative">
-      <div className="pointer-events-none select-none opacity-40 blur-[1px]">
+      <div className="pointer-events-none select-none opacity-30 blur-[2px]">
         {children}
       </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/70 backdrop-blur-sm border border-dashed border-border z-10">
-        <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5 shadow-sm">
-          <Lock className="size-3.5 text-muted-foreground shrink-0" />
-          <span className="text-xs font-medium text-foreground">Disponivel no plano {planRequired}+</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 backdrop-blur-sm border border-dashed border-amber-500/40 z-10 px-4">
+        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1.5 shadow-sm">
+          <Lock className="size-3.5 text-amber-500 shrink-0" />
+          <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+            {featureName ? `${featureName} — ` : ""}Plano {planRequired}+
+          </span>
         </div>
+        {featureBenefit && (
+          <p className="text-xs text-muted-foreground text-center max-w-[220px] leading-relaxed">
+            {featureBenefit}
+          </p>
+        )}
         <a
-          href="/planos"
-          className="text-xs text-primary hover:underline font-medium"
+          href="/planos?renovar=1"
+          className="text-xs text-primary hover:underline font-semibold bg-primary/10 border border-primary/20 rounded-full px-3 py-1 transition-colors hover:bg-primary/20"
         >
           Fazer upgrade
         </a>
@@ -368,9 +377,9 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
               Voce esta no plano Start
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-              Personalizacao de marca (logotipo, nome e CNPJ/CPF) e notificacoes de orcamento estao disponiveis
+              Personalizacao de marca (logotipo, nome, CNPJ/CPF e Chave Pix) e notificacoes de orcamento estao disponiveis
               a partir do plano <strong>Business</strong>.{" "}
-              <a href="/planos" className="underline font-medium">Fazer upgrade</a>
+              <a href="/planos?renovar=1" className="underline font-medium">Fazer upgrade agora</a>
             </p>
           </div>
         </div>
@@ -389,7 +398,11 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           {/* Logo — bloqueado no Start */}
-          <PlanGate locked={isStart}>
+          <PlanGate
+            locked={isStart}
+            featureName="Logotipo"
+            featureBenefit="Adicione a logo da sua empresa nos orcamentos e ordens de servico enviados aos clientes."
+          >
             <div className="flex flex-col gap-2">
               <Label className="text-foreground text-sm font-medium">Logotipo</Label>
               <div className="flex items-center gap-4">
@@ -450,7 +463,11 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Nome — bloqueado no Start */}
-            <PlanGate locked={isStart}>
+            <PlanGate
+              locked={isStart}
+              featureName="Nome da empresa"
+              featureBenefit="Seu nome comercial aparecera no cabecalho dos orcamentos e ordens de servico."
+            >
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <Label htmlFor="biz-name" className="text-foreground text-sm">Nome da empresa / negocio</Label>
                 <Input
@@ -465,7 +482,11 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
             </PlanGate>
 
             {/* CPF/CNPJ — bloqueado no Start */}
-            <PlanGate locked={isStart}>
+            <PlanGate
+              locked={isStart}
+              featureName="CPF / CNPJ"
+              featureBenefit="Identifique sua empresa legalmente nos documentos gerados para seus clientes."
+            >
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="biz-doc" className="text-foreground text-sm">CPF / CNPJ</Label>
                 <Input
@@ -513,7 +534,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
         </CardContent>
       </Card>
 
-      {/* Chave Pix — disponivel em todos os planos */}
+      {/* Chave Pix — bloqueado no plano Start */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
@@ -525,35 +546,42 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-foreground text-sm">Tipo de chave</Label>
-              <Select value={form.pixType ?? "cpf"} onValueChange={v => handleChange("pixType", v)}>
-                <SelectTrigger className="bg-input border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(pixTypeLabels).map(([val, label]) => (
-                    <SelectItem key={val} value={val}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <PlanGate
+            locked={isStart}
+            featureName="Chave Pix"
+            featureBenefit="Gere QR Codes Pix automaticamente nas ordens de servico para seus clientes pagarem na hora."
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-foreground text-sm">Tipo de chave</Label>
+                <Select value={form.pixType ?? "cpf"} onValueChange={v => handleChange("pixType", v)} disabled={isStart}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(pixTypeLabels).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label htmlFor="pix-key" className="text-foreground text-sm">Chave Pix</Label>
+                <Input
+                  id="pix-key"
+                  value={form.pixKey}
+                  onChange={e => handleChange("pixKey", e.target.value)}
+                  disabled={isStart}
+                  placeholder={
+                    form.pixType === "cpf" ? "000.000.000-00" :
+                    form.pixType === "email" ? "contato@empresa.com" :
+                    form.pixType === "telefone" ? "+55 11 99999-9999" : "Cole sua chave aqui"
+                  }
+                  className="bg-input border-border"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="pix-key" className="text-foreground text-sm">Chave Pix</Label>
-              <Input
-                id="pix-key"
-                value={form.pixKey}
-                onChange={e => handleChange("pixKey", e.target.value)}
-                placeholder={
-                  form.pixType === "cpf" ? "000.000.000-00" :
-                  form.pixType === "email" ? "contato@empresa.com" :
-                  form.pixType === "telefone" ? "+55 11 99999-9999" : "Cole sua chave aqui"
-                }
-                className="bg-input border-border"
-              />
-            </div>
-          </div>
+          </PlanGate>
         </CardContent>
       </Card>
 
