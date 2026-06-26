@@ -228,6 +228,25 @@ export const supportMessages = pgTable("support_messages", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
+// ── Payments ──────────────────────────────────────────────────────────────────
+export const payments = pgTable("payments", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  mpPaymentId: text("mpPaymentId").notNull().unique(), // ID retornado pelo Mercado Pago
+  planId: text("planId").notNull(),
+  planName: text("planName").notNull(),
+  amountCents: integer("amountCents").notNull(), // valor em centavos
+  status: text("status").notNull().default("pending"), // pending | approved | rejected | cancelled
+  paymentMethod: text("paymentMethod").notNull().default("pix"), // pix | credit_card | boleto
+  durationDays: integer("durationDays").notNull().default(30),
+  paidAt: timestamp("paidAt"),
+  expiresLicenseAt: timestamp("expiresLicenseAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export type Payment = typeof payments.$inferSelect
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect
 export type Client = typeof clients.$inferSelect

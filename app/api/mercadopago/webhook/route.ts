@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import MercadoPagoConfig, { Payment } from "mercadopago"
 import { db } from "@/lib/db"
-import { user } from "@/lib/db/schema"
+import { user, payments } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { LICENSE_PLANS } from "@/lib/products"
 
 export const dynamic = "force-dynamic"
 
@@ -27,13 +28,45 @@ export async function POST(req: NextRequest) {
     const paymentClient = new Payment(client)
     const payment = await paymentClient.get({ id: paymentId })
 
-    // So ativa se pagamento estiver aprovado
+    const userId = payment.metadata?.user_id
+    const durationDays = Number(payment.metadata?.duration_days ?? 30)
+    const planId = payment.metadata?.plan_id ?? "unknown"
+    const plan = LICENSE_PLANS.find((p) => p.id === planId)
+    const amountCents = Math.round((payment.transaction_amount ?? 0) * 100)
+    const paymentMethod = payment.payment_method_id ?? "pix"
+    const mpStatus = payment.status ?? "pending"
+
+    // Salva ou atualiza registro do pagamento
+    const paymentRowId = `mp_${paymentId}`
+    await db
+      .insert(payments)
+      .values({
+        id: paymentRowId,
+        userId: userId ?? "unknown",
+        mpPaymentId: String(paymentId),
+        planId,
+        planName: plan?.name ?? planId,
+        amountCents,
+        status: mpStatus,
+        paymentMethod,
+        durationDays,
+        paidAt: mpStatus === "approved" ? new Date() : null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: payments.mpPaymentId,
+        set: {
+          status: mpStatus,
+          paidAt: mpStatus === "approved" ? new Date() : null,
+          updatedAt: new Date(),
+        },
+      })
+
+    // So ativa licenca se pagamento estiver aprovado
     if (payment.status !== "approved") {
       return NextResponse.json({ received: true })
     }
-
-    const userId = payment.metadata?.user_id
-    const durationDays = Number(payment.metadata?.duration_days)
 
     if (!userId || !durationDays) {
       console.error("[MP Webhook] Metadados ausentes:", payment.metadata)
@@ -55,7 +88,17 @@ export async function POST(req: NextRequest) {
     const newExpiry = new Date(baseDate)
     newExpiry.setDate(newExpiry.getDate() + durationDays)
 
-    await db.update(user).set({ accessExpiresAt: newExpiry }).where(eq(user.id, userId))
+    // Atualiza licenca do usuario e plano no businessProfile
+    await db
+      .update(user)
+      .set({ accessExpiresAt: newExpiry, updatedAt: new Date() })
+      .where(eq(user.id, userId))
+
+    // Atualiza expiresLicenseAt no registro do pagamento
+    await db
+      .update(payments)
+      .set({ expiresLicenseAt: newExpiry, updatedAt: new Date() })
+      .where(eq(payments.mpPaymentId, String(paymentId)))
 
     console.log(`[MP Webhook] Licenca ativada para ${userId} ate ${newExpiry.toISOString()}`)
 

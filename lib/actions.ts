@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import {
   businessProfile,
   clients,
+  payments,
   promoCodes,
   quoteItems,
   quotes,
@@ -704,6 +705,32 @@ export async function adminGetStats() {
     }
   } catch { /* opcional */ }
 
+  // Métricas financeiras de pagamentos aprovados
+  let revenueStats: { totalCents: number; dayCents: number; weekCents: number; monthCents: number; totalCount: number } = {
+    totalCents: 0, dayCents: 0, weekCents: 0, monthCents: 0, totalCount: 0,
+  }
+  try {
+    const revenueResult = await db.execute(sql`
+      SELECT
+        COALESCE(SUM("amountCents"), 0) as total_cents,
+        COALESCE(SUM("amountCents") FILTER (WHERE "paidAt" >= NOW() - INTERVAL '1 day'), 0) as day_cents,
+        COALESCE(SUM("amountCents") FILTER (WHERE "paidAt" >= NOW() - INTERVAL '7 days'), 0) as week_cents,
+        COALESCE(SUM("amountCents") FILTER (WHERE "paidAt" >= NOW() - INTERVAL '30 days'), 0) as month_cents,
+        COUNT(*) FILTER (WHERE status = 'approved') as total_count
+      FROM payments
+      WHERE status = 'approved'
+    `)
+    const revenueRows = (revenueResult as any)?.rows ?? (Array.isArray(revenueResult) ? revenueResult : [])
+    const r = revenueRows[0]
+    revenueStats = {
+      totalCents: Number(r?.total_cents ?? 0),
+      dayCents: Number(r?.day_cents ?? 0),
+      weekCents: Number(r?.week_cents ?? 0),
+      monthCents: Number(r?.month_cents ?? 0),
+      totalCount: Number(r?.total_count ?? 0),
+    }
+  } catch { /* opcional */ }
+
   return {
     totalUsers: Number(totalUsersRes.c),
     activeUsers: Number(activeUsersRes.c),
@@ -716,7 +743,31 @@ export async function adminGetStats() {
     dailyLogins,
     dbMetrics,
     subscriptionStats,
+    revenueStats,
   }
+}
+
+export async function adminGetPayments() {
+  return db
+    .select({
+      id: payments.id,
+      mpPaymentId: payments.mpPaymentId,
+      planId: payments.planId,
+      planName: payments.planName,
+      amountCents: payments.amountCents,
+      status: payments.status,
+      paymentMethod: payments.paymentMethod,
+      durationDays: payments.durationDays,
+      paidAt: payments.paidAt,
+      expiresLicenseAt: payments.expiresLicenseAt,
+      createdAt: payments.createdAt,
+      userName: user.name,
+      userEmail: user.email,
+    })
+    .from(payments)
+    .leftJoin(user, eq(payments.userId, user.id))
+    .orderBy(desc(payments.createdAt))
+    .limit(200)
 }
 
 export async function adminUpdateUser(userId: string, data: { name?: string; email?: string; accessExpiresAt?: string }) {

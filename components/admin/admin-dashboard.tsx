@@ -6,6 +6,7 @@ import type { PromoCode } from "@/lib/db/schema"
 import {
   adminCreatePromoCode, adminDeletePromoCode,
   adminUpdateUser, adminSendPasswordReset, adminExtendLicense, adminRevokeAccess,
+  adminGetPayments,
 } from "@/lib/actions"
 import { AdminTickets } from "@/components/admin/admin-tickets"
 import { toast } from "sonner"
@@ -43,6 +44,22 @@ type LicenseRow = {
 
 type GeoInfo = { city: string; region: string; isp: string; country: string }
 
+type PaymentRow = {
+  id: string
+  mpPaymentId: string
+  planId: string
+  planName: string
+  amountCents: number
+  status: string
+  paymentMethod: string
+  durationDays: number
+  paidAt: Date | null
+  expiresLicenseAt: Date | null
+  createdAt: Date
+  userName: string | null
+  userEmail: string | null
+}
+
 interface StatsData {
   totalUsers: number
   activeUsers: number
@@ -55,6 +72,7 @@ interface StatsData {
   dailyLogins: { day: string; logins: number }[]
   dbMetrics: { size: string; sizeBytes: number; connections: number; latencyMs: number; tableCount: number } | null
   subscriptionStats: { day: number; week: number; month: number; total: number }
+  revenueStats: { totalCents: number; dayCents: number; weekCents: number; monthCents: number; totalCount: number }
 }
 
 type TicketRow = {
@@ -105,7 +123,7 @@ function StatCard({ icon: Icon, label, value, sub, color, onClick, active }: {
   )
 }
 
-type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas"
+type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos"
 
 export default function AdminDashboard({
   stats: initialStats, codes, tickets,
@@ -128,6 +146,9 @@ export default function AdminDashboard({
   const [resetLink, setResetLink] = useState<string | null>(null)
   const [geoData, setGeoData] = useState<Record<string, GeoInfo>>({})
   const [geoLoading, setGeoLoading] = useState(false)
+  const [paymentsList, setPaymentsList] = useState<PaymentRow[]>([])
+  const [paymentsLoading, setPaymentsLoading] = useState(false)
+  const [paymentFilter, setPaymentFilter] = useState<"todos" | "approved" | "pending" | "rejected">("todos")
 
   const onlineUserIds = new Set(stats.onlineSessions.map(s => s.userId))
 
@@ -268,10 +289,23 @@ export default function AdminDashboard({
 
   const now = new Date()
 
+  async function loadPayments() {
+    if (paymentsLoading) return
+    setPaymentsLoading(true)
+    try {
+      const data = await adminGetPayments()
+      setPaymentsList(data as PaymentRow[])
+    } catch { toast.error("Erro ao carregar pagamentos") }
+    finally { setPaymentsLoading(false) }
+  }
+
   function handleTabChange(t: Tab) {
     setTab(t)
     if ((t === "usuarios" || t === "metricas") && Object.keys(geoData).length === 0) {
       loadGeoData()
+    }
+    if (t === "pagamentos" && paymentsList.length === 0) {
+      loadPayments()
     }
   }
 
@@ -282,6 +316,7 @@ export default function AdminDashboard({
     { key: "codigos", label: "Códigos", icon: Tag },
     { key: "suporte", label: `Suporte (${tickets.filter(t => t.status === "aberto" || t.status === "em_andamento").length})`, icon: LifeBuoy },
     { key: "metricas", label: "Métricas", icon: Activity },
+    { key: "pagamentos", label: "Pagamentos", icon: DollarSign },
   ]
 
   return (
@@ -333,6 +368,7 @@ export default function AdminDashboard({
             <StatCard icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
             <StatCard icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
             <StatCard icon={LifeBuoy} label="Tickets abertos" value={stats.openTickets} color="bg-amber-500/80" onClick={() => handleTabChange("suporte")} active={tab === "suporte"} />
+            <StatCard icon={DollarSign} label="Receita total" value={`R$ ${(stats.revenueStats.totalCents / 100).toFixed(2)}`} sub={`${stats.revenueStats.totalCount} pagamentos aprovados`} color="bg-emerald-600/80" onClick={() => handleTabChange("pagamentos")} active={tab === "pagamentos"} />
             <StatCard icon={Tag} label="Códigos usados" value={`${stats.usedCodes}/${stats.totalCodes}`} color="bg-purple-500/80" />
           </div>
 
@@ -968,6 +1004,112 @@ export default function AdminDashboard({
                     <Ban className="size-4" />Revogar acesso imediatamente
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Tab: Pagamentos ── */}
+        {tab === "pagamentos" && (
+          <div className="space-y-4">
+            {/* Cards de receita */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Receita hoje", value: stats.revenueStats.dayCents, color: "text-cyan-400" },
+                { label: "Receita na semana", value: stats.revenueStats.weekCents, color: "text-blue-400" },
+                { label: "Receita no mês", value: stats.revenueStats.monthCents, color: "text-indigo-400" },
+                { label: "Receita total", value: stats.revenueStats.totalCents, color: "text-emerald-400" },
+              ].map(item => (
+                <div key={item.label} className={cn("rounded-xl border p-4", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                  <p className={cn("text-xl font-bold", item.color)}>
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.value / 100)}
+                  </p>
+                  <p className={cn("text-xs mt-1", darkMode ? "text-white/40" : "text-slate-400")}>{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabela de pagamentos */}
+            <div className={cn("rounded-2xl border overflow-hidden", darkMode ? "bg-[#0f0f16] border-white/8" : "bg-white border-slate-200")}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 gap-3 flex-wrap">
+                <h2 className={cn("text-sm font-semibold", darkMode ? "text-white/70" : "text-slate-600")}>
+                  Histórico de pagamentos
+                  <span className={cn("ml-2 text-xs font-normal", darkMode ? "text-white/30" : "text-slate-400")}>via Mercado Pago · PIX</span>
+                </h2>
+                <div className="flex gap-1.5 flex-wrap">
+                  {(["todos", "approved", "pending", "rejected"] as const).map(f => (
+                    <button key={f} onClick={() => setPaymentFilter(f)}
+                      className={cn("px-3 py-1 rounded-full text-xs transition-colors",
+                        paymentFilter === f
+                          ? "bg-primary text-white"
+                          : darkMode ? "bg-white/6 text-white/50 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      )}>
+                      {f === "todos" ? "Todos" : f === "approved" ? "Aprovados" : f === "pending" ? "Pendentes" : "Rejeitados"}
+                    </button>
+                  ))}
+                  <button onClick={loadPayments} disabled={paymentsLoading}
+                    className={cn("px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1",
+                      darkMode ? "bg-white/6 text-white/50 hover:bg-white/10" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    )}>
+                    <RefreshCw className={cn("size-3", paymentsLoading && "animate-spin")} />Atualizar
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={cn("text-xs border-b", darkMode ? "text-white/40 border-white/10 bg-white/3" : "text-slate-400 border-slate-100 bg-slate-50")}>
+                      <th className="text-left px-4 py-3 font-medium">Usuário</th>
+                      <th className="text-left px-4 py-3 font-medium">Plano</th>
+                      <th className="text-left px-4 py-3 font-medium">Valor</th>
+                      <th className="text-left px-4 py-3 font-medium">Método</th>
+                      <th className="text-left px-4 py-3 font-medium">Status</th>
+                      <th className="text-left px-4 py-3 font-medium">Data pagamento</th>
+                      <th className="text-left px-4 py-3 font-medium">ID Mercado Pago</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentsLoading ? (
+                      <tr><td colSpan={7} className={cn("text-center py-10 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Carregando...</td></tr>
+                    ) : paymentsList.filter(p => paymentFilter === "todos" || p.status === paymentFilter).length === 0 ? (
+                      <tr><td colSpan={7} className={cn("text-center py-10 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhum pagamento encontrado.</td></tr>
+                    ) : paymentsList
+                      .filter(p => paymentFilter === "todos" || p.status === paymentFilter)
+                      .map(p => (
+                        <tr key={p.id} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
+                          <td className="px-4 py-3">
+                            <p className={cn("text-sm font-medium", darkMode ? "text-white/90" : "text-slate-800")}>{p.userName ?? "—"}</p>
+                            <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{p.userEmail ?? "—"}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">{p.planName}</span>
+                            <p className={cn("text-[10px] mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>{p.durationDays}d</p>
+                          </td>
+                          <td className={cn("px-4 py-3 font-semibold", darkMode ? "text-emerald-400" : "text-emerald-600")}>
+                            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.amountCents / 100)}
+                          </td>
+                          <td className={cn("px-4 py-3 text-xs uppercase", darkMode ? "text-white/50" : "text-slate-500")}>
+                            {p.paymentMethod}
+                          </td>
+                          <td className="px-4 py-3">
+                            {p.status === "approved" ? (
+                              <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="size-3.5" />Aprovado</span>
+                            ) : p.status === "pending" ? (
+                              <span className="flex items-center gap-1 text-xs text-amber-400"><Clock className="size-3.5" />Pendente</span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="size-3.5" />Rejeitado</span>
+                            )}
+                          </td>
+                          <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>
+                            {formatDateTime(p.paidAt ?? p.createdAt)}
+                          </td>
+                          <td className={cn("px-4 py-3 text-xs font-mono", darkMode ? "text-white/30" : "text-slate-400")}>
+                            {p.mpPaymentId}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
