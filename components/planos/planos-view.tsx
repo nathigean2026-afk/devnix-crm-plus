@@ -2,12 +2,12 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Check, Zap, CalendarDays, CalendarRange, LogOut } from "lucide-react"
+import { Check, Zap, CalendarDays, CalendarRange, LogOut, Loader2, ExternalLink } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { CheckoutModal } from "./checkout-modal"
 import { PixCheckoutModal } from "./pix-checkout-modal"
+import { toast } from "sonner"
 
 interface PlanosViewProps {
   user: { name: string; email: string }
@@ -20,6 +20,7 @@ const plans = [
     label: "Start",
     duration: "7 dias",
     price: "R$ 7,00",
+    priceDisplay: "7,00",
     period: "por 7 dias",
     description: "Ideal para conhecer a plataforma sem compromisso.",
     icon: Zap,
@@ -38,6 +39,7 @@ const plans = [
     label: "Business",
     duration: "30 dias",
     price: "R$ 24,00",
+    priceDisplay: "24,00",
     period: "por mes",
     description: "Para profissionais que precisam de controle mensal.",
     icon: CalendarDays,
@@ -57,6 +59,7 @@ const plans = [
     label: "Enterprise",
     duration: "1 ano",
     price: "R$ 260,00",
+    priceDisplay: "260,00",
     period: "por ano",
     description: "Melhor custo-beneficio para uso continuo.",
     icon: CalendarRange,
@@ -74,15 +77,60 @@ const plans = [
   },
 ]
 
+// Logo SVG do Mercado Pago
+function MpLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="48" height="48" rx="10" fill="#00B1EA"/>
+      <path d="M8 24C8 15.163 15.163 8 24 8C32.837 8 40 15.163 40 24C40 32.837 32.837 40 24 40C15.163 40 8 32.837 8 24Z" fill="#00B1EA"/>
+      <path d="M14 24.5L19.5 19L24 23.5L28.5 19L34 24.5L28.5 30L24 25.5L19.5 30L14 24.5Z" fill="white"/>
+    </svg>
+  )
+}
+
+// Logo PIX
+function PixLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 512 512" fill="currentColor">
+      <path d="M242.4 292.5C247.8 287.1 255.1 284.3 262.5 284.3C269.8 284.3 277.2 287.1 282.6 292.5L371.1 381C377.6 387.5 377.6 397.9 371.1 404.4L282.6 492.9C277.2 498.3 269.8 501.1 262.5 501.1C255.1 501.1 247.8 498.3 242.4 492.9L153.9 404.4C147.4 397.9 147.4 387.5 153.9 381L242.4 292.5zM242.4 19.03C247.8 13.63 255.1 10.82 262.5 10.82C269.8 10.82 277.2 13.63 282.6 19.03L371.1 107.5C377.6 114 377.6 124.4 371.1 130.9L282.6 219.4C277.2 224.8 269.8 227.6 262.5 227.6C255.1 227.6 247.8 224.8 242.4 219.4L153.9 130.9C147.4 124.4 147.4 114 153.9 107.5L242.4 19.03zM19.03 129.4C24.43 124 31.8 121.2 39.13 121.2C46.46 121.2 53.8 124 59.2 129.4L147.7 217.9C154.2 224.4 154.2 234.8 147.7 241.3L59.2 329.8C53.8 335.2 46.46 338 39.13 338C31.8 338 24.43 335.2 19.03 329.8L-69.47 241.3C-75.97 234.8 -75.97 224.4 -69.47 217.9L19.03 129.4zM465.9 129.4C471.3 124 478.7 121.2 486 121.2C493.3 121.2 500.7 124 506.1 129.4L594.6 217.9C601.1 224.4 601.1 234.8 594.6 241.3L506.1 329.8C500.7 335.2 493.3 338 486 338C478.7 338 471.3 335.2 465.9 329.8L377.4 241.3C370.9 234.8 370.9 224.4 377.4 217.9L465.9 129.4z"/>
+    </svg>
+  )
+}
+
 export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   const router = useRouter()
-  const [checkoutPlan, setCheckoutPlan] = useState<{ id: string; name: string } | null>(null)
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null)
   const [pixPlan, setPixPlan] = useState<{ id: string; name: string; price: string } | null>(null)
 
   async function handleSignOut() {
     await authClient.signOut()
     router.push("/sign-in")
     router.refresh()
+  }
+
+  // Abre o Checkout Pro do Mercado Pago (cartao + PIX + boleto no ambiente oficial do MP)
+  async function handleCheckoutPro(planId: string) {
+    setLoadingPlanId(planId)
+    try {
+      const res = await fetch("/api/mercadopago/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao iniciar checkout")
+
+      // Em sandbox usa sandboxInitPoint, em producao usa initPoint
+      const url = data.sandboxInitPoint || data.initPoint
+      if (!url) throw new Error("URL de checkout nao recebida")
+
+      // Abre o checkout do Mercado Pago em nova aba
+      window.open(url, "_blank", "noopener,noreferrer")
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao abrir checkout")
+    } finally {
+      setLoadingPlanId(null)
+    }
   }
 
   return (
@@ -130,26 +178,37 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
               ? "Renove sua licenca para continuar usando todas as funcionalidades."
               : "Acesso completo a todas as funcionalidades. Cancele quando quiser."}
           </p>
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-green-500" />
-              Cartao de credito
+          {/* Metodos de pagamento aceitos */}
+          <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-muted/50 border border-border rounded-full px-3 py-1.5">
+              <PixLogo className="size-3.5 text-green-500" />
+              <span className="text-xs text-muted-foreground font-medium">Pix</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-green-500" />
-              Pix
+            <div className="flex items-center gap-1.5 bg-muted/50 border border-border rounded-full px-3 py-1.5">
+              <svg className="size-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              <span className="text-xs text-muted-foreground font-medium">Cartao de credito</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-blue-500" />
-              Pagamento seguro
+            <div className="flex items-center gap-1.5 bg-muted/50 border border-border rounded-full px-3 py-1.5">
+              <svg className="size-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span className="text-xs text-muted-foreground font-medium">Boleto</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#00B1EA]/10 border border-[#00B1EA]/20 rounded-full px-3 py-1.5">
+              <MpLogo className="size-3.5" />
+              <span className="text-xs text-[#00B1EA] font-medium">Mercado Pago</span>
             </div>
           </div>
         </div>
 
-        {/* Cards */}
+        {/* Cards de planos */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
           {plans.map((plan) => {
             const Icon = plan.icon
+            const isLoading = loadingPlanId === plan.id
+
             return (
               <div
                 key={plan.id}
@@ -186,14 +245,15 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                   </div>
                 </div>
 
-                {/* Price */}
+                {/* Preco */}
                 <div className="mb-4">
                   <div className="flex items-baseline gap-1">
+                    <span className="text-sm text-muted-foreground">R$</span>
                     <span className={cn(
                       "text-3xl font-bold",
                       plan.highlight ? "text-primary" : "text-foreground"
                     )}>
-                      {plan.price}
+                      {plan.priceDisplay}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{plan.period}</p>
@@ -214,31 +274,36 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                   ))}
                 </ul>
 
-                {/* CTA — dois metodos de pagamento */}
+                {/* CTAs */}
                 <div className="flex flex-col gap-2">
+                  {/* Checkout Pro — cartao + PIX + boleto no ambiente do MP */}
                   <button
-                    onClick={() => setCheckoutPlan({ id: plan.id, name: `Plano ${plan.label} — ${plan.price}` })}
+                    onClick={() => handleCheckoutPro(plan.id)}
+                    disabled={isLoading}
                     className={cn(
-                      "w-full py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2",
+                      "w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed",
                       plan.highlight
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "bg-muted text-foreground hover:bg-muted/80 border border-border"
                     )}
                   >
-                    <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                      <line x1="1" y1="10" x2="23" y2="10" />
-                    </svg>
-                    Cartao — {plan.price}
+                    {isLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <MpLogo className="size-4" />
+                    )}
+                    {isLoading ? "Abrindo checkout..." : `Pagar com Mercado Pago`}
+                    {!isLoading && <ExternalLink className="size-3.5 opacity-60" />}
                   </button>
+
+                  {/* PIX direto — QR Code gerado aqui mesmo */}
                   <button
                     onClick={() => setPixPlan({ id: plan.id, name: `Plano ${plan.label}`, price: plan.price })}
-                    className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20"
+                    disabled={!!loadingPlanId}
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="size-4" viewBox="0 0 512 512" fill="currentColor">
-                      <path d="M242.4 292.5C247.8 287.1 255.1 284.3 262.5 284.3C269.8 284.3 277.2 287.1 282.6 292.5L371.1 381C377.6 387.5 377.6 397.9 371.1 404.4L282.6 492.9C277.2 498.3 269.8 501.1 262.5 501.1C255.1 501.1 247.8 498.3 242.4 492.9L153.9 404.4C147.4 397.9 147.4 387.5 153.9 381L242.4 292.5zM242.4 19.03C247.8 13.63 255.1 10.82 262.5 10.82C269.8 10.82 277.2 13.63 282.6 19.03L371.1 107.5C377.6 114 377.6 124.4 371.1 130.9L282.6 219.4C277.2 224.8 269.8 227.6 262.5 227.6C255.1 227.6 247.8 224.8 242.4 219.4L153.9 130.9C147.4 124.4 147.4 114 153.9 107.5L242.4 19.03zM19.03 129.4C24.43 124 31.8 121.2 39.13 121.2C46.46 121.2 53.8 124 59.2 129.4L147.7 217.9C154.2 224.4 154.2 234.8 147.7 241.3L59.2 329.8C53.8 335.2 46.46 337.1 39.13 337.1C31.8 337.1 24.43 335.2 19.03 329.8L-69.47 241.3C-75.97 234.8 -75.97 224.4 -69.47 217.9L19.03 129.4zM465.9 129.4C471.3 124 478.7 121.2 486 121.2C493.3 121.2 500.7 124 506.1 129.4L594.6 217.9C601.1 224.4 601.1 234.8 594.6 241.3L506.1 329.8C500.7 335.2 493.3 337.1 486 337.1C478.7 337.1 471.3 335.2 465.9 329.8L377.4 241.3C370.9 234.8 370.9 224.4 377.4 217.9L465.9 129.4z" />
-                    </svg>
-                    Pix — {plan.price}
+                    <PixLogo className="size-4" />
+                    Pagar com Pix — {plan.price}
                   </button>
                 </div>
               </div>
@@ -246,37 +311,21 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
           })}
         </div>
 
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <div className="flex items-center gap-5 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <svg className="size-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
-              </svg>
-              Cartao via Stripe
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="size-3.5 rounded-sm bg-green-500/20 flex items-center justify-center">
-                <span className="text-green-400 text-[8px] font-bold">P</span>
-              </div>
-              Pix via Mercado Pago
-            </div>
+        {/* Rodape de seguranca */}
+        <div className="mt-10 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Pagamento 100% seguro processado pelo Mercado Pago
           </div>
           <p className="text-xs text-muted-foreground text-center max-w-sm text-pretty">
-            Pagamento 100% seguro. Licenca ativada automaticamente apos confirmacao.
+            Aceitamos Pix, cartao de credito e boleto. Licenca ativada automaticamente apos confirmacao do pagamento.
           </p>
         </div>
       </main>
 
-      {/* Modal Stripe — Cartao */}
-      {checkoutPlan && (
-        <CheckoutModal
-          planId={checkoutPlan.id}
-          planName={checkoutPlan.name}
-          onClose={() => setCheckoutPlan(null)}
-        />
-      )}
-
-      {/* Modal Mercado Pago — Pix */}
+      {/* Modal PIX direto */}
       {pixPlan && (
         <PixCheckoutModal
           open={!!pixPlan}
