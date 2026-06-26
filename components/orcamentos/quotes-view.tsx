@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createQuote, updateQuoteStatus, deleteQuote } from "@/lib/actions"
+import { createQuote, updateQuote, updateQuoteStatus, deleteQuote, getQuoteWithItems } from "@/lib/actions"
 import type { Client, Quote, Service } from "@/lib/db/schema"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -60,6 +60,7 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [form, setForm] = useState(emptyForm)
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const prevQuotesRef = useRef(initialQuotes)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
@@ -195,24 +196,60 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id))
 
+  const handleEdit = async (id: string) => {
+    setLoading(true)
+    try {
+      const data = await getQuoteWithItems(id)
+      if (!data) { toast.error("Orçamento não encontrado"); return }
+      setEditingId(id)
+      setForm({
+        clientId: data.clientId,
+        title: data.title,
+        validUntil: data.validUntil ?? "",
+        notes: data.notes ?? "",
+        internalNotes: data.internalNotes ?? "",
+        discount: String(data.discount ?? "0"),
+      })
+      setItems(
+        data.items.map((it) => ({
+          id: it.id,
+          serviceId: it.serviceId ?? undefined,
+          description: it.description,
+          quantity: String(it.quantity),
+          unitPrice: String(it.unitPrice),
+          total: String(it.total),
+        })),
+      )
+      setOpen(true)
+    } catch { toast.error("Erro ao carregar orçamento") }
+    finally { setLoading(false) }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (items.length === 0) { toast.error("Adicione pelo menos um item"); return }
     setLoading(true)
     try {
-      const quoteId = await createQuote({
+      const payload = {
         ...form,
         subtotal: String(subtotal),
         discount: String(discount),
         total: String(total),
         items: items.map(({ id: _id, ...rest }) => rest),
-      })
-      toast.success("Orçamento criado!")
+      }
+      if (editingId) {
+        await updateQuote(editingId, payload)
+        toast.success("Orçamento atualizado! O cliente pode responder novamente.")
+      } else {
+        await createQuote(payload)
+        toast.success("Orçamento criado!")
+      }
       setOpen(false)
       setForm(emptyForm)
       setItems([])
-      window.location.reload()
-    } catch { toast.error("Erro ao criar orçamento") }
+      setEditingId(null)
+      router.refresh()
+    } catch { toast.error(editingId ? "Erro ao atualizar orçamento" : "Erro ao criar orçamento") }
     finally { setLoading(false) }
   }
 
@@ -243,7 +280,7 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
           <h1 className="text-2xl font-bold text-foreground">Orçamentos</h1>
           <p className="text-muted-foreground text-sm mt-1">{quotes.length} orçamentos</p>
         </div>
-        <Button onClick={() => { setForm(emptyForm); setItems([]); setOpen(true) }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+        <Button onClick={() => { setEditingId(null); setForm(emptyForm); setItems([]); setOpen(true) }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <Plus data-icon="inline-start" />Novo Orçamento
         </Button>
       </div>
@@ -343,6 +380,9 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                                 <ExternalLink className="size-4 mr-2" />Ver orçamento
                               </a>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(q.id)} className="text-foreground cursor-pointer">
+                              <Pencil className="size-4 mr-2 text-amber-500" />Editar
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-border" />
                             <DropdownMenuItem onClick={() => handleShareWhatsApp(q)} className="text-foreground cursor-pointer">
                               <MessageCircle className="size-4 mr-2 text-green-500" />
@@ -380,11 +420,11 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
         </CardContent>
       </Card>
 
-      {/* New Quote Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      {/* New/Edit Quote Dialog */}
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); setItems([]) } }}>
         <DialogContent className="bg-card border-border text-foreground max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Novo Orçamento</DialogTitle>
+            <DialogTitle className="text-foreground">{editingId ? "Editar Orçamento" : "Novo Orçamento"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
             {/* Título */}
@@ -444,11 +484,15 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                     <Label className="text-muted-foreground text-xs">Serviço / Descrição</Label>
                     <Select value={item.serviceId ?? "__manual__"} onValueChange={(v) => updateItem(item.id, "serviceId", v === "__manual__" ? "" : v)}>
                       <SelectTrigger className="bg-input border-border text-foreground h-8 text-sm">
-                        <SelectValue placeholder="Selecionar serviço..." />
+                        <SelectValue>
+                          {item.serviceId
+                            ? services.find((s) => s.id === item.serviceId)?.name ?? "Manual"
+                            : "Manual"}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border">
                         <SelectItem value="__manual__">Manual</SelectItem>
-                        {services.filter(s => s.active).map((s) => (
+                        {services.filter(s => s.active || s.id === item.serviceId).map((s) => (
                           <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -514,7 +558,7 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border text-foreground hover:bg-muted">Cancelar</Button>
               <Button type="submit" disabled={loading || !form.clientId} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                {loading ? "Criando..." : "Criar Orçamento"}
+                {loading ? "Salvando..." : editingId ? "Salvar e reenviar" : "Criar Orçamento"}
               </Button>
             </DialogFooter>
           </form>
