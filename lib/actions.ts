@@ -11,6 +11,8 @@ import {
   serviceOrderItems,
   serviceOrders,
   services,
+  supportMessages,
+  supportTickets,
   transactions,
   user,
 } from "@/lib/db/schema"
@@ -644,6 +646,186 @@ export async function adminGetPromoCodes() {
 
 export async function adminDeletePromoCode(id: string) {
   await db.delete(promoCodes).where(and(eq(promoCodes.id, id), isNull(promoCodes.usedBy)))
+  revalidatePath("/admin")
+}
+
+// ── Suporte ───────────────────────────────────────────────────────────────────
+
+export async function createSupportTicket(data: {
+  subject: string
+  category: string
+  priority: string
+  body: string
+  attachments?: { name: string; url: string }[]
+}) {
+  const userId = await getUserId()
+  const ticketId = crypto.randomUUID()
+  await db.insert(supportTickets).values({
+    id: ticketId,
+    userId,
+    subject: data.subject,
+    category: data.category,
+    priority: data.priority,
+    status: "aberto",
+  })
+  await db.insert(supportMessages).values({
+    id: crypto.randomUUID(),
+    ticketId,
+    authorId: userId,
+    authorRole: "user",
+    body: data.body,
+    attachments: JSON.stringify(data.attachments ?? []),
+  })
+  revalidatePath("/dashboard/suporte")
+  return ticketId
+}
+
+export async function getSupportTickets() {
+  const userId = await getUserId()
+  const tickets = await db
+    .select()
+    .from(supportTickets)
+    .where(eq(supportTickets.userId, userId))
+    .orderBy(desc(supportTickets.updatedAt))
+  return tickets
+}
+
+export async function getSupportTicket(id: string) {
+  const userId = await getUserId()
+  const [ticket] = await db
+    .select()
+    .from(supportTickets)
+    .where(and(eq(supportTickets.id, id), eq(supportTickets.userId, userId)))
+    .limit(1)
+  if (!ticket) throw new Error("Ticket não encontrado")
+  const messages = await db
+    .select()
+    .from(supportMessages)
+    .where(eq(supportMessages.ticketId, id))
+    .orderBy(supportMessages.createdAt)
+  return { ticket, messages }
+}
+
+export async function sendSupportMessage(
+  ticketId: string,
+  body: string,
+  attachments: { name: string; url: string }[] = [],
+) {
+  const userId = await getUserId()
+  // Verifica que o ticket pertence ao usuário
+  const [ticket] = await db
+    .select({ id: supportTickets.id, status: supportTickets.status })
+    .from(supportTickets)
+    .where(and(eq(supportTickets.id, ticketId), eq(supportTickets.userId, userId)))
+    .limit(1)
+  if (!ticket) throw new Error("Ticket não encontrado")
+  if (ticket.status === "fechado" || ticket.status === "resolvido")
+    throw new Error("Ticket fechado. Abra um novo ticket se precisar de mais ajuda.")
+
+  await db.insert(supportMessages).values({
+    id: crypto.randomUUID(),
+    ticketId,
+    authorId: userId,
+    authorRole: "user",
+    body,
+    attachments: JSON.stringify(attachments),
+  })
+  // Reabre se estava pausado
+  if (ticket.status === "pausado") {
+    await db
+      .update(supportTickets)
+      .set({ status: "em_andamento", updatedAt: new Date() })
+      .where(eq(supportTickets.id, ticketId))
+  } else {
+    await db
+      .update(supportTickets)
+      .set({ updatedAt: new Date() })
+      .where(eq(supportTickets.id, ticketId))
+  }
+  revalidatePath(`/dashboard/suporte/${ticketId}`)
+}
+
+// ── Suporte (Admin) ───────────────────────────────────────────────────────────
+
+export async function adminGetTickets() {
+  const tickets = await db
+    .select({
+      id: supportTickets.id,
+      subject: supportTickets.subject,
+      category: supportTickets.category,
+      status: supportTickets.status,
+      priority: supportTickets.priority,
+      createdAt: supportTickets.createdAt,
+      updatedAt: supportTickets.updatedAt,
+      userId: supportTickets.userId,
+      userName: user.name,
+      userEmail: user.email,
+    })
+    .from(supportTickets)
+    .leftJoin(user, eq(user.id, supportTickets.userId))
+    .orderBy(desc(supportTickets.updatedAt))
+  return tickets
+}
+
+export async function adminGetTicket(id: string) {
+  const [ticket] = await db
+    .select({
+      id: supportTickets.id,
+      subject: supportTickets.subject,
+      category: supportTickets.category,
+      status: supportTickets.status,
+      priority: supportTickets.priority,
+      createdAt: supportTickets.createdAt,
+      updatedAt: supportTickets.updatedAt,
+      userId: supportTickets.userId,
+      userName: user.name,
+      userEmail: user.email,
+    })
+    .from(supportTickets)
+    .leftJoin(user, eq(user.id, supportTickets.userId))
+    .where(eq(supportTickets.id, id))
+    .limit(1)
+  if (!ticket) throw new Error("Ticket não encontrado")
+  const messages = await db
+    .select()
+    .from(supportMessages)
+    .where(eq(supportMessages.ticketId, id))
+    .orderBy(supportMessages.createdAt)
+  return { ticket, messages }
+}
+
+export async function adminReplyTicket(
+  ticketId: string,
+  body: string,
+  attachments: { name: string; url: string }[] = [],
+) {
+  await db.insert(supportMessages).values({
+    id: crypto.randomUUID(),
+    ticketId,
+    authorId: "admin",
+    authorRole: "admin",
+    body,
+    attachments: JSON.stringify(attachments),
+  })
+  await db
+    .update(supportTickets)
+    .set({ status: "em_andamento", updatedAt: new Date() })
+    .where(eq(supportTickets.id, ticketId))
+  revalidatePath("/admin")
+}
+
+export async function adminUpdateTicketStatus(
+  ticketId: string,
+  status: "aberto" | "em_andamento" | "pausado" | "resolvido" | "fechado",
+) {
+  await db
+    .update(supportTickets)
+    .set({
+      status,
+      updatedAt: new Date(),
+      closedAt: status === "fechado" || status === "resolvido" ? new Date() : undefined,
+    })
+    .where(eq(supportTickets.id, ticketId))
   revalidatePath("/admin")
 }
 

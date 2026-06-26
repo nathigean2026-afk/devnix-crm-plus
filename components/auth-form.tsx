@@ -1,5 +1,6 @@
 "use client"
 
+import { LoginChatWidget } from "@/components/support/login-chat-widget"
 import { authClient } from "@/lib/auth-client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -213,6 +214,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           &copy; {new Date().getFullYear()} Devnix. Todos os direitos reservados.
         </p>
       </div>
+
+      {/* Widget flutuante de chat de suporte */}
+      <LoginChatWidget />
     </div>
   )
 }

@@ -17,6 +17,7 @@ import {
   PanelLeftOpen,
   Menu,
   X,
+  LifeBuoy,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -55,6 +56,12 @@ const navItems = [
     items: [
       { href: "/dashboard/financeiro", label: "Financeiro", icon: DollarSign },
       { href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart2 },
+    ],
+  },
+  {
+    group: "Ajuda",
+    items: [
+      { href: "/dashboard/suporte", label: "Suporte", icon: LifeBuoy },
     ],
   },
 ]
