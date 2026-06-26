@@ -41,6 +41,8 @@ type LicenseRow = {
   lastUserAgent: string | null
 }
 
+type GeoInfo = { city: string; region: string; isp: string; country: string }
+
 interface StatsData {
   totalUsers: number
   activeUsers: number
@@ -51,7 +53,8 @@ interface StatsData {
   onlineSessions: SessionRow[]
   licenseData: LicenseRow[]
   dailyLogins: { day: string; logins: number }[]
-  dbMetrics: { size: string; connections: number; avgQueryMs: number } | null
+  dbMetrics: { size: string; sizeBytes: number; connections: number; latencyMs: number; tableCount: number } | null
+  subscriptionStats: { day: number; week: number; month: number; total: number }
 }
 
 type TicketRow = {
@@ -123,8 +126,29 @@ export default function AdminDashboard({
   const [editForm, setEditForm] = useState({ name: "", email: "", accessExpiresAt: "" })
   const [extendDays, setExtendDays] = useState(30)
   const [resetLink, setResetLink] = useState<string | null>(null)
+  const [geoData, setGeoData] = useState<Record<string, GeoInfo>>({})
+  const [geoLoading, setGeoLoading] = useState(false)
 
   const onlineUserIds = new Set(stats.onlineSessions.map(s => s.userId))
+
+  // Carrega geolocalização dos IPs quando muda para aba usuarios ou metricas
+  const loadGeoData = useCallback(async () => {
+    const ips = [
+      ...stats.licenseData.map(u => u.lastSessionIp).filter(Boolean),
+      ...stats.onlineSessions.map(s => s.ipAddress).filter(Boolean),
+    ].filter((ip, i, a) => a.indexOf(ip) === i) as string[]
+    if (ips.length === 0 || geoLoading) return
+    setGeoLoading(true)
+    try {
+      const res = await fetch("/api/admin/geoip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ips }),
+      })
+      if (res.ok) setGeoData(await res.json())
+    } catch { /* opcional */ }
+    finally { setGeoLoading(false) }
+  }, [stats.licenseData, stats.onlineSessions, geoLoading])
 
   async function handleLogout() {
     await fetch("/api/admin/login", { method: "DELETE" })
@@ -244,6 +268,13 @@ export default function AdminDashboard({
 
   const now = new Date()
 
+  function handleTabChange(t: Tab) {
+    setTab(t)
+    if ((t === "usuarios" || t === "metricas") && Object.keys(geoData).length === 0) {
+      loadGeoData()
+    }
+  }
+
   const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "visao", label: "Visão Geral", icon: BarChart3 },
     { key: "licencas", label: "Licenças", icon: ShieldCheck },
@@ -300,8 +331,8 @@ export default function AdminDashboard({
             <StatCard icon={Users} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
             <StatCard icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
             <StatCard icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
-            <StatCard icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { setTab("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
-            <StatCard icon={LifeBuoy} label="Tickets abertos" value={stats.openTickets} color="bg-amber-500/80" onClick={() => setTab("suporte")} active={tab === "suporte"} />
+            <StatCard icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
+            <StatCard icon={LifeBuoy} label="Tickets abertos" value={stats.openTickets} color="bg-amber-500/80" onClick={() => handleTabChange("suporte")} active={tab === "suporte"} />
             <StatCard icon={Tag} label="Códigos usados" value={`${stats.usedCodes}/${stats.totalCodes}`} color="bg-purple-500/80" />
           </div>
 
@@ -313,7 +344,7 @@ export default function AdminDashboard({
             {TABS.map(t => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => handleTabChange(t.key)}
                 className={cn(
                   "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all",
                   tab === t.key
@@ -500,17 +531,19 @@ export default function AdminDashboard({
                     <thead>
                       <tr className={cn("text-xs border-b", darkMode ? "text-white/40 border-white/10 bg-white/3" : "text-slate-400 border-slate-100 bg-slate-50")}>
                         <th className="text-left px-4 py-3 font-medium">Usuário</th>
-                        <th className="text-left px-4 py-3 font-medium">Plano</th>
+                        <th className="text-left px-4 py-3 font-medium">Plano / Assinatura</th>
                         <th className="text-left px-4 py-3 font-medium">Último acesso</th>
                         <th className="text-left px-4 py-3 font-medium">IP</th>
-                        <th className="text-left px-4 py-3 font-medium">Status licença</th>
+                        <th className="text-left px-4 py-3 font-medium">Localização</th>
+                        <th className="text-left px-4 py-3 font-medium">Provedor</th>
+                        <th className="text-left px-4 py-3 font-medium">Status</th>
                         <th className="px-4 py-3 font-medium text-right">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className={cn("text-center py-10 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhum usuário encontrado.</td>
+                          <td colSpan={8} className={cn("text-center py-10 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhum usuário encontrado.</td>
                         </tr>
                       ) : filteredUsers.map((u) => {
                         const days = daysLeft(u.accessExpiresAt)
@@ -533,7 +566,12 @@ export default function AdminDashboard({
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full capitalize">{u.licensePlan ?? "starter"}</span>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full capitalize w-fit">{u.licensePlan ?? "starter"}</span>
+                                <span className={cn("text-[10px]", darkMode ? "text-white/30" : "text-slate-400")}>
+                                  {u.accessExpiresAt ? `vence ${formatDate(u.accessExpiresAt)}` : "sem data"}
+                                </span>
+                              </div>
                             </td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>
                               {formatDateTime(u.lastSessionAt)}
@@ -541,9 +579,22 @@ export default function AdminDashboard({
                             <td className={cn("px-4 py-3 text-xs font-mono", darkMode ? "text-white/40" : "text-slate-400")}>
                               {parseIp(u.lastSessionIp)}
                             </td>
+                            <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>
+                              {(() => {
+                                const geo = u.lastSessionIp ? geoData[u.lastSessionIp] : null
+                                if (!geo) return geoLoading ? <span className="opacity-40">...</span> : <span className="opacity-30">—</span>
+                                return <span title={`${geo.city}, ${geo.region}, ${geo.country}`}>{geo.city}{geo.region ? `, ${geo.region.slice(0,2)}` : ""}</span>
+                              })()}
+                            </td>
+                            <td className={cn("px-4 py-3 text-xs max-w-28 truncate", darkMode ? "text-white/40" : "text-slate-400")}>
+                              {(() => {
+                                const geo = u.lastSessionIp ? geoData[u.lastSessionIp] : null
+                                return geo?.isp ? <span title={geo.isp} className="truncate block">{geo.isp}</span> : <span className="opacity-30">—</span>
+                              })()}
+                            </td>
                             <td className="px-4 py-3">
                               {isActive ? (
-                                <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="size-3.5" />{days}d restantes</span>
+                                <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="size-3.5" />{days}d</span>
                               ) : u.accessExpiresAt ? (
                                 <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="size-3.5" />Expirada</span>
                               ) : (
@@ -681,20 +732,63 @@ export default function AdminDashboard({
           {/* ── Tab: Métricas ── */}
           {tab === "metricas" && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Assinaturas por período */}
+              <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                <div className="flex items-center gap-2 mb-4">
+                  <DollarSign className="size-4 text-emerald-400" />
+                  <h2 className={cn("text-sm font-semibold", darkMode ? "text-white/70" : "text-slate-600")}>Assinaturas ativas por período</h2>
+                  <span className={cn("ml-auto text-xs px-2 py-0.5 rounded-full", darkMode ? "bg-white/5 text-white/40" : "bg-slate-100 text-slate-500")}>contagem de contas com licença válida</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: "Renovadas hoje", value: stats.subscriptionStats.day, color: "text-cyan-400" },
+                    { label: "Renovadas na semana", value: stats.subscriptionStats.week, color: "text-blue-400" },
+                    { label: "Renovadas no mês", value: stats.subscriptionStats.month, color: "text-indigo-400" },
+                    { label: "Total com licença ativa", value: stats.subscriptionStats.total, color: "text-emerald-400" },
+                  ].map(item => (
+                    <div key={item.label} className={cn("rounded-lg border p-3", darkMode ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-100")}>
+                      <p className={cn("text-2xl font-bold", item.color)}>{item.value}</p>
+                      <p className={cn("text-xs mt-1", darkMode ? "text-white/40" : "text-slate-400")}>{item.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className={cn("text-xs mt-3 border-t pt-3", darkMode ? "text-white/25 border-white/8" : "text-slate-400 border-slate-100")}>
+                  Para integrar pagamentos com valor real (R$) e cobrar automaticamente, recomendamos o <strong>Stripe</strong> — disponivel como integração neste projeto. O Stripe suporta PIX, cartao de credito, boleto, recorrencia mensal/anual, webhooks de pagamento e painel financeiro completo. Clique em Configurações → Integracoes para adicionar.
+                </p>
+              </div>
+
+              {/* Métricas do banco */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
                   <div className="flex items-center gap-2 mb-2">
                     <Database className="size-4 text-blue-400" />
                     <span className={cn("text-xs font-medium", darkMode ? "text-white/60" : "text-slate-500")}>Tamanho do banco</span>
                   </div>
-                  <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>{stats.dbMetrics?.size ?? "—"}</p>
+                  <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>{stats.dbMetrics?.size ?? "calculando..."}</p>
+                  {stats.dbMetrics?.sizeBytes ? (
+                    <p className={cn("text-xs mt-1", darkMode ? "text-white/30" : "text-slate-400")}>{(stats.dbMetrics.sizeBytes / 1024 / 1024).toFixed(2)} MB bruto</p>
+                  ) : null}
+                </div>
+                <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="size-4 text-yellow-400" />
+                    <span className={cn("text-xs font-medium", darkMode ? "text-white/60" : "text-slate-500")}>Latência (ping)</span>
+                  </div>
+                  <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>
+                    {stats.dbMetrics?.latencyMs != null ? `${stats.dbMetrics.latencyMs}ms` : "—"}
+                  </p>
+                  <p className={cn("text-xs mt-1", darkMode ? "text-white/30" : "text-slate-400")}>
+                    {stats.dbMetrics?.latencyMs != null
+                      ? stats.dbMetrics.latencyMs < 50 ? "Excelente" : stats.dbMetrics.latencyMs < 150 ? "Bom" : "Lento"
+                      : ""}
+                  </p>
                 </div>
                 <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
                   <div className="flex items-center gap-2 mb-2">
                     <Activity className="size-4 text-emerald-400" />
-                    <span className={cn("text-xs font-medium", darkMode ? "text-white/60" : "text-slate-500")}>Conexões ativas</span>
+                    <span className={cn("text-xs font-medium", darkMode ? "text-white/60" : "text-slate-500")}>Tabelas no banco</span>
                   </div>
-                  <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>{stats.dbMetrics?.connections ?? "—"}</p>
+                  <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>{stats.dbMetrics?.tableCount ?? "—"}</p>
                 </div>
                 <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
                   <div className="flex items-center gap-2 mb-2">
@@ -718,6 +812,8 @@ export default function AdminDashboard({
                   <div className="space-y-2">
                     {stats.onlineSessions.map((s, i) => {
                       const matchUser = stats.licenseData.find(u => u.userId === s.userId)
+                      const cleanIp = s.ipAddress?.replace(/^::ffff:/, "") ?? null
+                      const geo = cleanIp ? (geoData[s.ipAddress!] || geoData[cleanIp]) : null
                       return (
                         <div key={i} className={cn("flex items-center gap-3 rounded-lg p-3", darkMode ? "bg-white/3" : "bg-slate-50")}>
                           <span className="size-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
@@ -729,8 +825,9 @@ export default function AdminDashboard({
                               {matchUser ? (matchUser.profileEmail || matchUser.userEmail) : ""}
                             </p>
                           </div>
-                          <div className={cn("text-right", darkMode ? "text-white/40" : "text-slate-400")}>
+                          <div className={cn("text-right space-y-0.5", darkMode ? "text-white/40" : "text-slate-400")}>
                             <p className="text-xs font-mono">{parseIp(s.ipAddress)}</p>
+                            {geo && <p className="text-xs">{geo.city}{geo.region ? `, ${geo.region.slice(0,2)}` : ""} · {geo.isp}</p>}
                             <p className="text-xs">{formatDateTime(s.updatedAt)}</p>
                           </div>
                         </div>

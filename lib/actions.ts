@@ -272,7 +272,7 @@ export async function updateQuote(
   if (!existing) throw new Error("Orçamento não encontrado")
 
   // Ao editar, o orçamento volta para "enviado" para o cliente responder novamente,
-  // limpando qualquer resposta anterior (recusa/aprovação) e o motivo.
+  // limpando qualquer resposta anterior (recusa/aprova��ão) e o motivo.
   await db
     .update(quotes)
     .set({
@@ -648,13 +648,56 @@ export async function adminGetStats() {
     dailyLogins = (rows as unknown as any[]).map((r: any) => ({ day: String(r.day), logins: Number(r.logins) }))
   } catch { /* logins diários opcionais */ }
 
-  // Métricas básicas do banco
-  let dbMetrics: { size: string; connections: number; avgQueryMs: number } | null = null
+  // Latência do banco (ping real)
+  let dbLatencyMs = 0
   try {
-    const sizeRows = await db.execute(sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`)
+    const t0 = Date.now()
+    await db.execute(sql`SELECT 1`)
+    dbLatencyMs = Date.now() - t0
+  } catch { /* ignorar */ }
+
+  // Métricas básicas do banco
+  let dbMetrics: { size: string; sizeBytes: number; connections: number; latencyMs: number; tableCount: number } | null = null
+  try {
+    const sizeRows = await db.execute(
+      sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size, pg_database_size(current_database()) as size_bytes`
+    )
     const dbSize = (sizeRows as unknown as any[])[0]
-    dbMetrics = { size: dbSize?.size ?? "—", connections: 0, avgQueryMs: 0 }
+
+    const tableCountRows = await db.execute(
+      sql`SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`
+    )
+    const tableCount = Number((tableCountRows as unknown as any[])[0]?.cnt ?? 0)
+
+    dbMetrics = {
+      size: dbSize?.size ?? "—",
+      sizeBytes: Number(dbSize?.size_bytes ?? 0),
+      connections: 0,
+      latencyMs: dbLatencyMs,
+      tableCount,
+    }
   } catch { /* métricas de DB opcionais */ }
+
+  // Assinaturas por período (baseado em licença ativa + plano no businessProfile)
+  let subscriptionStats: { day: number; week: number; month: number; total: number } = { day: 0, week: 0, month: 0, total: 0 }
+  try {
+    const subRows = await db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE "accessExpiresAt" > now()) as total_active,
+        COUNT(*) FILTER (WHERE "updatedAt" >= now() - INTERVAL '1 day') as updated_day,
+        COUNT(*) FILTER (WHERE "updatedAt" >= now() - INTERVAL '7 days') as updated_week,
+        COUNT(*) FILTER (WHERE "updatedAt" >= now() - INTERVAL '30 days') as updated_month
+      FROM "user"
+      WHERE "accessExpiresAt" IS NOT NULL
+    `)
+    const row = (subRows as unknown as any[])[0]
+    subscriptionStats = {
+      total: Number(row?.total_active ?? 0),
+      day: Number(row?.updated_day ?? 0),
+      week: Number(row?.updated_week ?? 0),
+      month: Number(row?.updated_month ?? 0),
+    }
+  } catch { /* opcional */ }
 
   return {
     totalUsers: Number(totalUsersRes.c),
@@ -667,6 +710,7 @@ export async function adminGetStats() {
     licenseData,
     dailyLogins,
     dbMetrics,
+    subscriptionStats,
   }
 }
 
