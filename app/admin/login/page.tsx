@@ -54,7 +54,6 @@ export default function AdminLoginPage() {
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="Nathigean"
               required
               className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/60 transition-colors text-sm"
             />

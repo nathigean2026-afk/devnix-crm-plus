@@ -11,10 +11,12 @@ import {
   serviceOrderItems,
   serviceOrders,
   services,
+  session,
   supportMessages,
   supportTickets,
   transactions,
   user,
+  verification,
 } from "@/lib/db/schema"
 import { and, count, desc, eq, isNull, like, sql } from "drizzle-orm"
 import { sendQuoteResponseEmail } from "@/lib/email"
@@ -591,14 +593,29 @@ export async function redeemPromoCode(code: string) {
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export async function adminGetStats() {
+  const now = new Date()
+  const onlineThreshold = new Date(now.getTime() - 15 * 60 * 1000) // 15 min
+
   const [totalUsersRes] = await db.select({ c: count() }).from(user)
-  const [activeUsersRes] = await db
-    .select({ c: count() })
-    .from(user)
-    .where(sql`"accessExpiresAt" > now()`)
+  const [activeUsersRes] = await db.select({ c: count() }).from(user).where(sql`"accessExpiresAt" > now()`)
+  const [expiredUsersRes] = await db.select({ c: count() }).from(user).where(sql`"accessExpiresAt" IS NOT NULL AND "accessExpiresAt" <= now()`)
   const [codesRes] = await db.select({ c: count() }).from(promoCodes)
   const [usedCodesRes] = await db.select({ c: count() }).from(promoCodes).where(sql`"usedBy" IS NOT NULL`)
+  const [openTicketsRes] = await db.select({ c: count() }).from(supportTickets).where(sql`status IN ('aberto', 'em_andamento')`)
 
+  // Usuários com sessão ativa nas últimas 15 min (online)
+  const onlineSessions = await db
+    .select({
+      userId: session.userId,
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+      updatedAt: session.updatedAt,
+    })
+    .from(session)
+    .where(sql`${session.updatedAt} >= ${onlineThreshold} AND ${session.expiresAt} > now()`)
+    .orderBy(desc(session.updatedAt))
+
+  // Todos os usuários com dados de licença e última sessão
   const licenseData = await db
     .select({
       userId: user.id,
@@ -609,19 +626,88 @@ export async function adminGetStats() {
       profileName: businessProfile.name,
       profileEmail: businessProfile.email,
       licensePlan: businessProfile.licensePlan,
+      lastSessionIp: sql<string>`(SELECT "ipAddress" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
+      lastSessionAt: sql<Date>`(SELECT "updatedAt" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
+      lastUserAgent: sql<string>`(SELECT "userAgent" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
     })
     .from(user)
     .leftJoin(businessProfile, eq(businessProfile.userId, user.id))
     .orderBy(desc(user.createdAt))
-    .limit(50)
+    .limit(100)
+
+  // Logins diários últimos 14 dias
+  const dailyLogins = await db.execute(sql`
+    SELECT DATE("createdAt") as day, COUNT(*) as logins
+    FROM session
+    WHERE "createdAt" >= NOW() - INTERVAL '14 days'
+    GROUP BY DATE("createdAt")
+    ORDER BY day ASC
+  `)
+
+  // Métricas básicas do banco (pg_stat_database)
+  let dbMetrics: { size: string; connections: number; avgQueryMs: number } | null = null
+  try {
+    const [dbSize] = await db.execute(sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`) as any
+    const [connCount] = await db.execute(sql`SELECT count(*) as connections FROM pg_stat_activity WHERE state = 'active'`) as any
+    dbMetrics = {
+      size: (dbSize as any)?.size ?? "—",
+      connections: Number((connCount as any)?.connections ?? 0),
+      avgQueryMs: 0,
+    }
+  } catch {}
 
   return {
-    totalUsers: totalUsersRes.c,
-    activeUsers: activeUsersRes.c,
-    totalCodes: codesRes.c,
-    usedCodes: usedCodesRes.c,
+    totalUsers: Number(totalUsersRes.c),
+    activeUsers: Number(activeUsersRes.c),
+    expiredUsers: Number(expiredUsersRes.c),
+    totalCodes: Number(codesRes.c),
+    usedCodes: Number(usedCodesRes.c),
+    openTickets: Number(openTicketsRes.c),
+    onlineSessions,
     licenseData,
+    dailyLogins: (dailyLogins as any[]).map(r => ({ day: String(r.day), logins: Number(r.logins) })),
+    dbMetrics,
   }
+}
+
+export async function adminUpdateUser(userId: string, data: { name?: string; email?: string; accessExpiresAt?: string }) {
+  await db.update(user).set({
+    ...(data.name ? { name: data.name } : {}),
+    ...(data.email ? { email: data.email } : {}),
+    ...(data.accessExpiresAt ? { accessExpiresAt: new Date(data.accessExpiresAt) } : {}),
+    updatedAt: new Date(),
+  }).where(eq(user.id, userId))
+  revalidatePath("/admin")
+}
+
+export async function adminSendPasswordReset(userId: string): Promise<string> {
+  // Gera token temporário de 1 hora para redefinição de senha
+  const token = crypto.randomUUID()
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1h
+  await db.insert(verification).values({
+    id: crypto.randomUUID(),
+    identifier: `admin-reset-${userId}`,
+    value: token,
+    expiresAt,
+  })
+  // Retorna o link — o admin pode copiar e enviar manualmente
+  return `/reset-password?token=${token}&userId=${userId}`
+}
+
+export async function adminExtendLicense(userId: string, days: number) {
+  const [u] = await db.select({ accessExpiresAt: user.accessExpiresAt }).from(user).where(eq(user.id, userId)).limit(1)
+  const now = new Date()
+  const base = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
+  const newExpiry = new Date(base)
+  newExpiry.setDate(newExpiry.getDate() + days)
+  await db.update(user).set({ accessExpiresAt: newExpiry, updatedAt: new Date() }).where(eq(user.id, userId))
+  revalidatePath("/admin")
+  return newExpiry.toISOString()
+}
+
+export async function adminRevokeAccess(userId: string) {
+  await db.update(user).set({ accessExpiresAt: new Date(0), updatedAt: new Date() }).where(eq(user.id, userId))
+  revalidatePath("/admin")
 }
 
 export async function adminCreatePromoCode(data: {
