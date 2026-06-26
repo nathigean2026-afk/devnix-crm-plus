@@ -99,10 +99,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       preferenceId: result.id,
-      // init_point: URL de pagamento no ambiente de producao
       initPoint: result.init_point,
-      // sandbox_init_point: URL de pagamento no sandbox/testes
-      sandboxInitPoint: result.sandbox_init_point,
     })
   } catch (err) {
     console.error("[MP Checkout] erro:", err)

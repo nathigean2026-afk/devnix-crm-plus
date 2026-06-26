@@ -1,41 +1,49 @@
 "use client"
 
 import { LoginChatWidget } from "@/components/support/login-chat-widget"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { authClient } from "@/lib/auth-client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
-import { Eye, EyeOff } from "lucide-react"
+import Link from "next/link"
+import { Eye, EyeOff, ArrowRight, Lock, Mail, User } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up"
 }
 
+const features = [
+  "Clientes e ordens de servico ilimitados",
+  "Orcamentos profissionais em segundos",
+  "Controle financeiro completo",
+  "Relatorios e dashboard em tempo real",
+]
+
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
+
+  const isSignIn = mode === "sign-in"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
-      if (mode === "sign-up") {
+      if (!isSignIn) {
         const { error } = await authClient.signUp.email({
           name: form.name,
           email: form.email,
           password: form.password,
         })
         if (error) throw new Error(error.message)
-        toast.success("Conta criada com sucesso! Escolha seu plano para continuar.")
+        toast.success("Conta criada! Escolha seu plano para continuar.")
         router.push("/planos")
         router.refresh()
         return
@@ -43,10 +51,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         const { error } = await authClient.signIn.email({
           email: form.email,
           password: form.password,
-          rememberMe,
+          rememberMe: true,
         })
         if (error) throw new Error(error.message)
-        toast.success("Login realizado com sucesso!")
+        toast.success("Bem-vindo de volta!")
       }
       router.push("/dashboard")
       router.refresh()
@@ -58,164 +66,243 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      {/* Background glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Painel esquerdo — visual/marketing (desktop only) */}
+      <aside className="hidden lg:flex lg:w-[480px] xl:w-[520px] flex-col justify-between bg-[#0a0a0f] border-r border-white/[0.06] p-10 relative overflow-hidden flex-shrink-0">
+        {/* Noise texture sutil */}
+        <div className="absolute inset-0 opacity-[0.015]" style={{
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")"
+        }} />
+        {/* Glow radial */}
+        <div className="absolute top-0 left-0 w-full h-72 bg-gradient-to-b from-primary/8 to-transparent pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10">
         {/* Logo */}
-        <div className="flex flex-col items-center gap-3 mb-8">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-            alt="Devnix"
-            width={56}
-            height={56}
-            style={{ width: 56, height: "auto" }}
-            className="object-contain"
-          />
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground">Devnix CRM Plus</h1>
-            <p className="text-sm text-muted-foreground mt-1">Soluções Web Inteligentes</p>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
+            <Image
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
+              alt="Devnix"
+              width={22}
+              height={22}
+              className="object-contain"
+            />
+          </div>
+          <span className="text-white font-semibold text-sm tracking-tight">Devnix CRM Plus</span>
+        </div>
+
+        {/* Conteudo central */}
+        <div className="relative z-10 space-y-8">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/30">
+              CRM para profissionais brasileiros
+            </p>
+            <h2 className="text-3xl xl:text-4xl font-black text-white leading-tight tracking-tight text-balance">
+              Gerencie seu negocio com inteligencia
+            </h2>
+            <p className="text-sm text-white/40 leading-relaxed">
+              Tudo que voce precisa para gerenciar clientes, projetos e financeiro em uma unica plataforma.
+            </p>
+          </div>
+
+          <ul className="space-y-3">
+            {features.map((f) => (
+              <li key={f} className="flex items-center gap-3">
+                <div className="size-5 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                  <div className="size-1.5 rounded-full bg-primary" />
+                </div>
+                <span className="text-sm text-white/50">{f}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Social proof */}
+          <div className="pt-2 border-t border-white/[0.06]">
+            <p className="text-xs text-white/25">
+              Pagamento seguro via Mercado Pago · Pix, cartao e boleto
+            </p>
           </div>
         </div>
 
-        <Card className="bg-card border-border shadow-2xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-foreground text-xl">
-              {mode === "sign-in" ? "Entrar na conta" : "Criar conta"}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {mode === "sign-in"
-                ? "Digite suas credenciais para acessar o CRM"
-                : "Preencha os dados para criar sua conta"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {mode === "sign-up" && (
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="name" className="text-foreground text-sm">Nome completo</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                  />
+        {/* Rodape */}
+        <p className="relative z-10 text-xs text-white/20">
+          &copy; {new Date().getFullYear()} Devnix. Todos os direitos reservados.
+        </p>
+      </aside>
+
+      {/* Painel direito — formulario */}
+      <div className="flex-1 flex flex-col">
+        {/* Top bar com theme toggle */}
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Logo mobile */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <Image
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
+              alt="Devnix"
+              width={24}
+              height={24}
+              className="object-contain"
+            />
+            <span className="font-semibold text-sm text-foreground">Devnix CRM Plus</span>
+          </div>
+          <div className="hidden lg:block" />
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href={isSignIn ? "/sign-up" : "/sign-in"}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isSignIn ? "Criar conta" : "Ja tenho conta"}
+            </Link>
+          </div>
+        </div>
+
+        {/* Form centralizado */}
+        <div className="flex-1 flex items-center justify-center px-6 py-8">
+          <div className="w-full max-w-[360px]">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                {isSignIn ? "Entrar na conta" : "Criar conta gratis"}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1.5">
+                {isSignIn
+                  ? "Digite suas credenciais para acessar o CRM."
+                  : "Crie sua conta e escolha um plano para comecar."}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isSignIn && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-sm font-medium text-foreground">
+                    Nome completo
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Seu nome"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      required
+                      className="pl-9 bg-background border-border text-foreground placeholder:text-muted-foreground/60 h-10 focus-visible:ring-1 focus-visible:ring-primary"
+                    />
+                  </div>
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email" className="text-foreground text-sm">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                  className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                  E-mail
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    required
+                    className="pl-9 bg-background border-border text-foreground placeholder:text-muted-foreground/60 h-10 focus-visible:ring-1 focus-visible:ring-primary"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-foreground text-sm">Senha</Label>
-                  {mode === "sign-in" && (
-                    <a
-                      href="/esqueci-senha"
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Esqueci minha senha
-                    </a>
+                  <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                    Senha
+                  </Label>
+                  {isSignIn && (
+                    <Link href="/esqueci-senha" className="text-xs text-primary hover:underline">
+                      Esqueci a senha
+                    </Link>
                   )}
                 </div>
                 <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder={isSignIn ? "Sua senha" : "Minimo 8 caracteres"}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     required
                     minLength={8}
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
+                    className="pl-9 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 h-10 focus-visible:ring-1 focus-visible:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
-                    {showPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
               </div>
 
-              {mode === "sign-in" && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked === true)}
-                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                  />
-                  <Label
-                    htmlFor="remember"
-                    className="text-sm text-muted-foreground cursor-pointer select-none"
-                  >
-                    Continuar conectado por 30 dias
-                  </Label>
-                </div>
-              )}
-
-              <Button
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium mt-1"
+                className={cn(
+                  "w-full h-10 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 mt-2",
+                  "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed",
+                  "shadow-md shadow-primary/20"
+                )}
               >
-                {loading
-                  ? "Aguarde..."
-                  : mode === "sign-in"
-                  ? "Entrar"
-                  : "Criar conta"}
-              </Button>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Aguarde...
+                  </span>
+                ) : (
+                  <>
+                    {isSignIn ? "Entrar" : "Criar conta"}
+                    <ArrowRight className="size-4" />
+                  </>
+                )}
+              </button>
             </form>
 
-            <div className="mt-5 text-center text-sm text-muted-foreground">
-              {mode === "sign-in" ? (
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              {isSignIn ? (
                 <>
-                  Não tem conta?{" "}
-                  <a href="/sign-up" className="text-primary hover:underline font-medium">
-                    Criar conta
-                  </a>
+                  Nao tem conta?{" "}
+                  <Link href="/sign-up" className="text-primary hover:underline font-medium">
+                    Criar conta gratis
+                  </Link>
                 </>
               ) : (
                 <>
-                  Já tem conta?{" "}
-                  <a href="/sign-in" className="text-primary hover:underline font-medium">
+                  Ja tem conta?{" "}
+                  <Link href="/sign-in" className="text-primary hover:underline font-medium">
                     Entrar
-                  </a>
+                  </Link>
                 </>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </p>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          &copy; {new Date().getFullYear()} Devnix. Todos os direitos reservados.
-        </p>
+            {/* Demo link */}
+            <div className="mt-4 text-center">
+              <Link
+                href="/demo"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+              >
+                Ver demonstracao do sistema
+                <ArrowRight className="size-3" />
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Widget flutuante de chat de suporte */}
       <LoginChatWidget />
     </div>
   )
