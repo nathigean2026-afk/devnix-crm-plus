@@ -6,11 +6,14 @@ import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard, Users, Wrench, FileText, DollarSign,
-  ArrowRight, Check, ChevronLeft, ChevronRight,
+  ArrowRight, Check, ChevronLeft, ChevronRight, Zap,
 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { cn } from "@/lib/utils"
 
 const PLANOS_URL = "/planos"
 const SIGNUP_URL = "/sign-up"
+const SIGNIN_URL = "/sign-in"
 
 const modules = [
   {
@@ -18,115 +21,134 @@ const modules = [
     icon: LayoutDashboard,
     label: "Dashboard",
     path: "dashboard",
-    title: "Visão geral completa",
-    subtitle: "Tudo que importa em uma tela",
-    desc: "Acompanhe em tempo real os números mais importantes do seu negócio. Receita, clientes ativos, orçamentos e ordens de serviço resumidos em um painel limpo e intuitivo.",
+    tag: "Visao geral",
+    title: "Tudo que importa, em uma tela",
+    desc: "Acompanhe em tempo real os numeros mais importantes do seu negocio. Receita, clientes ativos, orcamentos e ordens de servico resumidos num painel limpo.",
     features: [
-      "Cards de métricas em tempo real",
-      "Gráfico de receita x despesa",
-      "Clientes e orçamentos recentes",
-      "Acesso rápido a todos os módulos",
+      "Metricas financeiras em tempo real",
+      "Grafico de receita vs despesa",
+      "Clientes e orcamentos recentes",
+      "Acesso rapido a todos os modulos",
     ],
     screenshot: "/demo-dashboard.png",
+    stat: { value: "100%", label: "visibilidade do negocio" },
   },
   {
     id: "clientes",
     icon: Users,
     label: "Clientes",
     path: "dashboard/clientes",
-    title: "Gestão de clientes",
-    subtitle: "Sua base organizada e acessível",
-    desc: "Cadastre e organize todos os seus clientes com informações completas. Busca rápida, filtros por status e histórico de interações para nunca perder um contato.",
+    tag: "Gestao de clientes",
+    title: "Sua base organizada e acessivel",
+    desc: "Cadastre e organize todos os seus clientes com informacoes completas. Busca rapida, filtros por status e historico de interacoes.",
     features: [
-      "Busca e filtros avançados",
+      "Busca e filtros avancados",
       "Cadastro completo com contatos",
-      "Status ativo/inativo",
-      "Histórico de serviços por cliente",
+      "Status ativo / inativo",
+      "Historico de servicos por cliente",
     ],
     screenshot: "/demo-clientes.png",
+    stat: { value: "∞", label: "clientes cadastrados" },
   },
   {
     id: "orcamentos",
     icon: FileText,
-    label: "Orçamentos",
+    label: "Orcamentos",
     path: "dashboard/orcamentos",
-    title: "Orçamentos profissionais",
-    subtitle: "Crie e envie em minutos",
-    desc: "Gere orçamentos detalhados com itens, quantidades e valores. Controle o status de cada proposta e saiba quais foram aprovadas, enviadas ou rejeitadas.",
+    tag: "Propostas comerciais",
+    title: "Orcamentos profissionais em minutos",
+    desc: "Gere orcamentos detalhados com itens, quantidades e valores. Controle o status de cada proposta e saiba quais foram aprovadas.",
     features: [
-      "Criação rápida de propostas",
+      "Criacao rapida de propostas",
       "Itens e valores detalhados",
-      "Status de aprovação",
-      "Histórico completo",
+      "Status de aprovacao",
+      "Historico completo",
     ],
     screenshot: "/demo-orcamentos.png",
+    stat: { value: "3min", label: "para criar um orcamento" },
   },
   {
     id: "os",
     icon: Wrench,
-    label: "Ordens de Serviço",
+    label: "Ordens de Servico",
     path: "dashboard/ordens-servico",
-    title: "Ordens de Serviço",
-    subtitle: "Controle total do que está em aberto",
-    desc: "Crie, acompanhe e finalize ordens de serviço com status visual. Filtre por pendente, em andamento ou concluída e nunca perca uma OS esquecida.",
+    tag: "Controle operacional",
+    title: "Controle total das suas OS",
+    desc: "Crie, acompanhe e finalize ordens de servico com status visual. Filtre por pendente, em andamento ou concluida e nunca perca uma OS.",
     features: [
-      "Status colorido (pendente / andamento / concluída)",
-      "Filtros rápidos por situação",
-      "Vínculo com clientes",
+      "Status colorido por situacao",
+      "Filtros rapidos por etapa",
+      "Vinculo com clientes",
       "Data e valor de cada OS",
     ],
     screenshot: "/demo-os.png",
+    stat: { value: "0", label: "OS esquecidas" },
   },
   {
     id: "financeiro",
     icon: DollarSign,
     label: "Financeiro",
     path: "dashboard/financeiro",
-    title: "Controle financeiro",
-    subtitle: "Saiba exatamente onde está o dinheiro",
-    desc: "Registre receitas e despesas, acompanhe o saldo e visualize a evolução mensal do seu negócio com gráficos comparativos claros e intuitivos.",
+    tag: "Controle financeiro",
+    title: "Saiba exatamente onde esta o dinheiro",
+    desc: "Registre receitas e despesas, acompanhe o saldo e visualize a evolucao mensal com graficos comparativos claros e intuitivos.",
     features: [
       "Resumo de receitas e despesas",
       "Saldo atualizado em tempo real",
-      "Categorias de lançamento",
-      "Gráfico de evolução mensal",
+      "Categorias de lancamento",
+      "Grafico de evolucao mensal",
     ],
     screenshot: "/demo-financeiro.png",
+    stat: { value: "R$", label: "sob controle total" },
   },
+]
+
+const socialProof = [
+  { name: "Carlos M.", role: "Tecnico de informatica", text: "Antes eu usava planilha. Agora tenho tudo organizado e meu cliente recebe orcamento profissional na hora." },
+  { name: "Ana R.", role: "Agencia web", text: "O financeiro me deu clareza total de onde estava o dinheiro. Indispensavel para crescer." },
+  { name: "Pedro S.", role: "Freelancer", text: "O tour interativo me convenceu em 5 minutos. Comecei pelo plano Start e renovei no mesmo dia." },
 ]
 
 export default function DemoPage() {
   const [active, setActive] = useState(0)
+  const mod = modules[active]
 
   const prev = () => setActive((a) => (a === 0 ? modules.length - 1 : a - 1))
   const next = () => setActive((a) => (a === modules.length - 1 ? 0 : a + 1))
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+    <div className="min-h-screen bg-background text-foreground">
 
-      {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 border-b" style={{ borderColor: "var(--border)", background: "rgba(10,10,10,0.85)", backdropFilter: "blur(20px)" }}>
-        <div className="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="https://v0-devnix.vercel.app/crm-plus" className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg flex items-center justify-center border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-              <LayoutDashboard className="size-3.5" style={{ color: "var(--muted-foreground)" }} />
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="size-7 rounded-lg bg-muted border border-border flex items-center justify-center">
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
+                alt="Devnix"
+                width={18}
+                height={18}
+                className="object-contain"
+              />
             </div>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>Devnix CRM Plus</span>
-            <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full border" style={{ color: "var(--muted-foreground)", borderColor: "var(--border)", background: "var(--secondary)" }}>
-              Tour interativo
+            <span className="text-sm font-bold text-foreground">Devnix CRM Plus</span>
+            <span className="hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+              Demo
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link
-              href={SIGNUP_URL}
-              className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase transition-opacity hover:opacity-60"
-              style={{ color: "var(--muted-foreground)" }}>
-              Criar conta
+              href={SIGNIN_URL}
+              className="hidden sm:flex text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+            >
+              Entrar
             </Link>
             <Link
               href={PLANOS_URL}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold tracking-widest uppercase transition-all duration-200 hover:opacity-80"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}>
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-foreground text-background text-[11px] font-bold tracking-wide uppercase hover:opacity-85 transition-opacity"
+            >
               Ver planos
               <ArrowRight className="size-3" />
             </Link>
@@ -134,52 +156,74 @@ export default function DemoPage() {
         </div>
       </header>
 
-      {/* ── HERO ── */}
-      <section className="relative pt-16 pb-12 px-5 text-center overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,255,255,0.03), transparent)" }} />
+      {/* HERO */}
+      <section className="relative pt-16 pb-10 px-5 text-center overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--primary) 6%, transparent), transparent)" }} />
         <motion.div
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold mb-5"
-          style={{ borderColor: "var(--border)", background: "var(--secondary)", color: "var(--muted-foreground)" }}
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <span className="size-1.5 rounded-full bg-green-400 animate-pulse" />
-          Demonstração real — sistema ao vivo
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-muted/50 text-xs font-semibold text-muted-foreground mb-5"
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+        >
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Tour interativo — sistema real ao vivo
         </motion.div>
+
         <motion.h1
-          className="text-[clamp(36px,7vw,72px)] font-black leading-none mb-4 tracking-tight"
-          style={{ color: "var(--foreground)" }}
-          initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+          className="text-[clamp(32px,6vw,64px)] font-black leading-[1.02] tracking-tight text-foreground mb-4 text-balance"
+          initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}>
-          Explore o CRM
+          transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+        >
+          Explore o CRM sem<br className="hidden sm:block" /> criar conta
         </motion.h1>
+
         <motion.p
-          className="text-sm max-w-lg mx-auto leading-relaxed"
-          style={{ color: "var(--muted-foreground)" }}
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.25 }}>
-          Navegue pelos módulos abaixo e veja o sistema real funcionando.
-          Capturas tiradas diretamente da plataforma.
+          className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed mb-8"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }}
+        >
+          Navegue pelos modulos abaixo e veja capturas reais do sistema funcionando.
         </motion.p>
+
+        {/* Stats linha */}
+        <motion.div
+          className="flex items-center justify-center gap-6 md:gap-10 flex-wrap mb-4"
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }}
+        >
+          {[
+            { v: "R$ 7", l: "para comecar" },
+            { v: "5 min", l: "para configurar" },
+            { v: "100%", l: "web, sem instalar" },
+          ].map((s) => (
+            <div key={s.l} className="text-center">
+              <p className="text-xl font-black text-foreground">{s.v}</p>
+              <p className="text-[11px] text-muted-foreground">{s.l}</p>
+            </div>
+          ))}
+        </motion.div>
       </section>
 
-      {/* ── TOUR INTERATIVO ── */}
-      <section className="px-5 pb-16">
+      {/* TOUR INTERATIVO */}
+      <section className="px-5 pb-20">
         <div className="max-w-6xl mx-auto">
 
-          {/* Tabs */}
+          {/* Tabs dos modulos */}
           <motion.div
-            className="flex flex-wrap gap-2 justify-center mb-10"
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+            className="flex flex-wrap gap-1.5 justify-center mb-10"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
+          >
             {modules.map((m, i) => {
               const MIcon = m.icon
-              const isActive = active === i
+              const isA = active === i
               return (
                 <button
                   key={m.id}
                   onClick={() => setActive(i)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all duration-200"
-                  style={isActive
-                    ? { background: "var(--foreground)", color: "var(--background)" }
-                    : { border: "1px solid var(--border)", color: "var(--muted-foreground)", background: "var(--secondary)" }}>
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-semibold tracking-wide uppercase transition-all duration-200",
+                    isA
+                      ? "bg-foreground text-background shadow-sm"
+                      : "border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
                   <MIcon className="size-3.5" />
                   <span className="hidden sm:inline">{m.label}</span>
                 </button>
@@ -187,7 +231,7 @@ export default function DemoPage() {
             })}
           </motion.div>
 
-          {/* Layout: info (esquerda) + screenshot (direita) */}
+          {/* Layout info + screenshot */}
           <div className="grid lg:grid-cols-5 gap-8 items-start">
 
             {/* INFO */}
@@ -195,60 +239,65 @@ export default function DemoPage() {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`info-${active}`}
-                  initial={{ opacity: 0, x: -20, filter: "blur(6px)" }}
+                  initial={{ opacity: 0, x: -16, filter: "blur(4px)" }}
                   animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, x: 20, filter: "blur(6px)" }}
-                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className="space-y-5">
-                  {(() => {
-                    const mod = modules[active]
-                    const Icon = mod.icon
-                    return (
-                      <>
-                        <div className="size-12 rounded-2xl border flex items-center justify-center"
-                          style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-                          <Icon className="size-5" style={{ color: "var(--muted-foreground)" }} />
+                  exit={{ opacity: 0, x: 16, filter: "blur(4px)" }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  className="space-y-5"
+                >
+                  {/* Icone + tag */}
+                  <div className="flex items-center gap-3">
+                    <div className="size-11 rounded-xl bg-muted border border-border flex items-center justify-center">
+                      <mod.icon className="size-5 text-muted-foreground" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {mod.tag}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h2 className="text-2xl font-black text-foreground leading-tight tracking-tight">
+                      {mod.title}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-2.5 leading-relaxed">
+                      {mod.desc}
+                    </p>
+                  </div>
+
+                  {/* Stat destaque */}
+                  <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-muted/30">
+                    <div className="text-2xl font-black text-primary">{mod.stat.value}</div>
+                    <div className="text-xs text-muted-foreground">{mod.stat.label}</div>
+                  </div>
+
+                  {/* Features */}
+                  <ul className="space-y-2.5">
+                    {mod.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-2.5">
+                        <div className="mt-0.5 size-4 rounded-full border border-border bg-muted flex items-center justify-center flex-shrink-0">
+                          <Check className="size-2.5 text-foreground" />
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold tracking-widest uppercase mb-1" style={{ color: "var(--muted-foreground)" }}>
-                            {mod.subtitle}
-                          </p>
-                          <h2 className="text-2xl font-black leading-tight" style={{ color: "var(--foreground)" }}>
-                            {mod.title}
-                          </h2>
-                        </div>
-                        <p className="text-sm leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-                          {mod.desc}
-                        </p>
-                        <ul className="space-y-3">
-                          {mod.features.map((feat) => (
-                            <li key={feat} className="flex items-start gap-3">
-                              <div className="mt-0.5 size-4 rounded-full border flex items-center justify-center flex-shrink-0"
-                                style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
-                                <Check className="size-2.5" style={{ color: "var(--foreground)" }} />
-                              </div>
-                              <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{feat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="pt-4 flex gap-2">
-                          <Link
-                            href={PLANOS_URL}
-                            className="flex items-center gap-2 px-5 py-3 rounded-full text-[11px] font-bold tracking-widest uppercase transition-all duration-200 hover:opacity-80"
-                            style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                            Assinar agora
-                            <ArrowRight className="size-3" />
-                          </Link>
-                          <Link
-                            href={SIGNUP_URL}
-                            className="flex items-center gap-2 px-5 py-3 rounded-full text-[11px] font-bold tracking-widest uppercase border transition-all duration-200 hover:opacity-70"
-                            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
-                            Criar conta
-                          </Link>
-                        </div>
-                      </>
-                    )
-                  })()}
+                        <span className="text-sm text-muted-foreground">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTAs */}
+                  <div className="pt-2 flex gap-2">
+                    <Link
+                      href={PLANOS_URL}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-foreground text-background text-[11px] font-bold tracking-wide uppercase hover:opacity-85 transition-opacity"
+                    >
+                      <Zap className="size-3" />
+                      Assinar agora
+                    </Link>
+                    <Link
+                      href={SIGNUP_URL}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border text-muted-foreground text-[11px] font-bold tracking-wide uppercase hover:text-foreground hover:bg-muted/50 transition-all"
+                    >
+                      Criar conta
+                    </Link>
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -257,35 +306,32 @@ export default function DemoPage() {
             <div className="lg:col-span-3">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`screenshot-${active}`}
-                  initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                  key={`ss-${active}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -16, scale: 0.98 }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
-                  <div
-                    className="rounded-2xl overflow-hidden border"
-                    style={{ borderColor: "var(--border)", background: "var(--card)", boxShadow: "0 24px 80px rgba(0,0,0,0.5)" }}>
-                    {/* Browser chrome */}
-                    <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                  exit={{ opacity: 0, y: -12, scale: 0.99 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-2xl">
+                    {/* Chrome do browser */}
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
                       <div className="flex gap-1.5">
-                        <span className="size-2.5 rounded-full bg-red-500/50" />
-                        <span className="size-2.5 rounded-full bg-yellow-500/50" />
-                        <span className="size-2.5 rounded-full bg-green-500/50" />
+                        <span className="size-2.5 rounded-full bg-red-400/50" />
+                        <span className="size-2.5 rounded-full bg-yellow-400/50" />
+                        <span className="size-2.5 rounded-full bg-green-400/50" />
                       </div>
                       <div className="flex-1 mx-3">
-                        <div className="h-6 max-w-sm mx-auto rounded-md flex items-center justify-center px-3 border"
-                          style={{ background: "var(--muted)", borderColor: "var(--border)" }}>
-                          <span className="text-[10px] font-mono" style={{ color: "var(--muted-foreground)" }}>
-                            v0-crm-devnix.vercel.app/{modules[active].path}
+                        <div className="h-6 max-w-xs mx-auto rounded-md flex items-center justify-center px-3 border border-border bg-muted/50">
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            crm-devnix.vercel.app/{mod.path}
                           </span>
                         </div>
                       </div>
                     </div>
-                    {/* Screenshot real */}
-                    <div className="relative aspect-[16/10]">
+                    <div className="relative aspect-[16/10] bg-muted">
                       <Image
-                        src={modules[active].screenshot}
-                        alt={modules[active].title}
+                        src={mod.screenshot}
+                        alt={mod.title}
                         fill
                         className="object-cover object-top"
                         priority
@@ -293,12 +339,12 @@ export default function DemoPage() {
                     </div>
                   </div>
 
-                  {/* Navegação anterior / próximo */}
+                  {/* Navegacao */}
                   <div className="mt-4 flex items-center justify-between px-1">
                     <button
                       onClick={prev}
-                      className="flex items-center gap-1.5 text-[11px] font-semibold transition-opacity hover:opacity-50"
-                      style={{ color: "var(--muted-foreground)" }}>
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    >
                       <ChevronLeft className="size-4" />
                       <span className="hidden sm:inline">Anterior</span>
                     </button>
@@ -318,9 +364,9 @@ export default function DemoPage() {
                     </div>
                     <button
                       onClick={next}
-                      className="flex items-center gap-1.5 text-[11px] font-semibold transition-opacity hover:opacity-50"
-                      style={{ color: "var(--muted-foreground)" }}>
-                      <span className="hidden sm:inline">Próximo</span>
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <span className="hidden sm:inline">Proximo</span>
                       <ChevronRight className="size-4" />
                     </button>
                   </div>
@@ -331,45 +377,61 @@ export default function DemoPage() {
         </div>
       </section>
 
-      {/* ── CTA FINAL ── */}
-      <section className="py-16 px-5 border-t" style={{ borderColor: "var(--border)" }}>
-        <div className="max-w-3xl mx-auto text-center">
-          <motion.h2
-            className="text-[clamp(28px,5vw,52px)] font-black leading-tight mb-4"
-            style={{ color: "var(--foreground)" }}
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }} viewport={{ once: true }}>
-            Pronto para começar?
-          </motion.h2>
-          <motion.p
-            className="text-sm leading-relaxed mb-8 max-w-md mx-auto"
-            style={{ color: "var(--muted-foreground)" }}
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.15 }} viewport={{ once: true }}>
-            Comece agora por R$&nbsp;7 e tenha acesso completo por 7 dias.
-            Sem compromisso, sem mensalidade automática.
-          </motion.p>
-          <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-3"
-            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.25 }} viewport={{ once: true }}>
-            <Link
-              href={PLANOS_URL}
-              className="flex items-center gap-2 px-7 py-4 rounded-full text-[11px] font-bold tracking-widest uppercase transition-all duration-200 hover:opacity-80"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}>
-              Ver planos e preços
-              <ArrowRight className="size-3.5" />
-            </Link>
-            <Link
-              href={SIGNUP_URL}
-              className="flex items-center gap-2 px-7 py-4 rounded-full text-[11px] font-bold tracking-widest uppercase border transition-all duration-200 hover:opacity-70"
-              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
-              Criar conta grátis
-            </Link>
-          </motion.div>
-          <p className="mt-6 text-xs" style={{ color: "var(--muted-foreground)" }}>
-            Pagamento seguro via Cartão ou Pix · Ativação instantânea
+      {/* SOCIAL PROOF */}
+      <section className="px-5 py-16 border-t border-border bg-muted/20">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-8">
+            O que dizem os usuarios
           </p>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {socialProof.map((t) => (
+              <div key={t.name} className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">&ldquo;{t.text}&rdquo;</p>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA FINAL */}
+      <section className="py-20 px-5 border-t border-border">
+        <div className="max-w-2xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }} viewport={{ once: true }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+              Comece hoje mesmo
+            </p>
+            <h2 className="text-[clamp(28px,4vw,48px)] font-black tracking-tight text-foreground leading-tight mb-4 text-balance">
+              Pronto para organizar seu negocio?
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
+              Comece por R$&nbsp;7 e tenha acesso completo por 7 dias. Sem compromisso, sem mensalidade automatica.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href={PLANOS_URL}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background text-[11px] font-bold tracking-widest uppercase hover:opacity-85 transition-opacity shadow-lg"
+              >
+                Ver planos e precos
+                <ArrowRight className="size-3.5" />
+              </Link>
+              <Link
+                href={SIGNUP_URL}
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-border text-muted-foreground text-[11px] font-bold tracking-widest uppercase hover:text-foreground hover:bg-muted/50 transition-all"
+              >
+                Criar conta gratis
+              </Link>
+            </div>
+            <p className="mt-5 text-xs text-muted-foreground">
+              Pagamento via Pix ou cartao · Ativacao instantanea
+            </p>
+          </motion.div>
         </div>
       </section>
 

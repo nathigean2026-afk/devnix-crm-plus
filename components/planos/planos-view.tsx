@@ -2,12 +2,16 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Check, Zap, CalendarDays, CalendarRange, LogOut, Loader2, ExternalLink } from "lucide-react"
+import Link from "next/link"
+import {
+  Check, Zap, CalendarDays, CalendarRange,
+  LogOut, Loader2, ShieldCheck, ArrowRight,
+} from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { PixCheckoutModal } from "./pix-checkout-modal"
 import { toast } from "sonner"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface PlanosViewProps {
   user: { name: string; email: string }
@@ -19,9 +23,9 @@ const plans = [
     id: "7d" as const,
     label: "Start",
     duration: "7 dias",
-    price: "R$ 7,00",
-    priceDisplay: "7,00",
-    period: "por 7 dias",
+    priceInt: "7",
+    priceDec: "00",
+    period: "acesso por 7 dias",
     description: "Ideal para conhecer a plataforma sem compromisso.",
     icon: Zap,
     features: [
@@ -33,15 +37,16 @@ const plans = [
     ],
     highlight: false,
     badge: null,
+    color: "text-zinc-400",
   },
   {
     id: "30d" as const,
     label: "Business",
     duration: "30 dias",
-    price: "R$ 24,00",
-    priceDisplay: "24,00",
+    priceInt: "24",
+    priceDec: "00",
     period: "por mes",
-    description: "Para profissionais que precisam de controle mensal.",
+    description: "Para profissionais que precisam de controle total mensal.",
     icon: CalendarDays,
     features: [
       "Acesso completo por 30 dias",
@@ -53,13 +58,14 @@ const plans = [
     ],
     highlight: true,
     badge: "Mais popular",
+    color: "text-primary",
   },
   {
     id: "1y" as const,
     label: "Enterprise",
     duration: "1 ano",
-    price: "R$ 260,00",
-    priceDisplay: "260,00",
+    priceInt: "260",
+    priceDec: "00",
     period: "por ano",
     description: "Melhor custo-beneficio para uso continuo.",
     icon: CalendarRange,
@@ -70,29 +76,19 @@ const plans = [
       "Orcamentos e financeiro",
       "Relatorios completos",
       "Suporte VIP",
-      "Economia de R$ 28,00 vs mensal",
+      "Economia de R$ 28 vs mensal",
     ],
     highlight: false,
     badge: "Melhor valor",
+    color: "text-amber-500",
   },
 ]
 
-// Logo SVG do Mercado Pago
 function MpLogo({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="48" height="48" rx="10" fill="#00B1EA"/>
-      <path d="M8 24C8 15.163 15.163 8 24 8C32.837 8 40 15.163 40 24C40 32.837 32.837 40 24 40C15.163 40 8 32.837 8 24Z" fill="#00B1EA"/>
-      <path d="M14 24.5L19.5 19L24 23.5L28.5 19L34 24.5L28.5 30L24 25.5L19.5 30L14 24.5Z" fill="white"/>
-    </svg>
-  )
-}
-
-// Logo PIX
-function PixLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 512 512" fill="currentColor">
-      <path d="M242.4 292.5C247.8 287.1 255.1 284.3 262.5 284.3C269.8 284.3 277.2 287.1 282.6 292.5L371.1 381C377.6 387.5 377.6 397.9 371.1 404.4L282.6 492.9C277.2 498.3 269.8 501.1 262.5 501.1C255.1 501.1 247.8 498.3 242.4 492.9L153.9 404.4C147.4 397.9 147.4 387.5 153.9 381L242.4 292.5zM242.4 19.03C247.8 13.63 255.1 10.82 262.5 10.82C269.8 10.82 277.2 13.63 282.6 19.03L371.1 107.5C377.6 114 377.6 124.4 371.1 130.9L282.6 219.4C277.2 224.8 269.8 227.6 262.5 227.6C255.1 227.6 247.8 224.8 242.4 219.4L153.9 130.9C147.4 124.4 147.4 114 153.9 107.5L242.4 19.03zM19.03 129.4C24.43 124 31.8 121.2 39.13 121.2C46.46 121.2 53.8 124 59.2 129.4L147.7 217.9C154.2 224.4 154.2 234.8 147.7 241.3L59.2 329.8C53.8 335.2 46.46 338 39.13 338C31.8 338 24.43 335.2 19.03 329.8L-69.47 241.3C-75.97 234.8 -75.97 224.4 -69.47 217.9L19.03 129.4zM465.9 129.4C471.3 124 478.7 121.2 486 121.2C493.3 121.2 500.7 124 506.1 129.4L594.6 217.9C601.1 224.4 601.1 234.8 594.6 241.3L506.1 329.8C500.7 335.2 493.3 338 486 338C478.7 338 471.3 335.2 465.9 329.8L377.4 241.3C370.9 234.8 370.9 224.4 377.4 217.9L465.9 129.4z"/>
+    <svg className={className} viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="6" fill="#009EE3"/>
+      <path d="M5 14.3L9.2 10l3.3 3.3 3.3-3.3 4.2 4.3-4.2 4.2L12.5 15l-3.3 3.5L5 14.3Z" fill="white"/>
     </svg>
   )
 }
@@ -100,7 +96,6 @@ function PixLogo({ className }: { className?: string }) {
 export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   const router = useRouter()
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null)
-  const [pixPlan, setPixPlan] = useState<{ id: string; name: string; price: string } | null>(null)
 
   async function handleSignOut() {
     await authClient.signOut()
@@ -108,8 +103,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
     router.refresh()
   }
 
-  // Abre o Checkout Pro do Mercado Pago (cartao + PIX + boleto no ambiente oficial do MP)
-  async function handleCheckoutPro(planId: string) {
+  async function handleCheckout(planId: string) {
     setLoadingPlanId(planId)
     try {
       const res = await fetch("/api/mercadopago/checkout", {
@@ -119,13 +113,9 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao iniciar checkout")
-
-      // Em sandbox usa sandboxInitPoint, em producao usa initPoint
-      const url = data.sandboxInitPoint || data.initPoint
+      const url = data.initPoint
       if (!url) throw new Error("URL de checkout nao recebida")
-
-      // Abre o checkout do Mercado Pago em nova aba
-      window.open(url, "_blank", "noopener,noreferrer")
+      window.location.href = url
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao abrir checkout")
     } finally {
@@ -134,77 +124,72 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-            alt="Devnix"
-            width={32}
-            height={32}
-            className="object-contain"
-          />
-          <span className="font-semibold text-foreground text-sm hidden sm:block">Devnix CRM Plus</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium text-foreground leading-none">{user.name}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
+              alt="Devnix"
+              width={28}
+              height={28}
+              className="object-contain"
+            />
+            <span className="font-semibold text-foreground text-sm">Devnix CRM Plus</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-border ml-1">
+              <div className="text-right">
+                <p className="text-xs font-medium text-foreground leading-none">{user.name}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{user.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-muted ml-1"
+            >
+              <LogOut className="size-3.5" />
+              <span className="hidden sm:inline">Sair</span>
+            </button>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-muted"
-          >
-            <LogOut className="size-3.5" />
-            <span className="hidden sm:inline">Sair</span>
-          </button>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="flex-1 flex flex-col items-center px-4 py-10 md:py-16">
+      <main className="max-w-5xl mx-auto px-4 py-14 md:py-20">
         {/* Hero */}
-        <div className="text-center mb-10 md:mb-14 max-w-lg">
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-medium px-3 py-1.5 rounded-full mb-4">
-            <span className="size-1.5 rounded-full bg-primary" />
-            {isRenovar ? "Renovacao de licenca" : "Ative sua licenca para comecar"}
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-border bg-muted/50 text-muted-foreground mb-5">
+            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+            {isRenovar ? "Renovacao de licenca" : "Ative sua licenca"}
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance leading-tight">
-            {isRenovar ? "Renovar sua licenca" : "Escolha o plano ideal para o seu negocio"}
-          </h1>
-          <p className="mt-3 text-muted-foreground text-base text-pretty">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground text-balance leading-[1.05] mb-4">
             {isRenovar
-              ? "Renove sua licenca para continuar usando todas as funcionalidades."
-              : "Acesso completo a todas as funcionalidades. Cancele quando quiser."}
+              ? "Renovar sua licenca"
+              : "Escolha o plano certo para seu negocio"}
+          </h1>
+          <p className="text-muted-foreground text-base max-w-md mx-auto text-pretty leading-relaxed">
+            {isRenovar
+              ? "Continue com acesso completo a todas as funcionalidades do CRM."
+              : "Acesso completo a todos os modulos. Cancele a qualquer momento."}
           </p>
-          {/* Metodos de pagamento aceitos */}
-          <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-muted/50 border border-border rounded-full px-3 py-1.5">
-              <PixLogo className="size-3.5 text-green-500" />
-              <span className="text-xs text-muted-foreground font-medium">Pix</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-muted/50 border border-border rounded-full px-3 py-1.5">
-              <svg className="size-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-              </svg>
-              <span className="text-xs text-muted-foreground font-medium">Cartao de credito</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-muted/50 border border-border rounded-full px-3 py-1.5">
-              <svg className="size-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-              </svg>
-              <span className="text-xs text-muted-foreground font-medium">Boleto</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-[#00B1EA]/10 border border-[#00B1EA]/20 rounded-full px-3 py-1.5">
-              <MpLogo className="size-3.5" />
-              <span className="text-xs text-[#00B1EA] font-medium">Mercado Pago</span>
-            </div>
+          {/* Metodos aceitos */}
+          <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+            {["Pix", "Cartao de credito", "Boleto bancario"].map((m) => (
+              <span key={m} className="text-[11px] px-2.5 py-1 rounded-md border border-border bg-muted/30 text-muted-foreground font-medium">
+                {m}
+              </span>
+            ))}
+            <span className="text-[11px] px-2.5 py-1 rounded-md border border-[#009EE3]/30 bg-[#009EE3]/5 text-[#009EE3] font-medium flex items-center gap-1.5">
+              <MpLogo className="size-3" />
+              Mercado Pago
+            </span>
           </div>
         </div>
 
-        {/* Cards de planos */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
             const Icon = plan.icon
             const isLoading = loadingPlanId === plan.id
@@ -213,128 +198,109 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
               <div
                 key={plan.id}
                 className={cn(
-                  "relative flex flex-col rounded-2xl border p-6 transition-all",
+                  "relative flex flex-col rounded-2xl border p-6 transition-all duration-200",
                   plan.highlight
-                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                    : "border-border bg-card"
+                    ? "border-primary/40 bg-primary/[0.03] ring-1 ring-primary/20 shadow-lg shadow-primary/5"
+                    : "border-border bg-card hover:border-border/80"
                 )}
               >
-                {/* Badge */}
                 {plan.badge && (
                   <div className={cn(
-                    "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap",
+                    "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap border",
                     plan.highlight
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground border border-border"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border"
                   )}>
                     {plan.badge}
                   </div>
                 )}
 
-                {/* Icon + Label */}
-                <div className="flex items-center gap-2.5 mb-4">
+                {/* Icon + label */}
+                <div className="flex items-center gap-3 mb-5">
                   <div className={cn(
-                    "size-9 rounded-lg flex items-center justify-center",
-                    plan.highlight ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                    "size-10 rounded-xl flex items-center justify-center border",
+                    plan.highlight
+                      ? "bg-primary/10 border-primary/20 text-primary"
+                      : "bg-muted border-border text-muted-foreground"
                   )}>
-                    <Icon className="size-4" />
+                    <Icon className="size-4.5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground text-sm">{plan.label}</p>
-                    <p className="text-xs text-muted-foreground">{plan.duration}</p>
+                    <p className="font-bold text-foreground text-sm leading-none">{plan.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
                   </div>
                 </div>
 
                 {/* Preco */}
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-sm text-muted-foreground">R$</span>
+                <div className="mb-1">
+                  <div className="flex items-start gap-1 leading-none">
+                    <span className="text-sm text-muted-foreground mt-1.5 font-medium">R$</span>
                     <span className={cn(
-                      "text-3xl font-bold",
+                      "text-[42px] font-black tracking-tight leading-none",
                       plan.highlight ? "text-primary" : "text-foreground"
                     )}>
-                      {plan.priceDisplay}
+                      {plan.priceInt}
                     </span>
+                    <span className="text-sm text-muted-foreground mt-2 font-medium">,{plan.priceDec}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{plan.period}</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">{plan.period}</p>
                 </div>
 
-                <p className="text-sm text-muted-foreground mb-5 text-pretty">{plan.description}</p>
+                <p className="text-sm text-muted-foreground mb-5 mt-3 text-pretty leading-relaxed">
+                  {plan.description}
+                </p>
+
+                {/* Divisor */}
+                <div className="w-full h-px bg-border mb-5" />
 
                 {/* Features */}
-                <ul className="flex flex-col gap-2 mb-6 flex-1">
+                <ul className="flex flex-col gap-2.5 mb-7 flex-1">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-foreground">
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
                       <Check className={cn(
                         "size-4 shrink-0 mt-0.5",
                         plan.highlight ? "text-primary" : "text-muted-foreground"
                       )} />
-                      {f}
+                      <span className="leading-snug">{f}</span>
                     </li>
                   ))}
                 </ul>
 
-                {/* CTAs */}
-                <div className="flex flex-col gap-2">
-                  {/* Checkout Pro — cartao + PIX + boleto no ambiente do MP */}
-                  <button
-                    onClick={() => handleCheckoutPro(plan.id)}
-                    disabled={isLoading}
-                    className={cn(
-                      "w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed",
-                      plan.highlight
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-foreground hover:bg-muted/80 border border-border"
-                    )}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <MpLogo className="size-4" />
-                    )}
-                    {isLoading ? "Abrindo checkout..." : `Pagar com Mercado Pago`}
-                    {!isLoading && <ExternalLink className="size-3.5 opacity-60" />}
-                  </button>
-
-                  {/* PIX direto — QR Code gerado aqui mesmo */}
-                  <button
-                    onClick={() => setPixPlan({ id: plan.id, name: `Plano ${plan.label}`, price: plan.price })}
-                    disabled={!!loadingPlanId}
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <PixLogo className="size-4" />
-                    Pagar com Pix — {plan.price}
-                  </button>
-                </div>
+                {/* CTA */}
+                <button
+                  onClick={() => handleCheckout(plan.id)}
+                  disabled={!!loadingPlanId}
+                  className={cn(
+                    "w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                    plan.highlight
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20"
+                      : "bg-foreground text-background hover:opacity-90"
+                  )}
+                >
+                  {isLoading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <MpLogo className="size-4" />
+                  )}
+                  {isLoading ? "Abrindo checkout..." : "Pagar com Mercado Pago"}
+                  {!isLoading && <ArrowRight className="size-3.5 ml-auto" />}
+                </button>
               </div>
             )
           })}
         </div>
 
-        {/* Rodape de seguranca */}
-        <div className="mt-10 flex flex-col items-center gap-2">
+        {/* Rodape seguranca */}
+        <div className="mt-12 flex flex-col items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
+            <ShieldCheck className="size-4 text-emerald-500" />
             Pagamento 100% seguro processado pelo Mercado Pago
           </div>
-          <p className="text-xs text-muted-foreground text-center max-w-sm text-pretty">
-            Aceitamos Pix, cartao de credito e boleto. Licenca ativada automaticamente apos confirmacao do pagamento.
+          <p className="text-xs text-muted-foreground text-center max-w-sm">
+            Pix, cartao de credito e boleto. Licenca ativada automaticamente apos confirmacao.
           </p>
         </div>
       </main>
-
-      {/* Modal PIX direto */}
-      {pixPlan && (
-        <PixCheckoutModal
-          open={!!pixPlan}
-          onClose={() => setPixPlan(null)}
-          planId={pixPlan.id}
-          planName={pixPlan.name}
-          planPrice={pixPlan.price}
-        />
-      )}
     </div>
   )
 }
