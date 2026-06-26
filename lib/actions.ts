@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import {
   businessProfile,
   clients,
+  promoCodes,
   quoteItems,
   quotes,
   serviceOrderItems,
@@ -13,7 +14,7 @@ import {
   transactions,
   user,
 } from "@/lib/db/schema"
-import { and, desc, eq, like, sql } from "drizzle-orm"
+import { and, count, desc, eq, isNull, like, sql } from "drizzle-orm"
 import { sendQuoteResponseEmail } from "@/lib/email"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
@@ -535,6 +536,8 @@ export async function upsertBusinessProfile(data: {
   pixKey?: string
   pixType?: string
   logo?: string
+  notifAlertEnabled?: boolean
+  notifQuoteEnabled?: boolean
 }) {
   const userId = await getUserId()
   const existing = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
@@ -544,6 +547,104 @@ export async function upsertBusinessProfile(data: {
     await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId, name: data.name ?? "", ...data })
   }
   revalidatePath("/dashboard/configuracoes")
+}
+
+export async function redeemPromoCode(code: string) {
+  const userId = await getUserId()
+
+  const [promo] = await db
+    .select()
+    .from(promoCodes)
+    .where(eq(promoCodes.code, code.toUpperCase().trim()))
+    .limit(1)
+
+  if (!promo) throw new Error("Código inválido ou não encontrado.")
+  if (promo.usedBy) throw new Error("Este código já foi utilizado.")
+  if (promo.expiresAt && new Date() > new Date(promo.expiresAt)) throw new Error("Este código expirou.")
+
+  // Busca a data de expiração atual do usuário para estender (não substituir)
+  const [u] = await db.select({ accessExpiresAt: user.accessExpiresAt }).from(user).where(eq(user.id, userId)).limit(1)
+  const now = new Date()
+  const currentExpiry = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
+  const newExpiry = new Date(currentExpiry)
+  newExpiry.setDate(newExpiry.getDate() + promo.days)
+
+  // Marca o código como usado
+  await db.update(promoCodes).set({ usedBy: userId, usedAt: new Date() }).where(eq(promoCodes.id, promo.id))
+
+  // Atualiza a expiração real da licença na tabela user
+  await db.update(user).set({ accessExpiresAt: newExpiry }).where(eq(user.id, userId))
+
+  // Salva o plano no businessProfile para o admin visualizar
+  const [profile] = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+  if (profile) {
+    await db.update(businessProfile).set({ licensePlan: promo.planName, updatedAt: new Date() }).where(eq(businessProfile.userId, userId))
+  } else {
+    await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId, name: "", licensePlan: promo.planName })
+  }
+
+  revalidatePath("/dashboard/configuracoes")
+  return { days: promo.days, planName: promo.planName, newExpiry: newExpiry.toISOString() }
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+export async function adminGetStats() {
+  const [totalUsersRes] = await db.select({ c: count() }).from(user)
+  const [activeUsersRes] = await db
+    .select({ c: count() })
+    .from(user)
+    .where(sql`"accessExpiresAt" > now()`)
+  const [codesRes] = await db.select({ c: count() }).from(promoCodes)
+  const [usedCodesRes] = await db.select({ c: count() }).from(promoCodes).where(sql`"usedBy" IS NOT NULL`)
+
+  const licenseData = await db
+    .select({
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      userCreatedAt: user.createdAt,
+      accessExpiresAt: user.accessExpiresAt,
+      profileName: businessProfile.name,
+      profileEmail: businessProfile.email,
+      licensePlan: businessProfile.licensePlan,
+    })
+    .from(user)
+    .leftJoin(businessProfile, eq(businessProfile.userId, user.id))
+    .orderBy(desc(user.createdAt))
+    .limit(50)
+
+  return {
+    totalUsers: totalUsersRes.c,
+    activeUsers: activeUsersRes.c,
+    totalCodes: codesRes.c,
+    usedCodes: usedCodesRes.c,
+    licenseData,
+  }
+}
+
+export async function adminCreatePromoCode(data: {
+  code: string
+  planName: string
+  days: number
+  expiresAt?: string
+}) {
+  await db.insert(promoCodes).values({
+    id: crypto.randomUUID(),
+    code: data.code.toUpperCase().trim(),
+    planName: data.planName,
+    days: data.days,
+    expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+  })
+  revalidatePath("/admin")
+}
+
+export async function adminGetPromoCodes() {
+  return db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt))
+}
+
+export async function adminDeletePromoCode(id: string) {
+  await db.delete(promoCodes).where(and(eq(promoCodes.id, id), isNull(promoCodes.usedBy)))
+  revalidatePath("/admin")
 }
 
 // ── Service Orders ────────────────────────────────────────────────────────────

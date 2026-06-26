@@ -153,6 +153,7 @@ export const businessProfile = pgTable("business_profile", {
   logo: text("logo"),
   notifAlertEnabled: boolean("notifAlertEnabled").notNull().default(false),
   notifQuoteEnabled: boolean("notifQuoteEnabled").notNull().default(true),
+  licensePlan: text("licensePlan").default("starter"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
