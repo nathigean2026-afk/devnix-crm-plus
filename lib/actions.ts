@@ -611,7 +611,7 @@ export async function createServiceOrder(data: {
 export async function updateServiceOrderStatus(
   id: string,
   status: string,
-  paymentMethod?: "cash" | "card" | "other"
+  paymentMethod?: "pix" | "cash" | "card" | "other"
 ) {
   const userId = await getUserId()
   await db
@@ -642,18 +642,24 @@ export async function updateServiceOrderStatus(
       if (existing.length === 0) {
         // Determina valor com base na forma de pagamento escolhida
         let amountToRecord = order.total
-        if (paymentMethod === "cash" && order.cashPrice && Number(order.cashPrice) > 0) {
+        if ((paymentMethod === "cash" || paymentMethod === "pix") && order.cashPrice && Number(order.cashPrice) > 0) {
           amountToRecord = order.cashPrice
         } else if (paymentMethod === "card" && order.cardPrice && Number(order.cardPrice) > 0) {
           amountToRecord = order.cardPrice
         }
+
+        // Monta a descrição com a forma de pagamento
+        const paymentLabel = paymentMethod === "pix" ? " (Pix)"
+          : paymentMethod === "cash" ? " (À vista)"
+          : paymentMethod === "card" ? " (Cartão)"
+          : ""
 
         await db.insert(transactions).values({
           id: crypto.randomUUID(),
           userId,
           clientId: order.clientId,
           type: "receita",
-          description: `OS #${String(order.number).padStart(4, "0")} — ${order.title}`,
+          description: `OS #${String(order.number).padStart(4, "0")} — ${order.title}${paymentLabel}`,
           amount: amountToRecord,
           category: "Serviço",
           status: "pago",

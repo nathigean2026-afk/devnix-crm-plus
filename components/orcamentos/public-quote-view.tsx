@@ -164,7 +164,7 @@ export function PublicQuoteView({ quote, client, items, providerPhone }: PublicQ
           {/* Header */}
           <div className="px-6 py-6 border-b border-border" style={{ background: "var(--secondary)" }}>
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div className="size-10 rounded-xl border border-border flex items-center justify-center shrink-0 overflow-hidden" style={{ background: "var(--muted)" }}>
                   <Image
                     src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
@@ -175,9 +175,9 @@ export function PublicQuoteView({ quote, client, items, providerPhone }: PublicQ
                     style={{ width: "auto", height: "28px" }}
                   />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Devnix CRM Plus</p>
-                  <h1 className="text-xl font-bold text-foreground truncate">{quote.title}</h1>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5 leading-tight">Devnix CRM Plus</p>
+                  <h1 className="text-xl font-bold text-foreground leading-snug break-words">{quote.title}</h1>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 shrink-0">
