@@ -135,7 +135,12 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
   const [items, setItems] = useState<ServiceOrderItem[]>([])
   const [isPending, startTransition] = useTransition()
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [pendingConclude, setPendingConclude] = useState<{ id: string; hasCash: boolean; hasCard: boolean } | null>(null)
+  const [pendingConclude, setPendingConclude] = useState<{
+    id: string
+    total: string
+    cashPrice: string | null
+    cardPrice: string | null
+  } | null>(null)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
@@ -210,16 +215,19 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     if (status === "concluido") {
       // Intercepta para perguntar forma de pagamento
       const order = orders.find(o => o.id === id)
-      const hasCash = !!(order?.cashPrice && Number(order.cashPrice) > 0)
-      const hasCard = !!(order?.cardPrice && Number(order.cardPrice) > 0)
-      setPendingConclude({ id, hasCash, hasCard })
+      setPendingConclude({
+        id,
+        total: order?.total ?? "0",
+        cashPrice: order?.cashPrice ?? null,
+        cardPrice: order?.cardPrice ?? null,
+      })
       setPaymentModalOpen(true)
       return
     }
     confirmStatusChange(id, status, undefined)
   }
 
-  async function confirmStatusChange(id: string, status: string, paymentMethod: "cash" | "card" | "other" | undefined) {
+  async function confirmStatusChange(id: string, status: string, paymentMethod: "pix" | "cash" | "card" | "other" | undefined) {
     try {
       await updateServiceOrderStatus(id, status, paymentMethod)
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
@@ -233,7 +241,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     }
   }
 
-  function handlePaymentChoice(method: "cash" | "card" | "other") {
+  function handlePaymentChoice(method: "pix" | "cash" | "card" | "other") {
     if (!pendingConclude) return
     setPaymentModalOpen(false)
     confirmStatusChange(pendingConclude.id, "concluido", method)
@@ -820,44 +828,76 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
             Selecione a forma de pagamento para registrar o valor correto no financeiro.
           </p>
           <div className="flex flex-col gap-3 mt-2">
-            {pendingConclude?.hasCash && (
-              <button
-                onClick={() => handlePaymentChoice("cash")}
-                className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 px-4 py-3 text-left transition-colors"
-              >
-                <div className="size-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-green-400 text-sm font-bold">$</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">A vista / Pix</p>
-                  <p className="text-xs text-muted-foreground">Sera lancado o valor a vista</p>
-                </div>
-              </button>
-            )}
-            {pendingConclude?.hasCard && (
-              <button
-                onClick={() => handlePaymentChoice("card")}
-                className="flex items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-3 text-left transition-colors"
-              >
-                <div className="size-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-blue-400 text-sm font-bold">CC</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Cartao de credito</p>
-                  <p className="text-xs text-muted-foreground">Sera lancado o valor do cartao</p>
-                </div>
-              </button>
-            )}
+            {/* Pix */}
+            <button
+              onClick={() => handlePaymentChoice("pix")}
+              className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 px-4 py-3 text-left transition-colors"
+            >
+              <div className="size-9 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" className="size-5 fill-green-400" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11.9 2C6.4 2 2 6.4 2 12s4.4 10 9.9 10c5.5 0 9.9-4.4 9.9-10S17.5 2 11.9 2zm0 0" fillOpacity="0"/>
+                  <path d="M17.45 14.03l-2.68-2.69 2.68-2.69c.29-.28.29-.74 0-1.02l-1.08-1.08a.72.72 0 00-1.02 0l-2.7 2.7-2.69-2.7a.72.72 0 00-1.02 0L7.86 7.63c-.29.28-.29.74 0 1.02l2.68 2.69-2.68 2.69c-.29.28-.29.74 0 1.02l1.08 1.08c.29.28.74.28 1.02 0l2.69-2.7 2.7 2.7c.28.28.73.28 1.02 0l1.08-1.08c.28-.28.28-.74 0-1.02z"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Pix</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingConclude?.cashPrice && Number(pendingConclude.cashPrice) > 0
+                    ? `Valor à vista: ${formatCurrency(pendingConclude.cashPrice)}`
+                    : `Valor total: ${formatCurrency(pendingConclude?.total ?? "0")}`}
+                </p>
+              </div>
+            </button>
+
+            {/* À vista */}
+            <button
+              onClick={() => handlePaymentChoice("cash")}
+              className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-3 text-left transition-colors"
+            >
+              <div className="size-9 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <span className="text-emerald-400 text-base font-bold">R$</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">À vista / Dinheiro</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingConclude?.cashPrice && Number(pendingConclude.cashPrice) > 0
+                    ? `Preço à vista: ${formatCurrency(pendingConclude.cashPrice)}`
+                    : `Valor total: ${formatCurrency(pendingConclude?.total ?? "0")}`}
+                </p>
+              </div>
+            </button>
+
+            {/* Cartão */}
+            <button
+              onClick={() => handlePaymentChoice("card")}
+              className="flex items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-3 text-left transition-colors"
+            >
+              <div className="size-9 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" className="size-5 fill-blue-400" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Cartão de crédito / débito</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingConclude?.cardPrice && Number(pendingConclude.cardPrice) > 0
+                    ? `Preço no cartão: ${formatCurrency(pendingConclude.cardPrice)}`
+                    : `Valor total: ${formatCurrency(pendingConclude?.total ?? "0")}`}
+                </p>
+              </div>
+            </button>
+
+            {/* Outro */}
             <button
               onClick={() => handlePaymentChoice("other")}
               className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 px-4 py-3 text-left transition-colors"
             >
-              <div className="size-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <span className="text-muted-foreground text-sm font-bold">?</span>
+              <div className="size-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <span className="text-muted-foreground text-sm font-bold">···</span>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Outro / Total</p>
-                <p className="text-xs text-muted-foreground">Usa o valor total da OS</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Outro</p>
+                <p className="text-xs text-muted-foreground">Usa o valor total da OS: {formatCurrency(pendingConclude?.total ?? "0")}</p>
               </div>
             </button>
           </div>
