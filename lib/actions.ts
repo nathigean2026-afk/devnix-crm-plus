@@ -636,25 +636,25 @@ export async function adminGetStats() {
     .limit(100)
 
   // Logins diários últimos 14 dias
-  const dailyLogins = await db.execute(sql`
-    SELECT DATE("createdAt") as day, COUNT(*) as logins
-    FROM session
-    WHERE "createdAt" >= NOW() - INTERVAL '14 days'
-    GROUP BY DATE("createdAt")
-    ORDER BY day ASC
-  `)
+  let dailyLogins: { day: string; logins: number }[] = []
+  try {
+    const rows = await db.execute(sql`
+      SELECT DATE("createdAt") as day, COUNT(*) as logins
+      FROM session
+      WHERE "createdAt" >= NOW() - INTERVAL '14 days'
+      GROUP BY DATE("createdAt")
+      ORDER BY day ASC
+    `)
+    dailyLogins = (rows as unknown as any[]).map((r: any) => ({ day: String(r.day), logins: Number(r.logins) }))
+  } catch { /* logins diários opcionais */ }
 
-  // Métricas básicas do banco (pg_stat_database)
+  // Métricas básicas do banco
   let dbMetrics: { size: string; connections: number; avgQueryMs: number } | null = null
   try {
-    const [dbSize] = await db.execute(sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`) as any
-    const [connCount] = await db.execute(sql`SELECT count(*) as connections FROM pg_stat_activity WHERE state = 'active'`) as any
-    dbMetrics = {
-      size: (dbSize as any)?.size ?? "—",
-      connections: Number((connCount as any)?.connections ?? 0),
-      avgQueryMs: 0,
-    }
-  } catch {}
+    const sizeRows = await db.execute(sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`)
+    const dbSize = (sizeRows as unknown as any[])[0]
+    dbMetrics = { size: dbSize?.size ?? "—", connections: 0, avgQueryMs: 0 }
+  } catch { /* métricas de DB opcionais */ }
 
   return {
     totalUsers: Number(totalUsersRes.c),
@@ -665,7 +665,7 @@ export async function adminGetStats() {
     openTickets: Number(openTicketsRes.c),
     onlineSessions,
     licenseData,
-    dailyLogins: (dailyLogins as any[]).map(r => ({ day: String(r.day), logins: Number(r.logins) })),
+    dailyLogins,
     dbMetrics,
   }
 }
