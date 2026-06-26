@@ -789,7 +789,7 @@ export default function AdminDashboard({
                   ))}
                 </div>
                 <p className={cn("text-xs mt-3 border-t pt-3", darkMode ? "text-white/25 border-white/8" : "text-slate-400 border-slate-100")}>
-                  Para integrar pagamentos com valor real (R$) e cobrar automaticamente, recomendamos o <strong>Stripe</strong> — disponivel como integração neste projeto. O Stripe suporta PIX, cartao de credito, boleto, recorrencia mensal/anual, webhooks de pagamento e painel financeiro completo. Clique em Configurações → Integracoes para adicionar.
+                  Pagamentos processados via <strong>Mercado Pago</strong> — PIX, cartao de credito e boleto. Os valores sao registrados automaticamente apos confirmacao do pagamento. Veja o historico completo na aba Pagamentos.
                 </p>
               </div>
 
