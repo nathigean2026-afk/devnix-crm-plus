@@ -151,8 +151,21 @@ export const businessProfile = pgTable("business_profile", {
   pixKey: text("pixKey"),
   pixType: text("pixType").default("cpf"),
   logo: text("logo"),
+  notifAlertEnabled: boolean("notifAlertEnabled").notNull().default(false),
+  notifQuoteEnabled: boolean("notifQuoteEnabled").notNull().default(true),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const promoCodes = pgTable("promo_codes", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  planName: text("planName").notNull(),
+  days: integer("days").notNull(),
+  usedBy: text("usedBy"),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  expiresAt: timestamp("expiresAt"),
 })
 
 export const serviceOrders = pgTable("service_orders", {
@@ -201,3 +214,4 @@ export type Transaction = typeof transactions.$inferSelect
 export type BusinessProfile = typeof businessProfile.$inferSelect
 export type ServiceOrder = typeof serviceOrders.$inferSelect
 export type ServiceOrderItem = typeof serviceOrderItems.$inferSelect
+export type PromoCode = typeof promoCodes.$inferSelect
