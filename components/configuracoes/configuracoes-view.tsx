@@ -64,39 +64,36 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
   )
 }
 
-// Overlay de bloqueio para campos restritos ao plano Start
-function PlanGate({ children, locked, planRequired = "Business", featureName, featureBenefit }: {
+// Bloco de bloqueio para campos restritos ao plano Start.
+// Usa layout de fluxo normal (sem absolute) para nunca vazar sobre outros elementos.
+function PlanGate({ locked, planRequired = "Business", featureName, featureBenefit }: {
   children: React.ReactNode
   locked: boolean
   planRequired?: string
   featureName?: string
   featureBenefit?: string
 }) {
-  if (!locked) return <>{children}</>
+  if (!locked) return null
+
   return (
-    <div className="relative">
-      <div className="pointer-events-none select-none opacity-30 blur-[2px]">
-        {children}
+    <div className="flex flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-5">
+      <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 rounded-full px-3 py-1.5">
+        <Lock className="size-3.5 text-amber-500 shrink-0" />
+        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+          {featureName ? `${featureName} — ` : ""}Plano {planRequired}+
+        </span>
       </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 backdrop-blur-sm border border-dashed border-amber-500/40 z-10 px-4">
-        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1.5 shadow-sm">
-          <Lock className="size-3.5 text-amber-500 shrink-0" />
-          <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-            {featureName ? `${featureName} — ` : ""}Plano {planRequired}+
-          </span>
-        </div>
-        {featureBenefit && (
-          <p className="text-xs text-muted-foreground text-center max-w-[220px] leading-relaxed">
-            {featureBenefit}
-          </p>
-        )}
-        <a
-          href="/planos?renovar=1"
-          className="text-xs text-primary hover:underline font-semibold bg-primary/10 border border-primary/20 rounded-full px-3 py-1 transition-colors hover:bg-primary/20"
-        >
-          Fazer upgrade
-        </a>
-      </div>
+      {featureBenefit && (
+        <p className="text-xs text-muted-foreground text-center max-w-[240px] leading-relaxed">
+          {featureBenefit}
+        </p>
+      )}
+      <a
+        href="/planos?renovar=1"
+        className="text-xs text-primary-foreground bg-primary hover:bg-primary/90 font-semibold rounded-full px-4 py-1.5 transition-colors"
+      >
+        Fazer upgrade
+      </a>
     </div>
   )
 }
@@ -397,12 +394,14 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          {/* Logo — bloqueado no Start */}
-          <PlanGate
-            locked={isStart}
-            featureName="Logotipo"
-            featureBenefit="Adicione a logo da sua empresa nos orcamentos e ordens de servico enviados aos clientes."
-          >
+          {/* Logo */}
+          {isStart ? (
+            <PlanGate
+              locked={isStart}
+              featureName="Logotipo"
+              featureBenefit="Adicione a logo da sua empresa nos orcamentos e ordens de servico enviados aos clientes."
+            />
+          ) : (
             <div className="flex flex-col gap-2">
               <Label className="text-foreground text-sm font-medium">Logotipo</Label>
               <div className="flex items-center gap-4">
@@ -433,8 +432,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    onClick={() => brandUnlocked && fileInputRef.current?.click()}
-                    disabled={!brandUnlocked}
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="size-4" />
                     {logoPreview ? "Trocar logo" : "Carregar logo"}
@@ -445,11 +443,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
                       variant="ghost"
                       size="sm"
                       className="gap-2 text-destructive hover:text-destructive"
-                      disabled={!brandUnlocked}
-                      onClick={() => {
-                        if (!brandUnlocked) return
-                        setLogoPreview(""); setForm(f => ({ ...f, logo: "" }))
-                      }}
+                      onClick={() => { setLogoPreview(""); setForm(f => ({ ...f, logo: "" })) }}
                     >
                       <X className="size-4" />
                       Remover
@@ -459,7 +453,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
                 </div>
               </div>
             </div>
-          </PlanGate>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Nome — bloqueado no Start */}
