@@ -14,6 +14,7 @@ import {
   user,
 } from "@/lib/db/schema"
 import { and, desc, eq, like, sql } from "drizzle-orm"
+import { sendQuoteResponseEmail } from "@/lib/email"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -235,6 +236,72 @@ export async function createQuote(data: {
   return quoteId
 }
 
+export async function updateQuote(
+  id: string,
+  data: {
+    clientId: string
+    title: string
+    validUntil?: string
+    notes?: string
+    internalNotes?: string
+    subtotal: string
+    discount: string
+    total: string
+    items: {
+      serviceId?: string
+      description: string
+      quantity: string
+      unitPrice: string
+      total: string
+    }[]
+  },
+) {
+  const userId = await getUserId()
+
+  // Garante que o orçamento pertence ao prestador
+  const [existing] = await db
+    .select()
+    .from(quotes)
+    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .limit(1)
+  if (!existing) throw new Error("Orçamento não encontrado")
+
+  // Ao editar, o orçamento volta para "enviado" para o cliente responder novamente,
+  // limpando qualquer resposta anterior (recusa/aprovação) e o motivo.
+  await db
+    .update(quotes)
+    .set({
+      clientId: data.clientId,
+      title: data.title,
+      validUntil: data.validUntil || null,
+      notes: data.notes || null,
+      internalNotes: data.internalNotes || null,
+      subtotal: data.subtotal,
+      discount: data.discount,
+      total: data.total,
+      status: "enviado",
+      rejectionReason: null,
+      respondedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+
+  // Substitui os itens
+  await db.delete(quoteItems).where(eq(quoteItems.quoteId, id))
+  if (data.items.length > 0) {
+    await db.insert(quoteItems).values(
+      data.items.map((item) => ({
+        id: crypto.randomUUID(),
+        quoteId: id,
+        ...item,
+      })),
+    )
+  }
+
+  revalidatePath("/dashboard/orcamentos")
+  revalidatePath(`/orcamento/${id}`)
+}
+
 export async function updateQuoteStatus(id: string, status: string) {
   const userId = await getUserId()
   await db
@@ -275,6 +342,42 @@ export async function respondQuote(
     revalidatePath(`/orcamento/${id}`)
     revalidatePath("/dashboard/orcamentos")
     revalidatePath("/dashboard/relatorios")
+
+    // Notifica o prestador por e-mail (não bloqueia o fluxo se falhar)
+    try {
+      const [profile] = await db
+        .select()
+        .from(businessProfile)
+        .where(eq(businessProfile.userId, quote.userId))
+        .limit(1)
+      const [owner] = await db
+        .select({ email: user.email, name: user.name })
+        .from(user)
+        .where(eq(user.id, quote.userId))
+        .limit(1)
+      const [client] = await db
+        .select({ name: clients.name })
+        .from(clients)
+        .where(eq(clients.id, quote.clientId))
+        .limit(1)
+
+      const to = profile?.email || owner?.email
+      if (to) {
+        await sendQuoteResponseEmail({
+          to,
+          providerName: profile?.name || owner?.name,
+          clientName: client?.name ?? "Cliente",
+          quoteNumber: quote.number,
+          quoteTitle: quote.title,
+          total: quote.total,
+          decision,
+          rejectionReason: rejectionReason ?? null,
+          respondedAt: now,
+        })
+      }
+    } catch (mailErr) {
+      console.error("[v0] Falha ao notificar prestador por e-mail:", mailErr)
+    }
 
     if (decision === "aprovado") {
       // Cria OS automaticamente a partir do orçamento aprovado
