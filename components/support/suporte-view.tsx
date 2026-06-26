@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import {
   Plus, Search, Clock, CheckCircle2, PauseCircle, AlertCircle, XCircle,
-  ChevronRight, Ticket, Filter,
+  ChevronRight, Ticket, Filter, Paperclip, Loader2, FileText, Image as ImageIcon, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,6 +62,7 @@ export function SuporteView({ tickets: initial }: Props) {
   })
   const [attachments, setAttachments] = useState<{ name: string; url: string }[]>([])
   const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const filtered = tickets.filter((t) => {
     const matchStatus = statusFilter === "todos" || t.status === statusFilter
@@ -292,17 +293,34 @@ export function SuporteView({ tickets: initial }: Props) {
             {/* Anexos */}
             <div className="flex flex-col gap-1.5">
               <Label>Anexos (opcional)</Label>
-              <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-border hover:border-primary/50 px-4 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <input type="file" multiple className="hidden" onChange={handleUpload} accept="image/*,.pdf,.doc,.docx,.txt,.zip" />
-                {uploading ? "Enviando..." : "Clique para anexar imagens ou arquivos (máx. 10 MB cada)"}
-              </label>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleUpload}
+                accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2 rounded-lg border border-dashed border-border hover:border-primary/50 px-4 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 text-left"
+              >
+                {uploading ? (
+                  <><Loader2 className="size-4 animate-spin shrink-0" />Enviando arquivos...</>
+                ) : (
+                  <><Paperclip className="size-4 shrink-0" />Clique para anexar imagens ou arquivos (máx. 10 MB cada)</>
+                )}
+              </button>
               {attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-1">
                   {attachments.map((a, i) => (
                     <div key={i} className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs">
+                      {/\.(png|jpg|jpeg|gif|webp)$/i.test(a.name) ? <ImageIcon className="size-3 shrink-0" /> : <FileText className="size-3 shrink-0" />}
                       <span className="max-w-28 truncate">{a.name}</span>
                       <button type="button" onClick={() => setAttachments((p) => p.filter((_, j) => j !== i))}>
-                        ×
+                        <X className="size-3 text-muted-foreground hover:text-foreground" />
                       </button>
                     </div>
                   ))}
