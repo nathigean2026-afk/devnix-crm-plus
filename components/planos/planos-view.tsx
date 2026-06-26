@@ -25,7 +25,7 @@ const plans = [
     duration: "7 dias",
     price: 7,
     period: "acesso por 7 dias",
-    description: "Conheça a plataforma completa sem compromisso. Ideal para avaliar antes de assinar.",
+    description: "Experimente a plataforma. Marca padrao Devnix, ideal para avaliar antes de assinar.",
     icon: Zap,
     features: [
       "Acesso completo por 7 dias",
@@ -33,6 +33,11 @@ const plans = [
       "Ordens de servico ilimitadas",
       "Orcamentos e financeiro",
       "Suporte por email",
+    ],
+    lockedFeatures: [
+      "Personalizacao de marca (logotipo, nome, CNPJ)",
+      "Notificacoes de resposta de orcamento",
+      "Funcionario auxiliar",
     ],
     highlight: false,
     badge: null,
@@ -44,7 +49,7 @@ const plans = [
     duration: "30 dias",
     price: 24,
     period: "por mes",
-    description: "Para profissionais que precisam de controle total do negocio com renovacao mensal.",
+    description: "Para profissionais que precisam de controle total do negocio com sua propria marca.",
     icon: CalendarDays,
     features: [
       "Acesso completo por 30 dias",
@@ -52,8 +57,11 @@ const plans = [
       "Ordens de servico ilimitadas",
       "Orcamentos e financeiro",
       "Relatorios completos",
+      "Personalizacao completa da marca",
+      "Notificacoes de resposta de orcamento",
       "Suporte prioritario",
     ],
+    lockedFeatures: [] as string[],
     highlight: true,
     badge: "Mais popular",
     savings: null,
@@ -64,7 +72,7 @@ const plans = [
     duration: "1 ano",
     price: 260,
     period: "por ano",
-    description: "Melhor custo-beneficio para uso continuo. Economia garantida versus o plano mensal.",
+    description: "Melhor custo-beneficio com todos os recursos, incluindo 1 funcionario auxiliar.",
     icon: CalendarRange,
     features: [
       "Acesso completo por 12 meses",
@@ -72,9 +80,14 @@ const plans = [
       "Ordens de servico ilimitadas",
       "Orcamentos e financeiro",
       "Relatorios completos",
+      "Personalizacao completa da marca",
+      "Notificacoes de resposta de orcamento",
+      "1 funcionario auxiliar incluso",
+      "Painel de permissoes do funcionario",
       "Suporte VIP",
       "Economia de R$ 28 vs mensal",
     ],
+    lockedFeatures: [] as string[],
     highlight: false,
     badge: "Melhor valor",
     savings: "R$ 28 de economia",
@@ -276,6 +289,14 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                           <Check className="size-2.5" strokeWidth={3} />
                         </div>
                         <span className="text-foreground/80">{f}</span>
+                      </li>
+                    ))}
+                    {plan.lockedFeatures.map((f) => (
+                      <li key={f} className="flex items-center gap-3 text-sm opacity-40">
+                        <div className="size-4 rounded-full flex items-center justify-center shrink-0 bg-muted text-muted-foreground">
+                          <Lock className="size-2.5" strokeWidth={2.5} />
+                        </div>
+                        <span className="text-muted-foreground line-through">{f}</span>
                       </li>
                     ))}
                   </ul>
