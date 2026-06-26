@@ -81,13 +81,26 @@ const plans = [
   },
 ]
 
+// Isotipo oficial do Mercado Pago — círculo azul #009EE3 com o símbolo MP em branco
 function MpLogo({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="none">
-      <rect width="20" height="20" rx="4" fill="#009EE3" />
+    <svg
+      className={className}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Mercado Pago"
+      role="img"
+    >
+      <circle cx="16" cy="16" r="16" fill="#009EE3" />
+      {/* Letra M estilizada — forma oficial do isotipo MP */}
       <path
-        d="M3.5 10.2L6.5 7l2.5 2.5 2.5-2.5 3 3.2-3 3.1L9 10.7l-2.5 2.6-3-3.1Z"
-        fill="white"
+        d="M7 22V13l4.5 5.5L16 13l4.5 5.5L25 13v9"
+        stroke="white"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
     </svg>
   )
