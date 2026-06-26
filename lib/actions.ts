@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import {
   businessProfile,
   clients,
+  payments,
   promoCodes,
   quoteItems,
   quotes,
@@ -638,14 +639,15 @@ export async function adminGetStats() {
   // Logins diários últimos 14 dias
   let dailyLogins: { day: string; logins: number }[] = []
   try {
-    const rows = await db.execute(sql`
+    const result = await db.execute(sql`
       SELECT DATE("createdAt") as day, COUNT(*) as logins
       FROM session
       WHERE "createdAt" >= NOW() - INTERVAL '14 days'
       GROUP BY DATE("createdAt")
       ORDER BY day ASC
     `)
-    dailyLogins = (rows as unknown as any[]).map((r: any) => ({ day: String(r.day), logins: Number(r.logins) }))
+    const rows = (result as any)?.rows ?? (Array.isArray(result) ? result : [])
+    dailyLogins = rows.map((r: any) => ({ day: String(r.day), logins: Number(r.logins) }))
   } catch { /* logins diários opcionais */ }
 
   // Latência do banco (ping real)
@@ -659,15 +661,18 @@ export async function adminGetStats() {
   // Métricas básicas do banco
   let dbMetrics: { size: string; sizeBytes: number; connections: number; latencyMs: number; tableCount: number } | null = null
   try {
-    const sizeRows = await db.execute(
+    const sizeResult = await db.execute(
       sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size, pg_database_size(current_database()) as size_bytes`
     )
-    const dbSize = (sizeRows as unknown as any[])[0]
+    // Neon com Drizzle retorna { rows: [...] } — nunca um array direto
+    const sizeRows = (sizeResult as any)?.rows ?? (Array.isArray(sizeResult) ? sizeResult : [])
+    const dbSize = sizeRows[0]
 
-    const tableCountRows = await db.execute(
+    const tableResult = await db.execute(
       sql`SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`
     )
-    const tableCount = Number((tableCountRows as unknown as any[])[0]?.cnt ?? 0)
+    const tableRows = (tableResult as any)?.rows ?? (Array.isArray(tableResult) ? tableResult : [])
+    const tableCount = Number(tableRows[0]?.cnt ?? 0)
 
     dbMetrics = {
       size: dbSize?.size ?? "—",
@@ -681,7 +686,7 @@ export async function adminGetStats() {
   // Assinaturas por período (baseado em licença ativa + plano no businessProfile)
   let subscriptionStats: { day: number; week: number; month: number; total: number } = { day: 0, week: 0, month: 0, total: 0 }
   try {
-    const subRows = await db.execute(sql`
+    const subResult = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (WHERE "accessExpiresAt" > now()) as total_active,
         COUNT(*) FILTER (WHERE "updatedAt" >= now() - INTERVAL '1 day') as updated_day,
@@ -690,12 +695,39 @@ export async function adminGetStats() {
       FROM "user"
       WHERE "accessExpiresAt" IS NOT NULL
     `)
-    const row = (subRows as unknown as any[])[0]
+    const subRows = (subResult as any)?.rows ?? (Array.isArray(subResult) ? subResult : [])
+    const row = subRows[0]
     subscriptionStats = {
       total: Number(row?.total_active ?? 0),
       day: Number(row?.updated_day ?? 0),
       week: Number(row?.updated_week ?? 0),
       month: Number(row?.updated_month ?? 0),
+    }
+  } catch { /* opcional */ }
+
+  // Métricas financeiras de pagamentos aprovados
+  let revenueStats: { totalCents: number; dayCents: number; weekCents: number; monthCents: number; totalCount: number } = {
+    totalCents: 0, dayCents: 0, weekCents: 0, monthCents: 0, totalCount: 0,
+  }
+  try {
+    const revenueResult = await db.execute(sql`
+      SELECT
+        COALESCE(SUM("amountCents"), 0) as total_cents,
+        COALESCE(SUM("amountCents") FILTER (WHERE "paidAt" >= NOW() - INTERVAL '1 day'), 0) as day_cents,
+        COALESCE(SUM("amountCents") FILTER (WHERE "paidAt" >= NOW() - INTERVAL '7 days'), 0) as week_cents,
+        COALESCE(SUM("amountCents") FILTER (WHERE "paidAt" >= NOW() - INTERVAL '30 days'), 0) as month_cents,
+        COUNT(*) FILTER (WHERE status = 'approved') as total_count
+      FROM payments
+      WHERE status = 'approved'
+    `)
+    const revenueRows = (revenueResult as any)?.rows ?? (Array.isArray(revenueResult) ? revenueResult : [])
+    const r = revenueRows[0]
+    revenueStats = {
+      totalCents: Number(r?.total_cents ?? 0),
+      dayCents: Number(r?.day_cents ?? 0),
+      weekCents: Number(r?.week_cents ?? 0),
+      monthCents: Number(r?.month_cents ?? 0),
+      totalCount: Number(r?.total_count ?? 0),
     }
   } catch { /* opcional */ }
 
@@ -711,7 +743,31 @@ export async function adminGetStats() {
     dailyLogins,
     dbMetrics,
     subscriptionStats,
+    revenueStats,
   }
+}
+
+export async function adminGetPayments() {
+  return db
+    .select({
+      id: payments.id,
+      mpPaymentId: payments.mpPaymentId,
+      planId: payments.planId,
+      planName: payments.planName,
+      amountCents: payments.amountCents,
+      status: payments.status,
+      paymentMethod: payments.paymentMethod,
+      durationDays: payments.durationDays,
+      paidAt: payments.paidAt,
+      expiresLicenseAt: payments.expiresLicenseAt,
+      createdAt: payments.createdAt,
+      userName: user.name,
+      userEmail: user.email,
+    })
+    .from(payments)
+    .leftJoin(user, eq(payments.userId, user.id))
+    .orderBy(desc(payments.createdAt))
+    .limit(200)
 }
 
 export async function adminUpdateUser(userId: string, data: { name?: string; email?: string; accessExpiresAt?: string }) {

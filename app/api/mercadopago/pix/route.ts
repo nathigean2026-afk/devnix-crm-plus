@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { LICENSE_PLANS } from "@/lib/products"
+import { db } from "@/lib/db"
+import { payments } from "@/lib/db/schema"
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,6 +60,23 @@ export async function POST(req: NextRequest) {
     }
 
     const pixData = result?.point_of_interaction?.transaction_data
+
+    // Registra pagamento como pending para rastreamento no admin
+    try {
+      await db.insert(payments).values({
+        id: `mp_${result.id}`,
+        userId: session.user.id,
+        mpPaymentId: String(result.id),
+        planId: plan.id,
+        planName: plan.name,
+        amountCents: plan.priceInCents,
+        status: "pending",
+        paymentMethod: "pix",
+        durationDays: plan.durationDays,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).onConflictDoNothing()
+    } catch { /* nao bloqueia o checkout se falhar */ }
 
     return NextResponse.json({
       paymentId: result.id,
