@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   Check, Zap, CalendarDays, CalendarRange,
-  LogOut, Loader2, ShieldCheck, ArrowRight,
+  LogOut, Loader2, ShieldCheck, ArrowRight, Sparkles,
 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
@@ -26,7 +26,7 @@ const plans = [
     priceInt: "7",
     priceDec: "00",
     period: "acesso por 7 dias",
-    description: "Ideal para conhecer a plataforma sem compromisso.",
+    description: "Conhea a plataforma completa sem compromisso.",
     icon: Zap,
     features: [
       "Acesso completo por 7 dias",
@@ -37,7 +37,6 @@ const plans = [
     ],
     highlight: false,
     badge: null,
-    color: "text-zinc-400",
   },
   {
     id: "30d" as const,
@@ -46,7 +45,7 @@ const plans = [
     priceInt: "24",
     priceDec: "00",
     period: "por mes",
-    description: "Para profissionais que precisam de controle total mensal.",
+    description: "Controle total do seu negocio com renovacao mensal.",
     icon: CalendarDays,
     features: [
       "Acesso completo por 30 dias",
@@ -58,7 +57,6 @@ const plans = [
     ],
     highlight: true,
     badge: "Mais popular",
-    color: "text-primary",
   },
   {
     id: "1y" as const,
@@ -66,8 +64,8 @@ const plans = [
     duration: "1 ano",
     priceInt: "260",
     priceDec: "00",
-    period: "por ano",
-    description: "Melhor custo-beneficio para uso continuo.",
+    period: "por ano · R$ 21,67/mes",
+    description: "Melhor custo-beneficio. Economia de R$ 28 vs mensal.",
     icon: CalendarRange,
     features: [
       "Acesso completo por 12 meses",
@@ -80,15 +78,14 @@ const plans = [
     ],
     highlight: false,
     badge: "Melhor valor",
-    color: "text-amber-500",
   },
 ]
 
 function MpLogo({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 28 28" fill="none">
-      <rect width="28" height="28" rx="6" fill="#009EE3"/>
-      <path d="M5 14.3L9.2 10l3.3 3.3 3.3-3.3 4.2 4.3-4.2 4.2L12.5 15l-3.3 3.5L5 14.3Z" fill="white"/>
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="5" fill="#009EE3" />
+      <path d="M4 12.25L7.6 8.5l2.9 2.9 2.9-2.9 3.6 3.75-3.6 3.6-2.9-3.05-2.9 3.05L4 12.25Z" fill="white" />
     </svg>
   )
 }
@@ -113,42 +110,36 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao iniciar checkout")
-      const url = data.initPoint
-      if (!url) throw new Error("URL de checkout nao recebida")
-      window.location.href = url
+      if (!data.initPoint) throw new Error("URL de checkout nao recebida")
+      window.location.href = data.initPoint
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao abrir checkout")
-    } finally {
       setLoadingPlanId(null)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <Image
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
               alt="Devnix"
-              width={28}
-              height={28}
+              width={26}
+              height={26}
               className="object-contain"
             />
-            <span className="font-semibold text-foreground text-sm">Devnix CRM Plus</span>
+            <span className="font-semibold text-sm text-foreground">Devnix CRM Plus</span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <ThemeToggle />
-            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-border ml-1">
-              <div className="text-right">
-                <p className="text-xs font-medium text-foreground leading-none">{user.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{user.email}</p>
-              </div>
-            </div>
+            <div className="hidden sm:block h-4 w-px bg-border mx-1" />
+            <span className="hidden sm:block text-xs text-muted-foreground max-w-[160px] truncate">{user.email}</span>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-muted ml-1"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-muted"
             >
               <LogOut className="size-3.5" />
               <span className="hidden sm:inline">Sair</span>
@@ -157,42 +148,46 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-14 md:py-20">
+      <main className="max-w-5xl mx-auto px-4 py-16 md:py-24">
+
         {/* Hero */}
-        <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-border bg-muted/50 text-muted-foreground mb-5">
-            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-            {isRenovar ? "Renovacao de licenca" : "Ative sua licenca"}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1 rounded-full border border-border bg-muted/40 text-muted-foreground mb-6 tracking-wide uppercase">
+            <Sparkles className="size-3 text-primary" />
+            {isRenovar ? "Renovacao de licenca" : "Planos e Precos"}
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground text-balance leading-[1.05] mb-4">
+          <h1 className="text-4xl md:text-[52px] font-black tracking-tight text-foreground text-balance leading-[1.06] mb-5">
             {isRenovar
-              ? "Renovar sua licenca"
-              : "Escolha o plano certo para seu negocio"}
+              ? "Renove seu acesso"
+              : "Escolha seu plano"}
           </h1>
-          <p className="text-muted-foreground text-base max-w-md mx-auto text-pretty leading-relaxed">
-            {isRenovar
-              ? "Continue com acesso completo a todas as funcionalidades do CRM."
-              : "Acesso completo a todos os modulos. Cancele a qualquer momento."}
+          <p className="text-muted-foreground text-base md:text-lg max-w-[420px] mx-auto text-pretty leading-relaxed">
+            Acesso completo a todos os modulos do CRM.
+            Pagamento unico, sem assinatura automatica.
           </p>
-          {/* Metodos aceitos */}
-          <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
-            {["Pix", "Cartao de credito", "Boleto bancario"].map((m) => (
-              <span key={m} className="text-[11px] px-2.5 py-1 rounded-md border border-border bg-muted/30 text-muted-foreground font-medium">
-                {m}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {[
+              { icon: "pix", label: "Pix" },
+              { icon: "card", label: "Cartao de credito" },
+              { icon: "boleto", label: "Boleto bancario" },
+            ].map((m) => (
+              <span key={m.label} className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md border border-border bg-muted/30 text-muted-foreground">
+                {m.label}
               </span>
             ))}
-            <span className="text-[11px] px-2.5 py-1 rounded-md border border-[#009EE3]/30 bg-[#009EE3]/5 text-[#009EE3] font-medium flex items-center gap-1.5">
-              <MpLogo className="size-3" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md border border-[#009EE3]/40 bg-[#009EE3]/8 text-[#009EE3]">
+              <MpLogo className="size-3.5" />
               Mercado Pago
             </span>
           </div>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Cards grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {plans.map((plan) => {
             const Icon = plan.icon
             const isLoading = loadingPlanId === plan.id
+            const isAnyLoading = !!loadingPlanId
 
             return (
               <div
@@ -200,68 +195,70 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                 className={cn(
                   "relative flex flex-col rounded-2xl border p-6 transition-all duration-200",
                   plan.highlight
-                    ? "border-primary/40 bg-primary/[0.03] ring-1 ring-primary/20 shadow-lg shadow-primary/5"
-                    : "border-border bg-card hover:border-border/80"
+                    ? "border-primary/50 bg-primary/[0.03] ring-1 ring-primary/20 shadow-xl shadow-primary/10"
+                    : "border-border/80 bg-card"
                 )}
               >
+                {/* Badge */}
                 {plan.badge && (
                   <div className={cn(
-                    "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap border",
+                    "absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wide border",
                     plan.highlight
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card text-muted-foreground border-border"
+                      ? "bg-primary text-primary-foreground border-primary/80"
+                      : "bg-amber-500/10 text-amber-500 border-amber-500/30"
                   )}>
                     {plan.badge}
                   </div>
                 )}
 
-                {/* Icon + label */}
-                <div className="flex items-center gap-3 mb-5">
-                  <div className={cn(
-                    "size-10 rounded-xl flex items-center justify-center border",
-                    plan.highlight
-                      ? "bg-primary/10 border-primary/20 text-primary"
-                      : "bg-muted border-border text-muted-foreground"
-                  )}>
-                    <Icon className="size-4.5" />
+                {/* Header do card */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className={cn(
+                      "size-9 rounded-lg flex items-center justify-center",
+                      plan.highlight ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                      <Icon className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground leading-none">{plan.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{plan.duration}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-foreground text-sm leading-none">{plan.label}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
-                  </div>
-                </div>
 
-                {/* Preco */}
-                <div className="mb-1">
-                  <div className="flex items-start gap-1 leading-none">
-                    <span className="text-sm text-muted-foreground mt-1.5 font-medium">R$</span>
+                  {/* Preco */}
+                  <div className="flex items-start gap-0.5 mb-1.5">
+                    <span className="text-sm font-semibold text-muted-foreground mt-2.5 mr-0.5">R$</span>
                     <span className={cn(
-                      "text-[42px] font-black tracking-tight leading-none",
+                      "text-5xl font-black tracking-tighter leading-none",
                       plan.highlight ? "text-primary" : "text-foreground"
                     )}>
                       {plan.priceInt}
                     </span>
-                    <span className="text-sm text-muted-foreground mt-2 font-medium">,{plan.priceDec}</span>
+                    <span className="text-sm font-semibold text-muted-foreground mt-2.5">,{plan.priceDec}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">{plan.period}</p>
+                  <p className="text-xs text-muted-foreground">{plan.period}</p>
                 </div>
 
-                <p className="text-sm text-muted-foreground mb-5 mt-3 text-pretty leading-relaxed">
+                {/* Separador */}
+                <div className="h-px bg-border/60 mb-5" />
+
+                {/* Descricao */}
+                <p className="text-sm text-muted-foreground mb-5 text-pretty leading-relaxed">
                   {plan.description}
                 </p>
 
-                {/* Divisor */}
-                <div className="w-full h-px bg-border mb-5" />
-
                 {/* Features */}
-                <ul className="flex flex-col gap-2.5 mb-7 flex-1">
+                <ul className="flex flex-col gap-2 mb-8 flex-1">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
-                      <Check className={cn(
-                        "size-4 shrink-0 mt-0.5",
-                        plan.highlight ? "text-primary" : "text-muted-foreground"
-                      )} />
-                      <span className="leading-snug">{f}</span>
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <div className={cn(
+                        "size-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                        plan.highlight ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      )}>
+                        <Check className="size-2.5" strokeWidth={3} />
+                      </div>
+                      <span className="text-foreground/80 leading-snug">{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -269,36 +266,58 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                 {/* CTA */}
                 <button
                   onClick={() => handleCheckout(plan.id)}
-                  disabled={!!loadingPlanId}
+                  disabled={isAnyLoading}
                   className={cn(
-                    "w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                    "w-full py-3 rounded-xl text-sm font-semibold transition-all duration-150",
+                    "flex items-center justify-center gap-2",
+                    "disabled:opacity-60 disabled:cursor-not-allowed",
                     plan.highlight
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20"
-                      : "bg-foreground text-background hover:opacity-90"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 active:scale-[0.99]"
+                      : "bg-foreground text-background hover:opacity-85 active:scale-[0.99]"
                   )}
                 >
                   {isLoading ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      <span>Abrindo...</span>
+                    </>
                   ) : (
-                    <MpLogo className="size-4" />
+                    <>
+                      <MpLogo className="size-4" />
+                      <span>Pagar com Mercado Pago</span>
+                      <ArrowRight className="size-3.5 ml-auto opacity-60" />
+                    </>
                   )}
-                  {isLoading ? "Abrindo checkout..." : "Pagar com Mercado Pago"}
-                  {!isLoading && <ArrowRight className="size-3.5 ml-auto" />}
                 </button>
               </div>
             )
           })}
         </div>
 
-        {/* Rodape seguranca */}
-        <div className="mt-12 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="size-4 text-emerald-500" />
-            Pagamento 100% seguro processado pelo Mercado Pago
-          </div>
-          <p className="text-xs text-muted-foreground text-center max-w-sm">
-            Pix, cartao de credito e boleto. Licenca ativada automaticamente apos confirmacao.
-          </p>
+        {/* FAQ rapido / garantias */}
+        <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-border/60 pt-12">
+          {[
+            {
+              title: "Sem cobranca automatica",
+              desc: "Nao ha assinatura recorrente. Voce paga apenas quando quiser renovar.",
+            },
+            {
+              title: "Ativacao imediata",
+              desc: "Apos confirmacao do pagamento, sua licenca e ativada automaticamente.",
+            },
+            {
+              title: "Pagamento seguro",
+              desc: "Checkout processado pelo Mercado Pago — PIX, cartao e boleto.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="flex items-start gap-3">
+              <ShieldCheck className="size-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-0.5">{item.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </main>
     </div>

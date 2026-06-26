@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
           unit_price: plan.priceInCents / 100,
         },
       ],
-      payer: {
-        email: session.user.email,
-        name: session.user.name ?? "Cliente",
-      },
+      // NAO enviar payer.email — quando o email do comprador coincide com o
+      // email da conta vendedora do MP, o botao de pagamento fica inativo.
+      // O MP solicita o email ao comprador diretamente no checkout.
+      external_reference: session.user.id,
       payment_methods: {
         // Aceita PIX, cartao de credito e boleto
         excluded_payment_types: [],
