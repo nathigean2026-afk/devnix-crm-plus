@@ -205,6 +205,29 @@ export const serviceOrderItems = pgTable("service_order_items", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
+// ── Support ───────────────────────────────────────────────────────────────────
+export const supportTickets = pgTable("support_tickets", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull(),
+  subject: text("subject").notNull(),
+  category: text("category").notNull().default("duvida"),
+  status: text("status").notNull().default("aberto"),
+  priority: text("priority").notNull().default("normal"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  closedAt: timestamp("closedAt"),
+})
+
+export const supportMessages = pgTable("support_messages", {
+  id: text("id").primaryKey(),
+  ticketId: text("ticketId").notNull(),
+  authorId: text("authorId").notNull(),
+  authorRole: text("authorRole").notNull().default("user"),
+  body: text("body").notNull(),
+  attachments: text("attachments").default("[]"), // JSON array de { name, url }
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect
 export type Client = typeof clients.$inferSelect
@@ -216,3 +239,5 @@ export type BusinessProfile = typeof businessProfile.$inferSelect
 export type ServiceOrder = typeof serviceOrders.$inferSelect
 export type ServiceOrderItem = typeof serviceOrderItems.$inferSelect
 export type PromoCode = typeof promoCodes.$inferSelect
+export type SupportTicket = typeof supportTickets.$inferSelect
+export type SupportMessage = typeof supportMessages.$inferSelect
