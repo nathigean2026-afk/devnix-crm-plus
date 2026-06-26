@@ -4,6 +4,8 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import type { PromoCode } from "@/lib/db/schema"
 import { adminCreatePromoCode, adminDeletePromoCode } from "@/lib/actions"
+import { AdminTickets } from "@/components/admin/admin-tickets"
+import { LifeBuoy } from "lucide-react"
 import { toast } from "sonner"
 import {
   Users, ShieldCheck, Tag, BarChart3, LogOut, Plus, Trash2,
@@ -59,10 +61,15 @@ function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType
   )
 }
 
-export default function AdminDashboard({ stats, codes }: { stats: StatsData; codes: PromoCode[] }) {
+type TicketRow = {
+  id: string; subject: string; category: string; status: string; priority: string
+  createdAt: Date; updatedAt: Date; userId: string; userName: string | null; userEmail: string | null
+}
+
+export default function AdminDashboard({ stats, codes, tickets }: { stats: StatsData; codes: PromoCode[]; tickets: TicketRow[] }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [tab, setTab] = useState<"visao" | "licencas" | "codigos">("visao")
+  const [tab, setTab] = useState<"visao" | "licencas" | "codigos" | "suporte">("visao")
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, expiresAt: "" })
   const [showForm, setShowForm] = useState(false)
   const [localCodes, setLocalCodes] = useState(codes)
@@ -149,16 +156,17 @@ export default function AdminDashboard({ stats, codes }: { stats: StatsData; cod
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 mb-6 w-fit">
-          {(["visao", "licencas", "codigos"] as const).map((t) => (
+        <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 mb-6 w-fit flex-wrap">
+          {(["visao", "licencas", "codigos", "suporte"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-all ${
+              className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                 tab === t ? "bg-primary text-white shadow" : "text-white/50 hover:text-white/80"
               }`}
             >
-              {t === "visao" ? "Visao Geral" : t === "licencas" ? "Licencas" : "Codigos Promo"}
+              {t === "suporte" && <LifeBuoy className="size-3.5" />}
+              {t === "visao" ? "Visao Geral" : t === "licencas" ? "Licencas" : t === "codigos" ? "Codigos Promo" : `Suporte (${tickets.filter(tk => tk.status === "aberto" || tk.status === "em_andamento").length})`}
             </button>
           ))}
         </div>
@@ -432,6 +440,13 @@ export default function AdminDashboard({ stats, codes }: { stats: StatsData; cod
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab: Suporte */}
+        {tab === "suporte" && (
+          <div className="bg-white/5 border border-white/10 rounded-xl p-5 min-h-[400px] flex flex-col">
+            <AdminTickets initialTickets={tickets} />
           </div>
         )}
       </div>
