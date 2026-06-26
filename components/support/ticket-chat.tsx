@@ -61,21 +61,34 @@ export function TicketChat({ ticketId, initialMessages, status, userName }: Tick
   const [sending, setSending] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const lastTs = useRef<string>(initialMessages.at(-1)?.createdAt?.toString() ?? new Date(0).toISOString())
+  // IMPORTANTE: usar sempre ISO 8601 para o timestamp do poll.
+  // .toString() gera formato locale que o banco pode parsear errado, causando
+  // retorno de todas as mensagens a cada poll e consequente duplicação na UI.
+  const lastTs = useRef<string>(
+    initialMessages.at(-1)?.createdAt
+      ? new Date(initialMessages.at(-1)!.createdAt!).toISOString()
+      : new Date(0).toISOString()
+  )
   const closed = status === "fechado" || status === "resolvido"
 
   const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   useEffect(() => { scrollToBottom() }, [messages])
 
-  // Polling a cada 5 s para novas mensagens do admin
+  // Polling a cada 5 s para novas mensagens do admin.
+  // Usa ISO 8601 no after= e deduplica por id para evitar duplicatas
+  // caso o poll rode antes do banco confirmar o timestamp exato.
   const poll = useCallback(async () => {
     try {
       const res = await fetch(`/api/support/messages?ticketId=${ticketId}&after=${encodeURIComponent(lastTs.current)}`)
       if (!res.ok) return
       const news: SupportMessage[] = await res.json()
       if (news.length > 0) {
-        setMessages((prev) => [...prev, ...news])
-        lastTs.current = news.at(-1)!.createdAt!.toString()
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id))
+          const deduped = news.filter((m) => !existingIds.has(m.id))
+          return deduped.length > 0 ? [...prev, ...deduped] : prev
+        })
+        lastTs.current = new Date(news.at(-1)!.createdAt!).toISOString()
       }
     } catch {}
   }, [ticketId])
@@ -124,7 +137,7 @@ export function TicketChat({ ticketId, initialMessages, status, userName }: Tick
         createdAt: new Date(),
       }
       setMessages((prev) => [...prev, newMsg])
-      lastTs.current = newMsg.createdAt!.toString()
+      lastTs.current = new Date(newMsg.createdAt!).toISOString()
       setBody("")
       setAttachments([])
     } catch (err: any) {

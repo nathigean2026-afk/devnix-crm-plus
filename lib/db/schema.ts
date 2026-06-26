@@ -247,6 +247,32 @@ export const payments = pgTable("payments", {
 
 export type Payment = typeof payments.$inferSelect
 
+// ── Employee (Enterprise) ─────────────────────────────────────────────────────
+export const employeeInvites = pgTable("employee_invites", {
+  id: text("id").primaryKey(),
+  ownerId: text("ownerId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  status: text("status").notNull().default("pending"), // pending | accepted | cancelled
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  acceptedAt: timestamp("acceptedAt"),
+})
+
+export const employeePermissions = pgTable("employee_permissions", {
+  id: text("id").primaryKey(),
+  ownerId: text("ownerId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  employeeId: text("employeeId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  canClients: boolean("canClients").notNull().default(false),
+  canServices: boolean("canServices").notNull().default(false),
+  canQuotes: boolean("canQuotes").notNull().default(false),
+  canOrders: boolean("canOrders").notNull().default(false),
+  canFinanceiro: boolean("canFinanceiro").notNull().default(false),
+  canRelatorios: boolean("canRelatorios").notNull().default(false),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect
 export type Client = typeof clients.$inferSelect
@@ -260,3 +286,5 @@ export type ServiceOrderItem = typeof serviceOrderItems.$inferSelect
 export type PromoCode = typeof promoCodes.$inferSelect
 export type SupportTicket = typeof supportTickets.$inferSelect
 export type SupportMessage = typeof supportMessages.$inferSelect
+export type EmployeeInvite = typeof employeeInvites.$inferSelect
+export type EmployeePermission = typeof employeePermissions.$inferSelect

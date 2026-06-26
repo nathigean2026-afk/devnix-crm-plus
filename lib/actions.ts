@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import {
   businessProfile,
   clients,
+  employeeInvites,
+  employeePermissions,
   payments,
   promoCodes,
   quoteItems,
@@ -1318,4 +1320,165 @@ export async function getDashboardStats() {
     recentQuotes,
     monthlyChart,
   }
+}
+
+// ── Funcionarios (Enterprise) ─────────────────────────────────────────────────
+
+/** Retorna o funcionario vinculado ao dono (se houver) e o convite pendente */
+export async function getEmployeeData() {
+  const userId = await getUserId()
+
+  // Permissao ativa
+  const [perms] = await db
+    .select({
+      id: employeePermissions.id,
+      employeeId: employeePermissions.employeeId,
+      employeeName: user.name,
+      employeeEmail: user.email,
+      canClients: employeePermissions.canClients,
+      canServices: employeePermissions.canServices,
+      canQuotes: employeePermissions.canQuotes,
+      canOrders: employeePermissions.canOrders,
+      canFinanceiro: employeePermissions.canFinanceiro,
+      canRelatorios: employeePermissions.canRelatorios,
+    })
+    .from(employeePermissions)
+    .leftJoin(user, eq(user.id, employeePermissions.employeeId))
+    .where(eq(employeePermissions.ownerId, userId))
+    .limit(1)
+
+  // Convite pendente mais recente
+  const [invite] = await db
+    .select()
+    .from(employeeInvites)
+    .where(and(eq(employeeInvites.ownerId, userId), eq(employeeInvites.status, "pending")))
+    .orderBy(desc(employeeInvites.createdAt))
+    .limit(1)
+
+  return { employee: perms ?? null, pendingInvite: invite ?? null }
+}
+
+/** Envia convite para o email do funcionario */
+export async function inviteEmployee(email: string) {
+  const userId = await getUserId()
+
+  // Verifica plano Enterprise
+  const [profile] = await db
+    .select({ licensePlan: businessProfile.licensePlan })
+    .from(businessProfile)
+    .where(eq(businessProfile.userId, userId))
+    .limit(1)
+
+  const plan = (profile?.licensePlan ?? "starter").toLowerCase()
+  if (plan !== "enterprise") throw new Error("Disponivel apenas no plano Enterprise.")
+
+  // Verifica se ja tem funcionario ativo
+  const existing = await db
+    .select({ id: employeePermissions.id })
+    .from(employeePermissions)
+    .where(eq(employeePermissions.ownerId, userId))
+    .limit(1)
+  if (existing.length > 0) throw new Error("Voce ja tem um funcionario vinculado. Remova-o para convidar outro.")
+
+  // Cancela convites pendentes anteriores
+  await db
+    .update(employeeInvites)
+    .set({ status: "cancelled" })
+    .where(and(eq(employeeInvites.ownerId, userId), eq(employeeInvites.status, "pending")))
+
+  const token = crypto.randomUUID()
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 dias
+
+  await db.insert(employeeInvites).values({
+    id: crypto.randomUUID(),
+    ownerId: userId,
+    email: email.toLowerCase().trim(),
+    status: "pending",
+    token,
+    expiresAt,
+  })
+
+  revalidatePath("/dashboard/configuracoes")
+  return { token, expiresAt: expiresAt.toISOString() }
+}
+
+/** Cancela convite pendente */
+export async function cancelEmployeeInvite(inviteId: string) {
+  const userId = await getUserId()
+  await db
+    .update(employeeInvites)
+    .set({ status: "cancelled" })
+    .where(and(eq(employeeInvites.id, inviteId), eq(employeeInvites.ownerId, userId)))
+  revalidatePath("/dashboard/configuracoes")
+}
+
+/** Atualiza permissoes do funcionario */
+export async function updateEmployeePermissions(permId: string, perms: {
+  canClients: boolean
+  canServices: boolean
+  canQuotes: boolean
+  canOrders: boolean
+  canFinanceiro: boolean
+  canRelatorios: boolean
+}) {
+  const userId = await getUserId()
+  await db
+    .update(employeePermissions)
+    .set({ ...perms, updatedAt: new Date() })
+    .where(and(eq(employeePermissions.id, permId), eq(employeePermissions.ownerId, userId)))
+  revalidatePath("/dashboard/configuracoes")
+}
+
+/** Remove o funcionario vinculado */
+export async function removeEmployee(permId: string) {
+  const userId = await getUserId()
+  await db
+    .delete(employeePermissions)
+    .where(and(eq(employeePermissions.id, permId), eq(employeePermissions.ownerId, userId)))
+  revalidatePath("/dashboard/configuracoes")
+}
+
+/** Aceita convite via token (chamado pelo funcionario ao clicar no link) */
+export async function acceptEmployeeInvite(token: string) {
+  const userId = await getUserId()
+
+  const [invite] = await db
+    .select()
+    .from(employeeInvites)
+    .where(and(eq(employeeInvites.token, token), eq(employeeInvites.status, "pending")))
+    .limit(1)
+
+  if (!invite) throw new Error("Convite invalido ou expirado.")
+  if (new Date() > invite.expiresAt) throw new Error("Convite expirado.")
+
+  // Verifica se o email do convite bate com o usuario logado
+  const [invitedUser] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1)
+
+  if (invitedUser?.email.toLowerCase() !== invite.email.toLowerCase())
+    throw new Error("Este convite foi enviado para outro e-mail.")
+
+  // Cria permissoes (todas desativadas por padrao — dono define depois)
+  await db.insert(employeePermissions).values({
+    id: crypto.randomUUID(),
+    ownerId: invite.ownerId,
+    employeeId: userId,
+    canClients: false,
+    canServices: false,
+    canQuotes: false,
+    canOrders: false,
+    canFinanceiro: false,
+    canRelatorios: false,
+  }).onConflictDoNothing()
+
+  // Marca convite como aceito
+  await db
+    .update(employeeInvites)
+    .set({ status: "accepted", acceptedAt: new Date() })
+    .where(eq(employeeInvites.id, invite.id))
+
+  return { ownerId: invite.ownerId }
 }
