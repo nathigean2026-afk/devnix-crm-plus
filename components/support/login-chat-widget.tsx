@@ -83,13 +83,13 @@ const FAQ: Array<{ keywords: string[]; answer: string; suggestions?: string[] }>
   {
     keywords: ["senha", "esqueci", "redefinir", "recuperar", "login", "entrar", "acessar"],
     answer:
-      'Para redefinir sua senha, clique em **"Esqueci a senha"** na tela de login e informe seu e-mail. Você receberá um link de redefinição em instantes.\n\nSe o e-mail não chegar, confira a pasta de spam ou entre em contato com suporte@elevanthe.com.br.',
+      "Para redefinir sua senha, clique em **\u201cEsqueci a senha\u201d** na tela de login e informe seu e-mail. Você receberá um link de redefinição em instantes.\n\nSe o e-mail não chegar, confira a pasta de spam ou entre em contato com suporte@elevanthe.com.br.",
     suggestions: ["Como criar conta?", "Falar com suporte"],
   },
   {
     keywords: ["criar", "cadastrar", "cadastro", "conta", "registrar", "comecar", "começar", "iniciar"],
     answer:
-      "É bem simples! Clique em **"Criar conta grátis"** no canto superior direito, preencha nome, e-mail e senha — e pronto. Você acessa o sistema imediatamente e escolhe um plano para desbloquear todos os recursos.",
+      'É bem simples! Clique em **"Criar conta grátis"** no canto superior direito, preencha nome, e-mail e senha — e pronto. Você acessa o sistema imediatamente e escolhe um plano para desbloquear todos os recursos.',
     suggestions: ["Quanto custa?", "Tem período grátis?", "Quais funcionalidades?"],
   },
   {
