@@ -351,7 +351,7 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
           <p className="text-xs text-gray-400">
             Ordem de Serviço gerada por{" "}
             <span className="font-semibold text-gray-600">
-              {profile?.name ? `${profile.name} via Devnix CRM Plus` : "Devnix CRM Plus"}
+              {profile?.name ? `${profile.name} via Elevanthe CRM` : "Elevanthe CRM"}
             </span>
           </p>
         </div>

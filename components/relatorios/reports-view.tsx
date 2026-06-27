@@ -338,7 +338,7 @@ export function ReportsView({ data }: ReportsViewProps) {
 
         {/* Rodapé para impressão */}
         <div className="hidden print:block text-center text-xs text-gray-400 mt-4">
-          Relatório gerado em {dataAtual} via Devnix CRM Plus
+          Relatório gerado em {dataAtual} via Elevanthe CRM
         </div>
       </div>
     </>

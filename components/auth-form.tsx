@@ -78,29 +78,27 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
-            <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-              alt="Devnix"
-              width={22}
-              height={22}
-              className="object-contain"
-            />
-          </div>
-          <span className="text-white font-semibold text-sm tracking-tight">Devnix CRM Plus</span>
+          <Image
+            src="/elevanthe-icon.png"
+            alt="Elevanthe CRM"
+            width={36}
+            height={36}
+            className="object-contain shrink-0"
+          />
+          <span className="text-white font-bold text-base tracking-tight">Elevanthe CRM</span>
         </div>
 
         {/* Conteudo central */}
         <div className="relative z-10 space-y-8">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/30">
-              CRM para profissionais brasileiros
+              Gestão de relacionamento que eleva resultados
             </p>
             <h2 className="text-3xl xl:text-4xl font-black text-white leading-tight tracking-tight text-balance">
-              Gerencie seu negocio com inteligencia
+              Eleve seus resultados com inteligência
             </h2>
             <p className="text-sm text-white/40 leading-relaxed">
-              Tudo que voce precisa para gerenciar clientes, projetos e financeiro em uma unica plataforma.
+              Tudo que você precisa para gerenciar clientes, projetos e financeiro em uma única plataforma.
             </p>
           </div>
 
@@ -125,7 +123,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         {/* Rodape */}
         <p className="relative z-10 text-xs text-white/20">
-          &copy; {new Date().getFullYear()} Devnix. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.
         </p>
       </aside>
 
@@ -136,13 +134,13 @@ export function AuthForm({ mode }: AuthFormProps) {
           {/* Logo mobile */}
           <div className="flex items-center gap-2 lg:hidden">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-              alt="Devnix"
-              width={24}
-              height={24}
+              src="/elevanthe-icon.png"
+              alt="Elevanthe CRM"
+              width={28}
+              height={28}
               className="object-contain"
             />
-            <span className="font-semibold text-sm text-foreground">Devnix CRM Plus</span>
+            <span className="font-bold text-sm text-foreground">Elevanthe CRM</span>
           </div>
           <div className="hidden lg:block" />
 

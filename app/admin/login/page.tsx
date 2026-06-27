@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white">Painel Admin</h1>
-            <p className="text-sm text-white/50 mt-1">Devnix CRM Plus — Acesso restrito</p>
+            <p className="text-sm text-white/50 mt-1">Elevanthe CRM — Acesso restrito</p>
           </div>
         </div>
 

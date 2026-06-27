@@ -10,7 +10,7 @@ type ChatMsg = { role: "user" | "bot"; text: string }
 
 const BOT_RESPONSES: Record<string, string> = {
   default:
-    "Olá! Sou o suporte do Devnix CRM Plus. Posso te ajudar com dúvidas gerais aqui. Para abrir um ticket oficial com histórico e anexos, acesse a área de Suporte dentro do painel após o login.",
+    "Olá! Sou o suporte do Elevanthe CRM. Posso te ajudar com dúvidas gerais aqui. Para abrir um ticket oficial com histórico e anexos, acesse a área de Suporte dentro do painel após o login.",
   plano:
     "Temos 3 planos disponíveis. Após fazer login, acesse Configurações > Licença para ver os planos e usar códigos promocionais.",
   senha:
@@ -78,7 +78,7 @@ export function LoginChatWidget() {
                 <MessageCircle className="size-4 text-primary-foreground" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-primary-foreground leading-none">Suporte Devnix</p>
+                <p className="text-sm font-semibold text-primary-foreground leading-none">Suporte Elevanthe</p>
                 <p className="text-xs text-primary-foreground/70 mt-0.5">Resposta rápida</p>
               </div>
             </div>

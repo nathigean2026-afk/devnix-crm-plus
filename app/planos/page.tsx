@@ -6,8 +6,8 @@ import { getUserLicense } from "@/lib/actions"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Escolha seu Plano | Devnix CRM Plus",
-  description: "Ative sua licenca para acessar todas as funcionalidades do Devnix CRM Plus.",
+  title: "Escolha seu Plano | Elevanthe CRM",
+  description: "Ative sua licenca para acessar todas as funcionalidades do Elevanthe CRM.",
 }
 
 export default async function PlanosPage({

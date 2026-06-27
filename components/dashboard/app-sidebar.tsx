@@ -210,23 +210,31 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const SidebarHeader = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={cn(
+      <div className={cn(
       "flex items-center border-b border-sidebar-border shrink-0",
-      (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "gap-3 px-4 py-3 h-[60px]"
+      (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "px-4 py-3 h-[60px]"
     )}>
-      <div className="size-8 shrink-0 flex items-center justify-center rounded-lg bg-primary">
+      {(!isMobile && collapsed) ? (
         <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-          alt="Devnix"
-          width={24}
-          height={24}
+          src="/elevanthe-icon.png"
+          alt="Elevanthe CRM"
+          width={32}
+          height={32}
           className="object-contain"
         />
-      </div>
-      {(isMobile || !collapsed) && (
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight truncate">Devnix CRM Plus</p>
-          <p className="text-xs text-sidebar-foreground/60 truncate">Soluções Web Inteligentes</p>
+      ) : (
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/elevanthe-icon.png"
+            alt="Elevanthe CRM"
+            width={34}
+            height={34}
+            className="object-contain shrink-0"
+          />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-bold text-sidebar-accent-foreground leading-tight tracking-tight">Elevanthe CRM</span>
+            <span className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">Gestão que eleva resultados</span>
+          </div>
         </div>
       )}
       {isMobile ? (

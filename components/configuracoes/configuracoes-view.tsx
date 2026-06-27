@@ -466,9 +466,9 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
                 <Label htmlFor="biz-name" className="text-foreground text-sm">Nome da empresa / negocio</Label>
                 <Input
                   id="biz-name"
-                  value={brandUnlocked ? form.name : "Devnix CRM Plus"}
+                  value={brandUnlocked ? form.name : "Elevanthe CRM"}
                   onChange={e => handleChange("name", e.target.value)}
-                  placeholder="Devnix Solucoes Web"
+                  placeholder="Elevanthe Solucoes Web"
                   disabled={!brandUnlocked}
                   className="bg-input border-border"
                 />

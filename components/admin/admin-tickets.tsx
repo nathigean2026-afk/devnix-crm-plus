@@ -207,7 +207,7 @@ export function AdminTickets({ initialTickets }: AdminTicketsProps) {
                   </div>
                   <div className={cn("flex flex-col max-w-[75%]", isAdmin ? "items-end" : "items-start")}>
                     <span className="text-xs text-white/30 mb-1">
-                      {isAdmin ? "Suporte Devnix" : (selected.userName ?? "Usuário")} •{" "}
+                      {isAdmin ? "Suporte Elevanthe" : (selected.userName ?? "Usuário")} •{" "}
                       {new Date(m.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <div className={cn(
