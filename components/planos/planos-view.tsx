@@ -127,7 +127,12 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         body: JSON.stringify({ planId }),
       })
       const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao iniciar checkout")
+      if (!res.ok || data.error) {
+        const errMsg = data.error ?? "Erro ao iniciar checkout"
+        // Loga detalhe técnico no console do browser para facilitar debug
+        if (data.detail) console.error("[v0] MP Checkout detalhe:", JSON.stringify(data.detail))
+        throw new Error(errMsg)
+      }
       if (!data.initPoint) throw new Error("URL de checkout não recebida")
       window.location.href = data.initPoint
     } catch (err: any) {
