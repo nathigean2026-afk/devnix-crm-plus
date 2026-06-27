@@ -642,13 +642,14 @@ export async function adminGetStats() {
   let dailyLogins: { day: string; logins: number }[] = []
   try {
     const result = await db.execute(sql`
-      SELECT DATE("createdAt") as day, COUNT(*) as logins
+      SELECT TO_CHAR(DATE("createdAt"), 'YYYY-MM-DD') as day, COUNT(*) as logins
       FROM session
       WHERE "createdAt" >= NOW() - INTERVAL '14 days'
       GROUP BY DATE("createdAt")
       ORDER BY day ASC
     `)
     const rows = (result as any)?.rows ?? (Array.isArray(result) ? result : [])
+    // day já vem como string "YYYY-MM-DD" via TO_CHAR, sem conversão de Date object
     dailyLogins = rows.map((r: any) => ({ day: String(r.day), logins: Number(r.logins) }))
   } catch { /* logins diários opcionais */ }
 

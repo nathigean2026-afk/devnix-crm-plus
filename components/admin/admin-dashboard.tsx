@@ -94,7 +94,12 @@ function formatDateTime(d: Date | string | null) {
 }
 
 function formatDayLabel(d: string) {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" })
+  // d é uma string ISO "YYYY-MM-DD" ou similar vindo do Postgres DATE()
+  // Extrai ano, mês e dia diretamente por substring para evitar qualquer
+  // conversão de fuso que causaria mismatch servidor (UTC) vs cliente (local)
+  const iso = String(d).slice(0, 10) // garante "YYYY-MM-DD"
+  const [, mm, dd] = iso.split("-")
+  return `${dd}/${mm}`
 }
 
 function daysLeft(d: Date | string | null) {
