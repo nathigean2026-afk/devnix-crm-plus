@@ -80,14 +80,20 @@ type TicketRow = {
   createdAt: Date; updatedAt: Date; userId: string; userName: string | null; userEmail: string | null
 }
 
+// Todas as formatações usam timeZone: "UTC" para evitar mismatch de hidratação
+// entre servidor (UTC) e cliente (fuso local)
 function formatDate(d: Date | string | null) {
   if (!d) return "—"
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })
 }
 
 function formatDateTime(d: Date | string | null) {
   if (!d) return "—"
-  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
+}
+
+function formatDayLabel(d: string) {
+  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" })
 }
 
 function daysLeft(d: Date | string | null) {
@@ -417,7 +423,7 @@ export default function AdminDashboard({
                             className="w-full rounded-sm bg-primary/50 group-hover:bg-primary transition-colors min-h-[4px]"
                           />
                           <span className={cn("text-[9px] rotate-45 origin-left mt-1", darkMode ? "text-white/20" : "text-slate-400")}>
-                            {new Date(d.day).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                            {formatDayLabel(d.day)}
                           </span>
                         </div>
                       )
@@ -893,7 +899,7 @@ export default function AdminDashboard({
                         const max = Math.max(...stats.dailyLogins.map(x => x.logins), 1)
                         return (
                           <tr key={d.day} className={cn("border-b", darkMode ? "border-white/5" : "border-slate-50")}>
-                            <td className={cn("py-2 pr-4", darkMode ? "text-white/60" : "text-slate-600")}>{new Date(d.day).toLocaleDateString("pt-BR")}</td>
+                            <td className={cn("py-2 pr-4", darkMode ? "text-white/60" : "text-slate-600")}>{formatDayLabel(d.day)}</td>
                             <td className={cn("py-2 pr-4 font-semibold", darkMode ? "text-white" : "text-slate-800")}>{d.logins}</td>
                             <td className="py-2 w-full">
                               <div className={cn("rounded-full h-1.5 overflow-hidden", darkMode ? "bg-white/10" : "bg-slate-100")}>
