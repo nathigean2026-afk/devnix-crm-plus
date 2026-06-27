@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
 
 export default function AdminLoginPage() {
-  const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -26,7 +24,8 @@ export default function AdminLoginPage() {
         setError(data.error ?? "Erro ao fazer login.")
         return
       }
-      router.push("/admin")
+      // Força navegação HTTP completa para o servidor ler o cookie corretamente
+      window.location.href = "/admin"
     } catch {
       setError("Erro de conexão.")
     } finally {

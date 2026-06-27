@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sql } from "drizzle-orm"
 import { scryptSync, timingSafeEqual } from "crypto"
-import { cookies } from "next/headers"
 
 function verifyPassword(password: string, stored: string): boolean {
   try {
@@ -27,21 +26,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 })
   }
 
-  const cookieStore = await cookies()
-  // Valor fixo esperado pelo admin/page.tsx para verificação da sessão
-  cookieStore.set("admin_session", "admin-nathigean-001", {
+  // Seta o cookie diretamente na Response (correto para Route Handlers)
+  const res = NextResponse.json({ ok: true })
+  res.cookies.set("admin_session", "admin-nathigean-001", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 60 * 60 * 8, // 8 horas
     path: "/",
   })
-
-  return NextResponse.json({ ok: true })
+  return res
 }
 
 export async function DELETE() {
-  const cookieStore = await cookies()
-  cookieStore.delete("admin_session")
-  return NextResponse.json({ ok: true })
+  const res = NextResponse.json({ ok: true })
+  res.cookies.delete("admin_session")
+  return res
 }
