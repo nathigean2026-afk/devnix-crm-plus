@@ -824,7 +824,7 @@ export async function adminDeleteUser(userId: string) {
   await db.delete(payments).where(eq(payments.userId, userId))
   await db.delete(transactions).where(eq(transactions.userId, userId))
   await db.delete(serviceOrderItems).where(
-    sql`"orderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+    sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
   )
   await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
   await db.delete(quoteItems).where(
@@ -1339,7 +1339,7 @@ export async function getReportData() {
   }
 }
 
-// ── Dashboard Stats ───────────────────────────────────────────────────────────
+// ── Dashboard Stats ───────────────────────────────────────────────��───────────
 export async function getDashboardStats() {
   const userId = await getUserId()
 
