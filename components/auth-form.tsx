@@ -4,12 +4,19 @@ import { LoginChatWidget } from "@/components/support/login-chat-widget"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
 import Link from "next/link"
-import { Eye, EyeOff, ArrowRight, Lock, Mail, User } from "lucide-react"
+import {
+  Eye, EyeOff, ArrowRight, Lock, Mail, User,
+  Sun, Moon,
+  Users, FileText, BarChart2, DollarSign, ClipboardList,
+  Settings, Wrench, Bell, QrCode, Package, Zap,
+  TrendingUp, ShieldCheck, Globe, Send, Layers, Star,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AuthFormProps {
@@ -17,32 +24,35 @@ interface AuthFormProps {
   kicked?: boolean
 }
 
+// ─── Funcionalidades do CRM para marca d'água ─────────────────────────────────
+const crmFeatures = [
+  { icon: Users,        label: "Gestão de Clientes" },
+  { icon: FileText,     label: "Orçamentos" },
+  { icon: ClipboardList,label: "Ordens de Serviço" },
+  { icon: DollarSign,   label: "Financeiro" },
+  { icon: BarChart2,    label: "Relatórios" },
+  { icon: Wrench,       label: "Catálogo de Serviços" },
+  { icon: QrCode,       label: "Pagamento via Pix" },
+  { icon: Send,         label: "Envio por WhatsApp" },
+  { icon: Bell,         label: "Notificações" },
+  { icon: Package,      label: "Controle de Estoque" },
+  { icon: TrendingUp,   label: "Métricas de Receita" },
+  { icon: ShieldCheck,  label: "Acesso por Funcionário" },
+  { icon: Globe,        label: "Link de Orçamento Público" },
+  { icon: Layers,       label: "Multi-empresa" },
+  { icon: Zap,          label: "Dashboard em Tempo Real" },
+  { icon: Star,         label: "Histórico do Cliente" },
+  { icon: Settings,     label: "Personalização de Tema" },
+  { icon: Globe,        label: "Assinatura Digital" },
+]
+
+// ─── Carrossel de screenshots ─────────────────────────────────────────────────
 const slides = [
-  {
-    src: "/screenshots/dashboard.png",
-    label: "Dashboard",
-    desc: "Visão geral do seu negócio em tempo real",
-  },
-  {
-    src: "/screenshots/clientes.png",
-    label: "Clientes",
-    desc: "Gerencie sua base de clientes com facilidade",
-  },
-  {
-    src: "/screenshots/orcamentos.png",
-    label: "Orçamentos",
-    desc: "Crie e envie orçamentos profissionais",
-  },
-  {
-    src: "/screenshots/financeiro.png",
-    label: "Financeiro",
-    desc: "Controle receitas, despesas e saldo",
-  },
-  {
-    src: "/screenshots/relatorios.png",
-    label: "Relatórios",
-    desc: "Análises e métricas do seu negócio",
-  },
+  { src: "/screenshots/dashboard.png",  label: "Dashboard",  desc: "Visão geral do seu negócio em tempo real" },
+  { src: "/screenshots/clientes.png",   label: "Clientes",   desc: "Gerencie sua base de clientes com facilidade" },
+  { src: "/screenshots/orcamentos.png", label: "Orçamentos", desc: "Crie e envie orçamentos profissionais" },
+  { src: "/screenshots/financeiro.png", label: "Financeiro", desc: "Controle receitas, despesas e saldo" },
+  { src: "/screenshots/relatorios.png", label: "Relatórios", desc: "Análises e métricas do seu negócio" },
 ]
 
 function ScreenshotCarousel() {
@@ -63,19 +73,14 @@ function ScreenshotCarousel() {
   const goTo = (idx: number) => {
     if (idx === active) return
     setAnimating(true)
-    setTimeout(() => {
-      setActive(idx)
-      setAnimating(false)
-    }, 300)
+    setTimeout(() => { setActive(idx); setAnimating(false) }, 300)
   }
 
   const current = slides[active]
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Frame do browser */}
       <div className="rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/70 bg-[#0d0d14]">
-        {/* Barra do browser */}
         <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
           <div className="flex gap-1.5">
             <div className="size-2.5 rounded-full bg-red-500/40" />
@@ -83,16 +88,12 @@ function ScreenshotCarousel() {
             <div className="size-2.5 rounded-full bg-green-500/40" />
           </div>
           <div className="flex-1 mx-2 h-5 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center px-2">
-            <span className="text-[10px] text-white/20 truncate">app.elevanthe.com.br/{current.label.toLowerCase()}</span>
+            <span className="text-[10px] text-white/20 truncate">
+              app.elevanthe.com.br/{current.label.toLowerCase()}
+            </span>
           </div>
         </div>
-        {/* Screenshot */}
-        <div
-          className={cn(
-            "transition-opacity duration-300",
-            animating ? "opacity-0" : "opacity-100"
-          )}
-        >
+        <div className={cn("transition-opacity duration-300", animating ? "opacity-0" : "opacity-100")}>
           <Image
             src={current.src}
             alt={`${current.label} — Elevanthe CRM`}
@@ -103,15 +104,8 @@ function ScreenshotCarousel() {
           />
         </div>
       </div>
-
-      {/* Caption + dots */}
       <div className="flex items-center justify-between px-1">
-        <div
-          className={cn(
-            "transition-all duration-300",
-            animating ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"
-          )}
-        >
+        <div className={cn("transition-all duration-300", animating ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0")}>
           <p className="text-xs font-semibold text-white/60">{current.label}</p>
           <p className="text-[11px] text-white/25">{current.desc}</p>
         </div>
@@ -122,9 +116,7 @@ function ScreenshotCarousel() {
               onClick={() => goTo(i)}
               className={cn(
                 "rounded-full transition-all duration-300",
-                i === active
-                  ? "w-4 h-1.5 bg-primary"
-                  : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
+                i === active ? "w-4 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
               )}
               aria-label={`Ver ${slides[i].label}`}
             />
@@ -135,13 +127,97 @@ function ScreenshotCarousel() {
   )
 }
 
+// ─── Wallpaper de funcionalidades (marca d'água repetida no bg) ───────────────
+function FeatureWallpaper({ isDark }: { isDark: boolean }) {
+  // Repete o array 3x para preencher bem a tela
+  const items = [...crmFeatures, ...crmFeatures, ...crmFeatures]
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden>
+      <div className="flex flex-wrap gap-3 p-6 opacity-[0.055]">
+        {items.map((feat, i) => {
+          const Icon = feat.icon
+          return (
+            <div
+              key={i}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium",
+                isDark
+                  ? "border-white/20 text-white"
+                  : "border-black/15 text-black"
+              )}
+            >
+              <Icon className="size-3 shrink-0" />
+              <span>{feat.label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Botão de alternância de tema ─────────────────────────────────────────────
+function ThemeToggleButton() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return <div className="size-8" />
+
+  const isDark = resolvedTheme === "dark"
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className={cn(
+        "size-8 rounded-lg flex items-center justify-center transition-all duration-200",
+        "border hover:scale-105",
+        isDark
+          ? "border-white/[0.08] bg-white/[0.04] text-white/50 hover:text-white/80 hover:bg-white/[0.08]"
+          : "border-black/[0.08] bg-black/[0.03] text-black/40 hover:text-black/70 hover:bg-black/[0.06]"
+      )}
+      aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </button>
+  )
+}
+
+// ─── Logo responsiva ao tema ──────────────────────────────────────────────────
+function ThemedLogo({ className }: { className?: string }) {
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) return <div className={cn("bg-muted/30 rounded animate-pulse", className)} style={{ height: 40, width: 200 }} />
+
+  const isDark = resolvedTheme === "dark"
+  return (
+    <Image
+      src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
+      alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
+      width={260}
+      height={65}
+      className={cn("object-contain", className)}
+      priority
+    />
+  )
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 export function AuthForm({ mode, kicked }: AuthFormProps) {
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
 
+  useEffect(() => { setMounted(true) }, [])
+
   const isSignIn = mode === "sign-in"
+  const isDark = !mounted || resolvedTheme === "dark"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -178,120 +254,122 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a10] flex">
-      {/* ─── Painel esquerdo — branding (desktop only) ─── */}
-      <aside className="hidden lg:flex lg:w-[520px] xl:w-[560px] flex-col justify-between bg-[#07070d] border-r border-white/[0.05] px-10 py-8 relative overflow-hidden flex-shrink-0">
+    <div className={cn("min-h-screen flex", isDark ? "bg-[#0a0a10]" : "bg-slate-50")}>
 
-        {/* Marca d'agua do elefante neon — watermark sutil no fundo */}
-        <div className="absolute -bottom-16 -right-16 opacity-[0.04] pointer-events-none select-none">
-          <Image
-            src="/elevanthe-logo-neon.png"
-            alt=""
-            width={420}
-            height={420}
-            className="object-contain"
-          />
+      {/* ─── Painel esquerdo — branding (desktop only) ─── */}
+      <aside className={cn(
+        "hidden lg:flex lg:w-[520px] xl:w-[560px] flex-col justify-between px-10 py-8 relative overflow-hidden flex-shrink-0 border-r",
+        isDark ? "bg-[#07070d] border-white/[0.05]" : "bg-white border-slate-200"
+      )}>
+
+        {/* Marca d'agua do elefante neon — watermark sutil */}
+        <div className="absolute -bottom-16 -right-16 opacity-[0.03] pointer-events-none select-none">
+          <Image src="/elevanthe-logo-neon.png" alt="" width={420} height={420} className="object-contain" />
         </div>
 
-        {/* Glow azul radial */}
-        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-primary/8 to-transparent pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full bg-blue-600/8 blur-[100px] pointer-events-none" />
+        {/* Glow de fundo */}
+        <div className={cn(
+          "absolute top-0 left-0 w-full h-64 pointer-events-none",
+          isDark ? "bg-gradient-to-b from-primary/8 to-transparent" : "bg-gradient-to-b from-primary/5 to-transparent"
+        )} />
+        <div className={cn(
+          "absolute -bottom-32 -left-32 size-[400px] rounded-full blur-[100px] pointer-events-none",
+          isDark ? "bg-blue-600/8" : "bg-primary/5"
+        )} />
 
-        {/* Logo horizontal completa — mix-blend-mode:screen remove o fundo escuro da imagem */}
+        {/* Logo */}
         <div className="relative z-10">
-          <Image
-            src="/elevanthe-logo-dark.png"
-            alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
-            width={280}
-            height={70}
-            className="object-contain h-12 w-auto"
-            style={{ mixBlendMode: "screen" }}
-          />
+          <ThemedLogo className="h-11 w-auto" />
         </div>
 
         {/* Conteudo central */}
         <div className="relative z-10 flex flex-col gap-8">
-          {/* Headline */}
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
+            <div className={cn(
+              "inline-flex items-center gap-2 rounded-full px-3 py-1 border",
+              isDark ? "bg-primary/10 border-primary/20" : "bg-primary/8 border-primary/15"
+            )}>
               <div className="size-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-semibold text-primary/80 tracking-wide">Plataforma completa de gestão</span>
+              <span className="text-xs font-semibold text-primary tracking-wide">Plataforma completa de gestão</span>
             </div>
-            <h2 className="text-2xl xl:text-3xl font-black text-white leading-[1.2] tracking-tight text-balance">
+            <h2 className={cn(
+              "text-2xl xl:text-3xl font-black leading-[1.2] tracking-tight text-balance",
+              isDark ? "text-white" : "text-slate-900"
+            )}>
               Gerencie seu negócio com clareza e velocidade
             </h2>
-            <p className="text-sm text-white/35 leading-relaxed">
+            <p className={cn("text-sm leading-relaxed", isDark ? "text-white/35" : "text-slate-500")}>
               Do primeiro contato ao pagamento — tudo em um só lugar. Sem planilhas, sem confusão.
             </p>
           </div>
 
-          {/* Carrossel de screenshots */}
           <ScreenshotCarousel />
         </div>
 
         {/* Rodape */}
         <div className="relative z-10 flex items-center justify-between">
-          <p className="text-[11px] text-white/15">&copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.</p>
-          <p className="text-[11px] text-white/15">Pix · Cartão · Boleto</p>
+          <p className={cn("text-[11px]", isDark ? "text-white/15" : "text-slate-400")}>
+            &copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.
+          </p>
+          <p className={cn("text-[11px]", isDark ? "text-white/15" : "text-slate-400")}>Pix · Cartão · Boleto</p>
         </div>
       </aside>
 
       {/* ─── Painel direito — formulário ─── */}
-      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden bg-[#0a0a10]">
+      <div className={cn("flex-1 flex flex-col min-h-screen relative overflow-hidden", isDark ? "bg-[#0a0a10]" : "bg-slate-50")}>
 
-        {/* Grade de pontos sutil no fundo */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        />
+        {/* Wallpaper de funcionalidades — marca d'água repetida */}
+        <FeatureWallpaper isDark={isDark} />
 
-        {/* Orb azul — canto superior direito */}
-        <div className="absolute -top-40 -right-40 size-[500px] rounded-full bg-primary/15 blur-[120px] pointer-events-none" />
-        {/* Orb roxo — canto inferior esquerdo */}
-        <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full bg-violet-600/10 blur-[100px] pointer-events-none" />
-        {/* Orb ciano — centro superior */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 size-[300px] rounded-full bg-cyan-500/5 blur-[90px] pointer-events-none" />
+        {/* Orbs de glow */}
+        <div className={cn("absolute -top-40 -right-40 size-[500px] rounded-full blur-[130px] pointer-events-none", isDark ? "bg-primary/12" : "bg-primary/8")} />
+        <div className={cn("absolute -bottom-32 -left-32 size-[400px] rounded-full blur-[110px] pointer-events-none", isDark ? "bg-violet-600/8" : "bg-violet-500/6")} />
+        <div className={cn("absolute top-1/3 left-1/2 -translate-x-1/2 size-[350px] rounded-full blur-[100px] pointer-events-none", isDark ? "bg-cyan-500/4" : "bg-sky-500/4")} />
 
         {/* Top bar */}
-        <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/[0.05]">
-          {/* Logo mobile — usa a logo horizontal também */}
+        <div className={cn("relative z-10 flex items-center justify-between px-6 py-4 border-b", isDark ? "border-white/[0.05]" : "border-slate-200/80")}>
+          {/* Logo mobile */}
           <div className="lg:hidden">
-            <Image
-              src="/elevanthe-logo-dark.png"
-              alt="Elevanthe CRM"
-              width={160}
-              height={40}
-              className="object-contain h-8 w-auto"
-              style={{ mixBlendMode: "screen" }}
-            />
+            <ThemedLogo className="h-8 w-auto" />
           </div>
           <div className="hidden lg:block" />
 
-          <Link
-            href={isSignIn ? "/sign-up" : "/sign-in"}
-            className="text-xs text-white/40 hover:text-white/70 transition-colors border border-white/[0.08] hover:border-white/20 rounded-lg px-3 py-1.5 backdrop-blur-sm"
-          >
-            {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggleButton />
+            <Link
+              href={isSignIn ? "/sign-up" : "/sign-in"}
+              className={cn(
+                "text-xs transition-colors border rounded-lg px-3 py-1.5",
+                isDark
+                  ? "text-white/40 hover:text-white/70 border-white/[0.08] hover:border-white/20"
+                  : "text-slate-500 hover:text-slate-800 border-slate-200 hover:border-slate-300"
+              )}
+            >
+              {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
+            </Link>
+          </div>
         </div>
 
         {/* Form centralizado */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10">
-          {/* Card com borda brilhante ao redor do formulário */}
-          <div className="w-full max-w-[420px] rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm shadow-2xl shadow-black/60 px-8 py-9 relative">
+          <div className={cn(
+            "w-full max-w-[420px] rounded-2xl border shadow-2xl px-8 py-9 relative",
+            isDark
+              ? "border-white/[0.08] bg-white/[0.025] backdrop-blur-md shadow-black/70"
+              : "border-slate-200 bg-white/80 backdrop-blur-md shadow-slate-200/80"
+          )}>
             {/* Linha de brilho no topo do card */}
-            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <div className={cn(
+              "absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent to-transparent",
+              isDark ? "via-primary/40" : "via-primary/30"
+            )} />
 
             {/* Header do form */}
             <div className="mb-8">
-              <h1 className="text-[1.75rem] font-black text-white tracking-tight leading-tight">
+              <h1 className={cn("text-[1.75rem] font-black tracking-tight leading-tight", isDark ? "text-white" : "text-slate-900")}>
                 {isSignIn ? "Entrar na conta" : "Criar conta grátis"}
               </h1>
-              <p className="text-sm text-white/35 mt-2 leading-relaxed">
+              <p className={cn("text-sm mt-2 leading-relaxed", isDark ? "text-white/35" : "text-slate-500")}>
                 {isSignIn
                   ? "Acesse seu CRM e continue de onde parou."
                   : "Comece grátis, sem cartão. Escolha o plano depois."}
@@ -314,11 +392,11 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isSignIn && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-sm font-medium text-white/60">
+                  <Label htmlFor="name" className={cn("text-sm font-medium", isDark ? "text-white/60" : "text-slate-600")}>
                     Nome completo
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-white/25" />
+                    <User className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 size-4", isDark ? "text-white/25" : "text-slate-400")} />
                     <Input
                       id="name"
                       type="text"
@@ -326,18 +404,23 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       required
-                      className="pl-10 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/40 rounded-xl"
+                      className={cn(
+                        "pl-10 h-11 rounded-xl",
+                        isDark
+                          ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-primary/60 focus-visible:border-primary/40"
+                          : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                      )}
                     />
                   </div>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-medium text-white/60">
+                <Label htmlFor="email" className={cn("text-sm font-medium", isDark ? "text-white/60" : "text-slate-600")}>
                   E-mail
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-white/25" />
+                  <Mail className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 size-4", isDark ? "text-white/25" : "text-slate-400")} />
                   <Input
                     id="email"
                     type="email"
@@ -345,14 +428,19 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     required
-                    className="pl-10 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/40 rounded-xl"
+                    className={cn(
+                      "pl-10 h-11 rounded-xl",
+                      isDark
+                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-primary/60 focus-visible:border-primary/40"
+                        : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                    )}
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium text-white/60">
+                  <Label htmlFor="password" className={cn("text-sm font-medium", isDark ? "text-white/60" : "text-slate-600")}>
                     Senha
                   </Label>
                   {isSignIn && (
@@ -362,7 +450,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-white/25" />
+                  <Lock className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 size-4", isDark ? "text-white/25" : "text-slate-400")} />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -371,12 +459,20 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     required
                     minLength={8}
-                    className="pl-10 pr-11 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-1 focus-visible:ring-primary/60 focus-visible:border-primary/40 rounded-xl"
+                    className={cn(
+                      "pl-10 pr-11 h-11 rounded-xl",
+                      isDark
+                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-primary/60 focus-visible:border-primary/40"
+                        : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                    )}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors"
+                    className={cn(
+                      "absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors",
+                      isDark ? "text-white/25 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
+                    )}
                     tabIndex={-1}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
@@ -388,11 +484,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className={cn(
-                  "w-full h-11 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2",
-                  "bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed",
-                  "shadow-lg shadow-primary/25"
-                )}
+                className="w-full h-11 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2 bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -411,7 +503,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-white/30">
+            <p className={cn("mt-6 text-center text-sm", isDark ? "text-white/30" : "text-slate-500")}>
               {isSignIn ? (
                 <>
                   Não tem conta?{" "}
@@ -432,13 +524,16 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             <div className="mt-5 text-center">
               <Link
                 href="/demo"
-                className="text-xs text-white/20 hover:text-white/40 transition-colors inline-flex items-center gap-1.5"
+                className={cn(
+                  "text-xs transition-colors inline-flex items-center gap-1.5",
+                  isDark ? "text-white/20 hover:text-white/40" : "text-slate-400 hover:text-slate-600"
+                )}
               >
                 Ver demonstração sem cadastro
                 <ArrowRight className="size-3" />
               </Link>
             </div>
-          </div>{/* fim card */}
+          </div>
         </div>
       </div>
 
