@@ -933,6 +933,36 @@ export async function sendSupportMessage(
   revalidatePath(`/dashboard/suporte/${ticketId}`)
 }
 
+/** Fecha o ticket pelo próprio usuário (resolvido por conta própria) */
+export async function closeTicketByUser(ticketId: string) {
+  const userId = await getUserId()
+  const [ticket] = await db
+    .select({ id: supportTickets.id, status: supportTickets.status })
+    .from(supportTickets)
+    .where(and(eq(supportTickets.id, ticketId), eq(supportTickets.userId, userId)))
+    .limit(1)
+  if (!ticket) throw new Error("Ticket não encontrado")
+  if (ticket.status === "fechado" || ticket.status === "resolvido")
+    throw new Error("Ticket já está fechado.")
+  await db
+    .update(supportTickets)
+    .set({ status: "fechado", updatedAt: new Date() })
+    .where(and(eq(supportTickets.id, ticketId), eq(supportTickets.userId, userId)))
+  revalidatePath(`/dashboard/suporte/${ticketId}`)
+  revalidatePath("/dashboard/suporte")
+}
+
+/** Retorna o licensePlan do usuário logado */
+export async function getUserLicensePlan(): Promise<string> {
+  const userId = await getUserId()
+  const [profile] = await db
+    .select({ licensePlan: businessProfile.licensePlan })
+    .from(businessProfile)
+    .where(eq(businessProfile.userId, userId))
+    .limit(1)
+  return (profile?.licensePlan ?? "starter").toLowerCase()
+}
+
 // ── Suporte (Admin) ───────────────────────────────────────────────────────────
 
 export async function adminGetTickets() {
@@ -1344,7 +1374,7 @@ export async function getDashboardStats() {
   }
 }
 
-// ── Funcionarios (Enterprise) ─────────────────────────────────────────────────
+// ── Funcionarios (Enterprise) ──────────────────────────────────────────────��──
 
 /** Retorna o funcionario vinculado ao dono (se houver) e o convite pendente */
 export async function getEmployeeData() {

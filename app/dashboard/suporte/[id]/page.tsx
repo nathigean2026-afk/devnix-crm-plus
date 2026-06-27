@@ -1,4 +1,4 @@
-import { getSupportTicket } from "@/lib/actions"
+import { getSupportTicket, getUserLicensePlan } from "@/lib/actions"
 import { TicketChat } from "@/components/support/ticket-chat"
 import { notFound } from "next/navigation"
 import Link from "next/link"
@@ -25,8 +25,12 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
   const session = await auth.api.getSession({ headers: await headers() })
 
   let data
+  let licensePlan = "starter"
   try {
-    data = await getSupportTicket(id)
+    ;[data, licensePlan] = await Promise.all([
+      getSupportTicket(id),
+      getUserLicensePlan().catch(() => "starter"),
+    ])
   } catch {
     notFound()
   }
@@ -69,6 +73,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
           initialMessages={messages}
           status={ticket.status}
           userName={session?.user?.name ?? "Você"}
+          licensePlan={licensePlan}
         />
       </div>
     </div>
