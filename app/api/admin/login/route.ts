@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
   }
 
   const cookieStore = await cookies()
-  cookieStore.set("admin_session", admin.id, {
+  // Valor fixo esperado pelo admin/page.tsx para verificação da sessão
+  cookieStore.set("admin_session", "admin-nathigean-001", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
