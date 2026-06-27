@@ -813,6 +813,30 @@ export async function adminRevokeAccess(userId: string) {
   revalidatePath("/admin")
 }
 
+export async function adminDeleteUser(userId: string) {
+  // Remove dados do usuário em ordem segura antes de deletar o registro principal.
+  // Tabelas com onDelete:"cascade" são limpas automaticamente (session, account, etc.)
+  await db.delete(supportMessages).where(eq(supportMessages.userId, userId))
+  await db.delete(supportTickets).where(eq(supportTickets.userId, userId))
+  await db.delete(payments).where(eq(payments.userId, userId))
+  await db.delete(transactions).where(eq(transactions.userId, userId))
+  await db.delete(serviceOrderItems).where(
+    sql`"orderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+  )
+  await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
+  await db.delete(quoteItems).where(
+    sql`"quoteId" IN (SELECT id FROM quotes WHERE "userId" = ${userId})`
+  )
+  await db.delete(quotes).where(eq(quotes.userId, userId))
+  await db.delete(services).where(eq(services.userId, userId))
+  await db.delete(clients).where(eq(clients.userId, userId))
+  await db.delete(employeePermissions).where(eq(employeePermissions.employeeId, userId))
+  await db.delete(employeeInvites).where(eq(employeeInvites.ownerId, userId))
+  await db.delete(businessProfile).where(eq(businessProfile.userId, userId))
+  await db.delete(user).where(eq(user.id, userId))
+  revalidatePath("/admin")
+}
+
 export async function adminCreatePromoCode(data: {
   code: string
   planName: string
