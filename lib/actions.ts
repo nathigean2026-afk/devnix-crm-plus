@@ -978,9 +978,11 @@ export async function adminGetTickets() {
       userId: supportTickets.userId,
       userName: user.name,
       userEmail: user.email,
+      licensePlan: businessProfile.licensePlan,
     })
     .from(supportTickets)
     .leftJoin(user, eq(user.id, supportTickets.userId))
+    .leftJoin(businessProfile, eq(businessProfile.userId, supportTickets.userId))
     .orderBy(desc(supportTickets.updatedAt))
   return tickets
 }

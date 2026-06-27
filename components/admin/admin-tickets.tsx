@@ -15,6 +15,22 @@ import { put } from "@vercel/blob"
 type TicketRow = {
   id: string; subject: string; category: string; status: string; priority: string
   createdAt: Date; updatedAt: Date; userId: string; userName: string | null; userEmail: string | null
+  licensePlan?: string | null
+}
+
+function getPlanBadge(plan: string | null | undefined) {
+  const p = (plan ?? "starter").toLowerCase()
+  if (p === "enterprise") return { label: "Suporte VIP", cls: "bg-purple-500/20 text-purple-300 border-purple-500/30" }
+  if (p === "business") return { label: "Suporte Prioritário", cls: "bg-amber-500/20 text-amber-300 border-amber-500/30" }
+  return null
+}
+
+// Formatação de data sem dependência de fuso local (evita hydration mismatch)
+function fmtDate(d: Date | string) {
+  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })
+}
+function fmtDateTime(d: Date | string) {
+  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
 }
 type MsgRow = {
   id: string; body: string; authorRole: string; attachments: string | null; createdAt: Date
@@ -165,9 +181,15 @@ export function AdminTickets({ initialTickets }: AdminTicketsProps) {
                 <span className={cn("inline-flex items-center gap-1.5 text-xs border rounded-full px-2.5 py-1 font-medium", s.badge)}>
                   <StatusIcon className="size-3" />{s.label}
                 </span>
+                {(() => {
+                  const pb = getPlanBadge(selected.licensePlan)
+                  return pb ? (
+                    <span className={cn("inline-flex items-center text-xs border rounded-full px-2.5 py-1 font-medium", pb.cls)}>{pb.label}</span>
+                  ) : null
+                })()}
                 <span className="text-xs text-white/40">{CATEGORY_LABELS[selected.category]}</span>
                 <span className="text-xs text-white/60 font-medium">{selected.userName ?? selected.userEmail ?? "—"}</span>
-                <span className="text-xs text-white/30">{new Date(selected.createdAt).toLocaleDateString("pt-BR")}</span>
+                <span className="text-xs text-white/30">{fmtDate(selected.createdAt)}</span>
               </div>
             </div>
             {/* Alterar status — select nativo para evitar dependencia de tokens CSS */}
@@ -208,7 +230,7 @@ export function AdminTickets({ initialTickets }: AdminTicketsProps) {
                   <div className={cn("flex flex-col max-w-[75%]", isAdmin ? "items-end" : "items-start")}>
                     <span className="text-xs text-white/30 mb-1">
                       {isAdmin ? "Suporte Elevanthe" : (selected.userName ?? "Usuário")} •{" "}
-                      {new Date(m.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      {fmtDateTime(m.createdAt)}
                     </span>
                     <div className={cn(
                       "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
@@ -355,13 +377,19 @@ export function AdminTickets({ initialTickets }: AdminTicketsProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-white truncate">{t.subject}</span>
+                    {(() => {
+                      const pb = getPlanBadge(t.licensePlan)
+                      return pb ? (
+                        <span className={cn("text-xs border rounded-full px-2 py-0.5 font-medium", pb.cls)}>{pb.label}</span>
+                      ) : null
+                    })()}
                     <span className={cn("text-xs font-medium capitalize", PRIORITY_CLS[t.priority])}>{t.priority}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className={cn("text-xs border rounded-full px-2 py-0.5", s.badge)}>{s.label}</span>
                     <span className="text-xs text-white/30">{CATEGORY_LABELS[t.category]}</span>
                     <span className="text-xs text-white/50 font-medium">{t.userName ?? t.userEmail ?? "—"}</span>
-                    <span className="text-xs text-white/25">{new Date(t.updatedAt).toLocaleDateString("pt-BR")}</span>
+                    <span className="text-xs text-white/25">{fmtDate(t.updatedAt)}</span>
                   </div>
                 </div>
                 <ChevronLeft className="size-4 text-white/20 shrink-0 rotate-180" />

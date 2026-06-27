@@ -78,6 +78,7 @@ interface StatsData {
 type TicketRow = {
   id: string; subject: string; category: string; status: string; priority: string
   createdAt: Date; updatedAt: Date; userId: string; userName: string | null; userEmail: string | null
+  licensePlan?: string | null
 }
 
 // Todas as formatações usam timeZone: "UTC" para evitar mismatch de hidratação
@@ -102,7 +103,10 @@ function daysLeft(d: Date | string | null) {
 }
 
 function parseIp(ip: string | null) {
-  return ip?.replace(/^::ffff:/, "") ?? "—"
+  if (!ip) return "—"
+  const clean = ip.replace(/^::ffff:/, "")
+  if (clean === "::1" || clean === "127.0.0.1") return "Localhost"
+  return clean
 }
 
 function StatCard({ icon: Icon, label, value, sub, color, onClick, active }: {
