@@ -187,11 +187,11 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
 
   const PERMS_CONFIG = [
     { key: "canClients" as const,    label: "Clientes",         description: "Pode visualizar, criar e editar clientes." },
-    { key: "canServices" as const,   label: "Servicos",         description: "Pode visualizar, criar e editar servicos." },
-    { key: "canQuotes" as const,     label: "Orcamentos",       description: "Pode criar, editar e enviar orcamentos." },
-    { key: "canOrders" as const,     label: "Ordens de Servico",description: "Pode criar e gerenciar ordens de servico." },
-    { key: "canFinanceiro" as const, label: "Financeiro",       description: "Pode visualizar transacoes (somente leitura)." },
-    { key: "canRelatorios" as const, label: "Relatorios",       description: "Pode acessar relatorios e graficos." },
+    { key: "canServices" as const,   label: "Serviços",         description: "Pode visualizar, criar e editar serviços." },
+    { key: "canQuotes" as const,     label: "Orçamentos",       description: "Pode criar, editar e enviar orçamentos." },
+    { key: "canOrders" as const,     label: "Ordens de Serviço",description: "Pode criar e gerenciar ordens de serviço." },
+    { key: "canFinanceiro" as const, label: "Financeiro",       description: "Pode visualizar transações (somente leitura)." },
+    { key: "canRelatorios" as const, label: "Relatórios",       description: "Pode acessar relatórios e gráficos." },
   ]
 
   return (

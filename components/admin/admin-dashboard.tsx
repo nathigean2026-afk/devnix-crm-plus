@@ -1059,7 +1059,7 @@ export default function AdminDashboard({
                       </button>
                     ) : (
                       <div className={cn("rounded-lg border border-red-500/40 p-3 space-y-2", darkMode ? "bg-red-500/10" : "bg-red-50")}>
-                        <p className="text-xs text-red-400 font-medium text-center">Esta acao e irreversivel. Todos os dados do usuario serao apagados.</p>
+                        <p className="text-xs text-red-400 font-medium text-center">Esta ação é irreversível. Todos os dados do usuário serão apagados.</p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => setConfirmDelete(false)}

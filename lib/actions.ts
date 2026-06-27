@@ -545,6 +545,7 @@ export async function upsertBusinessProfile(data: {
   logo?: string
   notifAlertEnabled?: boolean
   notifQuoteEnabled?: boolean
+  docAccentColor?: string
 }) {
   const userId = await getUserId()
   const existing = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)

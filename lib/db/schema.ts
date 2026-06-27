@@ -154,6 +154,7 @@ export const businessProfile = pgTable("business_profile", {
   notifAlertEnabled: boolean("notifAlertEnabled").notNull().default(false),
   notifQuoteEnabled: boolean("notifQuoteEnabled").notNull().default(true),
   licensePlan: text("licensePlan").default("starter"),
+  docAccentColor: text("docAccentColor").default("#1d4ed8"), // cor de destaque dos documentos públicos
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })

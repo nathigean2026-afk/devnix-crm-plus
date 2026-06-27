@@ -18,10 +18,10 @@ interface AuthFormProps {
 }
 
 const features = [
-  "Clientes e ordens de servico ilimitados",
-  "Orcamentos profissionais em segundos",
+  "Clientes e ordens de serviço ilimitados",
+  "Orçamentos profissionais em segundos",
   "Controle financeiro completo",
-  "Relatorios e dashboard em tempo real",
+  "Relatórios e dashboard em tempo real",
 ]
 
 export function AuthForm({ mode }: AuthFormProps) {
@@ -224,7 +224,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={isSignIn ? "Sua senha" : "Minimo 8 caracteres"}
+                    placeholder={isSignIn ? "Sua senha" : "Mínimo 8 caracteres"}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     required
@@ -272,14 +272,14 @@ export function AuthForm({ mode }: AuthFormProps) {
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {isSignIn ? (
                 <>
-                  Nao tem conta?{" "}
+                  Não tem conta?{" "}
                   <Link href="/sign-up" className="text-primary hover:underline font-medium">
-                    Criar conta gratis
+                    Criar conta grátis
                   </Link>
                 </>
               ) : (
                 <>
-                  Ja tem conta?{" "}
+                  Já tem conta?{" "}
                   <Link href="/sign-in" className="text-primary hover:underline font-medium">
                     Entrar
                   </Link>
