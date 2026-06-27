@@ -630,7 +630,7 @@ export async function adminGetStats() {
       profileEmail: businessProfile.email,
       licensePlan: businessProfile.licensePlan,
       lastSessionIp: sql<string>`(SELECT "ipAddress" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
-      lastSessionAt: sql<Date>`(SELECT "updatedAt" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
+      lastSessionAt: sql<string>`(SELECT TO_CHAR("updatedAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
       lastUserAgent: sql<string>`(SELECT "userAgent" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
     })
     .from(user)
@@ -816,7 +816,10 @@ export async function adminRevokeAccess(userId: string) {
 export async function adminDeleteUser(userId: string) {
   // Remove dados do usuário em ordem segura antes de deletar o registro principal.
   // Tabelas com onDelete:"cascade" são limpas automaticamente (session, account, etc.)
-  await db.delete(supportMessages).where(eq(supportMessages.userId, userId))
+  // supportMessages não tem userId — deletar via ticketId dos tickets do usuário
+  await db.delete(supportMessages).where(
+    sql`"ticketId" IN (SELECT id FROM support_tickets WHERE "userId" = ${userId})`
+  )
   await db.delete(supportTickets).where(eq(supportTickets.userId, userId))
   await db.delete(payments).where(eq(payments.userId, userId))
   await db.delete(transactions).where(eq(transactions.userId, userId))
