@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   description:
     "Gestão de relacionamento que eleva resultados. Gerencie clientes, orçamentos e financeiro em um só lugar.",
   applicationName: "Elevanthe CRM",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 }
 
 export const viewport: Viewport = {

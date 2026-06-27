@@ -127,32 +127,56 @@ function ScreenshotCarousel() {
   )
 }
 
-// ─── Wallpaper de funcionalidades (marca d'água repetida no bg) ───────────────
+// ─── Wallpaper de funcionalidades — posicionamento pseudo-aleatório estável ────
+// Usa um gerador linear congruencial seeded para que o layout seja idêntico
+// no server e no client (sem Math.random() no render).
+function seededRand(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return (s >>> 0) / 0xffffffff
+  }
+}
+
 function FeatureWallpaper({ isDark }: { isDark: boolean }) {
-  // Repete o array 3x para preencher bem a tela
-  const items = [...crmFeatures, ...crmFeatures, ...crmFeatures]
+  // Repete as features para cobrir toda a tela (54 pills)
+  const items = [
+    ...crmFeatures, ...crmFeatures, ...crmFeatures,
+  ]
+
+  const rand = seededRand(42)
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden>
-      <div className="flex flex-wrap gap-3 p-6 opacity-[0.055]">
-        {items.map((feat, i) => {
-          const Icon = feat.icon
-          return (
-            <div
-              key={i}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium",
-                isDark
-                  ? "border-white/20 text-white"
-                  : "border-black/15 text-black"
-              )}
-            >
-              <Icon className="size-3 shrink-0" />
-              <span>{feat.label}</span>
-            </div>
-          )
-        })}
-      </div>
+      {items.map((feat, i) => {
+        const Icon = feat.icon
+        // Distribui de forma pseudo-aleatória por toda a área visível
+        const top  = rand() * 92   // 0–92%
+        const left = rand() * 88   // 0–88%
+        // Pequenas variações de rotação para parecer orgânico
+        const rotate = (rand() - 0.5) * 14 // -7° a +7°
+        // Opacidade levemente variada para não parecer uniforme
+        const opacity = 0.04 + rand() * 0.045
+
+        return (
+          <div
+            key={i}
+            className={cn(
+              "absolute flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium whitespace-nowrap",
+              isDark ? "border-white/25 text-white" : "border-slate-700/20 text-slate-700"
+            )}
+            style={{
+              top: `${top}%`,
+              left: `${left}%`,
+              transform: `rotate(${rotate}deg)`,
+              opacity,
+            }}
+          >
+            <Icon className="size-3 shrink-0" />
+            <span>{feat.label}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
