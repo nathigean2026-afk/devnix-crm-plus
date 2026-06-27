@@ -141,6 +141,8 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     cashPrice: string | null
     cardPrice: string | null
   } | null>(null)
+  const [customAmount, setCustomAmount] = useState("")
+  const [showCustomInput, setShowCustomInput] = useState(false)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
@@ -227,12 +229,14 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     confirmStatusChange(id, status, undefined)
   }
 
-  async function confirmStatusChange(id: string, status: string, paymentMethod: "pix" | "cash" | "card" | "other" | undefined) {
+  async function confirmStatusChange(id: string, status: string, paymentMethod: "pix" | "cash" | "card" | "other" | undefined, amount?: string) {
     try {
-      await updateServiceOrderStatus(id, status, paymentMethod)
+      await updateServiceOrderStatus(id, status, paymentMethod, amount)
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
       if (status === "concluido") {
-        toast.success("OS concluida! Receita lancada automaticamente no financeiro.")
+        toast.success("OS concluída! Receita lançada no financeiro.")
+      } else if (status === "cancelado") {
+        toast.success("OS cancelada. Lançamento financeiro removido.")
       } else {
         toast.success("Status atualizado!")
       }
@@ -244,8 +248,11 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
   function handlePaymentChoice(method: "pix" | "cash" | "card" | "other") {
     if (!pendingConclude) return
     setPaymentModalOpen(false)
-    confirmStatusChange(pendingConclude.id, "concluido", method)
+    const amount = method === "other" && customAmount ? customAmount : undefined
+    confirmStatusChange(pendingConclude.id, "concluido", method, amount)
     setPendingConclude(null)
+    setCustomAmount("")
+    setShowCustomInput(false)
   }
 
   async function handleDelete(id: string) {
@@ -819,7 +826,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
       </Dialog>
 
       {/* Modal: forma de pagamento ao concluir OS */}
-      <Dialog open={paymentModalOpen} onOpenChange={(v) => { if (!v) { setPaymentModalOpen(false); setPendingConclude(null) } }}>
+      <Dialog open={paymentModalOpen} onOpenChange={(v) => { if (!v) { setPaymentModalOpen(false); setPendingConclude(null); setCustomAmount(""); setShowCustomInput(false) } }}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-foreground">Como foi realizado o pagamento?</DialogTitle>
@@ -887,19 +894,49 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
               </div>
             </button>
 
-            {/* Outro */}
-            <button
-              onClick={() => handlePaymentChoice("other")}
-              className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 px-4 py-3 text-left transition-colors"
-            >
-              <div className="size-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <span className="text-muted-foreground text-sm font-bold">···</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Outro</p>
-                <p className="text-xs text-muted-foreground">Usa o valor total da OS: {formatCurrency(pendingConclude?.total ?? "0")}</p>
-              </div>
-            </button>
+            {/* Outro / Valor informado */}
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setShowCustomInput((v) => !v)}
+                className="flex items-center gap-3 text-left w-full"
+              >
+                <div className="size-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <span className="text-muted-foreground text-sm font-bold">···</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Outro / Valor informado</p>
+                  <p className="text-xs text-muted-foreground">Informe um valor diferente do total da OS</p>
+                </div>
+                <span className="text-muted-foreground text-xs">{showCustomInput ? "▲" : "▼"}</span>
+              </button>
+              {showCustomInput && (
+                <div className="flex gap-2 items-center pt-1">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">R$</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      className="pl-9 bg-input border-border h-9 text-sm"
+                      autoFocus
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!customAmount || Number(customAmount) <= 0}
+                    onClick={() => handlePaymentChoice("other")}
+                    className="h-9 px-4 shrink-0"
+                  >
+                    Confirmar
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

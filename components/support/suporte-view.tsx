@@ -78,21 +78,31 @@ export function SuporteView({ tickets: initial }: Props) {
     if (!files.length) return
     setUploading(true)
     try {
+      const MAX_SIZE = 5 * 1024 * 1024 // 5 MB por arquivo
       const results: { name: string; url: string }[] = []
       for (const file of files) {
-        const fd = new FormData()
-        fd.append("file", file)
-        const res = await fetch("/api/support/upload", { method: "POST", body: fd })
-        if (!res.ok) throw new Error(await res.text())
-        const data = await res.json()
-        results.push({ name: file.name, url: data.url })
+        if (file.size > MAX_SIZE) {
+          toast.error(`"${file.name}" excede 5 MB`)
+          continue
+        }
+        // Converte para base64 data URI diretamente no cliente
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error("Falha ao ler arquivo"))
+          reader.readAsDataURL(file)
+        })
+        results.push({ name: file.name, url: dataUrl })
       }
-      setAttachments((prev) => [...prev, ...results])
-      toast.success("Arquivo(s) anexado(s)")
-    } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao enviar arquivo")
+      if (results.length > 0) {
+        setAttachments((prev) => [...prev, ...results])
+        toast.success("Arquivo(s) anexado(s)")
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao anexar arquivo")
     } finally {
       setUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
     }
   }
 
