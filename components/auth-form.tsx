@@ -2,14 +2,14 @@
 
 import { LoginChatWidget } from "@/components/support/login-chat-widget"
 import { authClient } from "@/lib/auth-client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
 import Link from "next/link"
-import { Eye, EyeOff, ArrowRight, Lock, Mail, User, CheckCircle2, BarChart2, Users, FileText } from "lucide-react"
+import { Eye, EyeOff, ArrowRight, Lock, Mail, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AuthFormProps {
@@ -17,12 +17,123 @@ interface AuthFormProps {
   kicked?: boolean
 }
 
-const features = [
-  { icon: Users, text: "Clientes e ordens de serviço ilimitados" },
-  { icon: FileText, text: "Orçamentos profissionais em segundos" },
-  { icon: BarChart2, text: "Controle financeiro e relatórios" },
-  { icon: CheckCircle2, text: "Dashboard em tempo real" },
+const slides = [
+  {
+    src: "/screenshots/dashboard.png",
+    label: "Dashboard",
+    desc: "Visão geral do seu negócio em tempo real",
+  },
+  {
+    src: "/screenshots/clientes.png",
+    label: "Clientes",
+    desc: "Gerencie sua base de clientes com facilidade",
+  },
+  {
+    src: "/screenshots/orcamentos.png",
+    label: "Orçamentos",
+    desc: "Crie e envie orçamentos profissionais",
+  },
+  {
+    src: "/screenshots/financeiro.png",
+    label: "Financeiro",
+    desc: "Controle receitas, despesas e saldo",
+  },
+  {
+    src: "/screenshots/relatorios.png",
+    label: "Relatórios",
+    desc: "Análises e métricas do seu negócio",
+  },
 ]
+
+function ScreenshotCarousel() {
+  const [active, setActive] = useState(0)
+  const [animating, setAnimating] = useState(false)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setAnimating(true)
+      setTimeout(() => {
+        setActive((prev) => (prev + 1) % slides.length)
+        setAnimating(false)
+      }, 400)
+    }, 3800)
+    return () => clearInterval(timer)
+  }, [])
+
+  const goTo = (idx: number) => {
+    if (idx === active) return
+    setAnimating(true)
+    setTimeout(() => {
+      setActive(idx)
+      setAnimating(false)
+    }, 300)
+  }
+
+  const current = slides[active]
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Frame do browser */}
+      <div className="rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/70 bg-[#0d0d14]">
+        {/* Barra do browser */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
+          <div className="flex gap-1.5">
+            <div className="size-2.5 rounded-full bg-red-500/40" />
+            <div className="size-2.5 rounded-full bg-yellow-500/40" />
+            <div className="size-2.5 rounded-full bg-green-500/40" />
+          </div>
+          <div className="flex-1 mx-2 h-5 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center px-2">
+            <span className="text-[10px] text-white/20 truncate">app.elevanthe.com.br/{current.label.toLowerCase()}</span>
+          </div>
+        </div>
+        {/* Screenshot */}
+        <div
+          className={cn(
+            "transition-opacity duration-300",
+            animating ? "opacity-0" : "opacity-100"
+          )}
+        >
+          <Image
+            src={current.src}
+            alt={`${current.label} — Elevanthe CRM`}
+            width={480}
+            height={300}
+            className="w-full h-auto object-cover object-top"
+            priority
+          />
+        </div>
+      </div>
+
+      {/* Caption + dots */}
+      <div className="flex items-center justify-between px-1">
+        <div
+          className={cn(
+            "transition-all duration-300",
+            animating ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"
+          )}
+        >
+          <p className="text-xs font-semibold text-white/60">{current.label}</p>
+          <p className="text-[11px] text-white/25">{current.desc}</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={cn(
+                "rounded-full transition-all duration-300",
+                i === active
+                  ? "w-4 h-1.5 bg-primary"
+                  : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
+              )}
+              aria-label={`Ver ${slides[i].label}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function AuthForm({ mode, kicked }: AuthFormProps) {
   const router = useRouter()
@@ -55,7 +166,6 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         })
         if (error) throw new Error(error.message)
         toast.success("Bem-vindo de volta!")
-        // Revoga todas as outras sessões ativas — garante sessão única por usuário
         await authClient.revokeOtherSessions().catch(() => {})
       }
       router.push("/dashboard")
@@ -68,29 +178,45 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0c0c12] flex">
+    <div className="min-h-screen bg-[#0a0a10] flex">
       {/* ─── Painel esquerdo — branding (desktop only) ─── */}
-      <aside className="hidden lg:flex lg:w-[460px] xl:w-[500px] flex-col justify-between bg-[#08080e] border-r border-white/[0.05] p-10 relative overflow-hidden flex-shrink-0">
-        {/* Glow de fundo */}
-        <div className="absolute -top-40 -left-20 size-[500px] rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-0 right-0 size-[300px] rounded-full bg-blue-600/5 blur-[80px] pointer-events-none" />
+      <aside className="hidden lg:flex lg:w-[520px] xl:w-[560px] flex-col justify-between bg-[#07070d] border-r border-white/[0.05] px-10 py-8 relative overflow-hidden flex-shrink-0">
 
-        {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="size-9 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center">
-            <Image src="/elevanthe-icon.png" alt="Elevanthe CRM" width={22} height={22} className="object-contain" />
-          </div>
-          <span className="text-white font-bold text-sm tracking-tight">Elevanthe CRM</span>
+        {/* Marca d'agua do elefante neon — watermark sutil no fundo */}
+        <div className="absolute -bottom-16 -right-16 opacity-[0.04] pointer-events-none select-none">
+          <Image
+            src="/elevanthe-logo-neon.png"
+            alt=""
+            width={420}
+            height={420}
+            className="object-contain"
+          />
+        </div>
+
+        {/* Glow azul radial */}
+        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-primary/8 to-transparent pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full bg-blue-600/8 blur-[100px] pointer-events-none" />
+
+        {/* Logo horizontal completa */}
+        <div className="relative z-10">
+          <Image
+            src="/elevanthe-logo-dark.png"
+            alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
+            width={280}
+            height={70}
+            className="object-contain h-12 w-auto"
+          />
         </div>
 
         {/* Conteudo central */}
-        <div className="relative z-10 space-y-10">
-          <div className="space-y-4">
+        <div className="relative z-10 flex flex-col gap-8">
+          {/* Headline */}
+          <div className="space-y-3">
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
               <div className="size-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-medium text-primary/80">Plataforma completa de gestão</span>
+              <span className="text-xs font-semibold text-primary/80 tracking-wide">Plataforma completa de gestão</span>
             </div>
-            <h2 className="text-3xl xl:text-[2.4rem] font-black text-white leading-[1.15] tracking-tight text-balance">
+            <h2 className="text-2xl xl:text-3xl font-black text-white leading-[1.2] tracking-tight text-balance">
               Gerencie seu negócio com clareza e velocidade
             </h2>
             <p className="text-sm text-white/35 leading-relaxed">
@@ -98,55 +224,36 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             </p>
           </div>
 
-          {/* Features */}
-          <ul className="space-y-3.5">
-            {features.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3.5">
-                <div className="size-8 rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center flex-shrink-0">
-                  <Icon className="size-3.5 text-primary/70" />
-                </div>
-                <span className="text-sm text-white/45">{text}</span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Screenshot do dashboard */}
-          <div className="rounded-xl overflow-hidden border border-white/[0.07] shadow-2xl shadow-black/60">
-            <Image
-              src="/crm-screenshot-dashboard.png"
-              alt="Dashboard do Elevanthe CRM"
-              width={480}
-              height={280}
-              className="w-full h-auto object-cover opacity-80"
-            />
-          </div>
+          {/* Carrossel de screenshots */}
+          <ScreenshotCarousel />
         </div>
 
         {/* Rodape */}
         <div className="relative z-10 flex items-center justify-between">
-          <p className="text-xs text-white/15">
-            &copy; {new Date().getFullYear()} Elevanthe
-          </p>
-          <p className="text-xs text-white/15">Pix · Cartão · Boleto</p>
+          <p className="text-[11px] text-white/15">&copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.</p>
+          <p className="text-[11px] text-white/15">Pix · Cartão · Boleto</p>
         </div>
       </aside>
 
-      {/* ─── Painel direito — formulario ─── */}
+      {/* ─── Painel direito — formulário ─── */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05]">
-          {/* Logo mobile */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="size-7 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center">
-              <Image src="/elevanthe-icon.png" alt="Elevanthe CRM" width={16} height={16} className="object-contain" />
-            </div>
-            <span className="font-bold text-sm text-white">Elevanthe CRM</span>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.04]">
+          {/* Logo mobile — usa a logo horizontal também */}
+          <div className="lg:hidden">
+            <Image
+              src="/elevanthe-logo-dark.png"
+              alt="Elevanthe CRM"
+              width={160}
+              height={40}
+              className="object-contain h-8 w-auto"
+            />
           </div>
           <div className="hidden lg:block" />
 
           <Link
             href={isSignIn ? "/sign-up" : "/sign-in"}
-            className="text-xs text-white/40 hover:text-white/70 transition-colors border border-white/10 hover:border-white/20 rounded-lg px-3 py-1.5"
+            className="text-xs text-white/40 hover:text-white/70 transition-colors border border-white/[0.08] hover:border-white/20 rounded-lg px-3 py-1.5"
           >
             {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
           </Link>
