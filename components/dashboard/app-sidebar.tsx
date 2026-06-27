@@ -209,21 +209,32 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const SidebarHeader = ({ isMobile = false }: { isMobile?: boolean }) => (
-      <div className={cn(
-      "flex items-center border-b border-sidebar-border shrink-0",
-      (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "px-4 py-3 h-[60px]"
-    )}>
-      {(!isMobile && collapsed) ? (
-        <Image
-          src="/elevanthe-icon.png"
-          alt="Elevanthe CRM"
-          width={32}
-          height={32}
-          className="object-contain"
-        />
-      ) : (
-        <div className="flex items-center gap-2.5">
+  const SidebarHeader = ({ isMobile = false }: { isMobile?: boolean }) => {
+    // Modo colapsado desktop: ícone centralizado com botão de toggle abaixo do header
+    if (!isMobile && collapsed) {
+      return (
+        <div className="flex flex-col items-center border-b border-sidebar-border shrink-0 py-3 h-[60px] justify-center relative">
+          <Image
+            src="/elevanthe-icon.png"
+            alt="Elevanthe CRM"
+            width={28}
+            height={28}
+            className="object-contain"
+          />
+          <button
+            onClick={() => setCollapsed(false)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 size-6 rounded-md flex items-center justify-center text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            aria-label="Expandir menu"
+          >
+            <PanelLeftOpen className="size-3.5" />
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex items-center border-b border-sidebar-border shrink-0 px-4 py-3 h-[60px]">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <Image
             src="/elevanthe-icon.png"
             alt="Elevanthe CRM"
@@ -231,31 +242,39 @@ export function AppSidebar({ user }: AppSidebarProps) {
             height={34}
             className="object-contain shrink-0"
           />
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-bold text-sidebar-accent-foreground leading-tight tracking-tight">Elevanthe CRM</span>
-            <span className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">Gestão que eleva resultados</span>
-          </div>
+          {!isMobile && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-sidebar-accent-foreground leading-tight tracking-tight">Elevanthe CRM</span>
+              <span className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">Gestão que eleva resultados</span>
+            </div>
+          )}
+          {isMobile && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-sidebar-accent-foreground leading-tight tracking-tight">Elevanthe CRM</span>
+              <span className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">Gestão que eleva resultados</span>
+            </div>
+          )}
         </div>
-      )}
-      {isMobile ? (
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="ml-auto shrink-0 size-7 rounded-md flex items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          aria-label="Fechar menu"
-        >
-          <X className="size-4" />
-        </button>
-      ) : (
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto shrink-0 size-7 rounded-md flex items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-        >
-          {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-        </button>
-      )}
-    </div>
-  )
+        {isMobile ? (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="shrink-0 size-7 rounded-md flex items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            aria-label="Fechar menu"
+          >
+            <X className="size-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setCollapsed(true)}
+            className="shrink-0 size-7 rounded-md flex items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            aria-label="Recolher menu"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
