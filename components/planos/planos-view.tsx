@@ -30,14 +30,14 @@ const plans = [
     features: [
       "Acesso completo por 7 dias",
       "Clientes ilimitados",
-      "Ordens de servico ilimitadas",
-      "Orcamentos e financeiro",
+      "Ordens de serviço ilimitadas",
+      "Orçamentos e financeiro",
       "Suporte por email",
     ],
     lockedFeatures: [
-      "Personalizacao de marca (logotipo, nome, CNPJ)",
-      "Notificacoes de resposta de orcamento",
-      "Funcionario auxiliar",
+      "Personalização de marca (logotipo, nome, CNPJ)",
+      "Notificações de resposta de orçamento",
+      "Funcionário auxiliar",
     ],
     highlight: false,
     badge: null,
@@ -48,18 +48,18 @@ const plans = [
     label: "Business",
     duration: "30 dias",
     price: 24,
-    period: "por mes",
-    description: "Para profissionais que precisam de controle total do negocio com sua propria marca.",
+    period: "por mês",
+    description: "Para profissionais que precisam de controle total do negócio com sua própria marca.",
     icon: CalendarDays,
     features: [
       "Acesso completo por 30 dias",
       "Clientes ilimitados",
-      "Ordens de servico ilimitadas",
-      "Orcamentos e financeiro",
-      "Relatorios completos",
-      "Personalizacao completa da marca",
-      "Notificacoes de resposta de orcamento",
-      "Suporte prioritario",
+      "Ordens de serviço ilimitadas",
+      "Orçamentos e financeiro",
+      "Relatórios completos",
+      "Personalização completa da marca",
+      "Notificações de resposta de orçamento",
+      "Suporte prioritário",
     ],
     lockedFeatures: [] as string[],
     highlight: true,
@@ -72,18 +72,18 @@ const plans = [
     duration: "1 ano",
     price: 260,
     period: "por ano",
-    description: "Melhor custo-beneficio com todos os recursos, incluindo 1 funcionario auxiliar.",
+    description: "Melhor custo-benefício com todos os recursos, incluindo 1 funcionário auxiliar.",
     icon: CalendarRange,
     features: [
       "Acesso completo por 12 meses",
       "Clientes ilimitados",
-      "Ordens de servico ilimitadas",
-      "Orcamentos e financeiro",
-      "Relatorios completos",
-      "Personalizacao completa da marca",
-      "Notificacoes de resposta de orcamento",
-      "1 funcionario auxiliar incluso",
-      "Painel de permissoes do funcionario",
+      "Ordens de serviço ilimitadas",
+      "Orçamentos e financeiro",
+      "Relatórios completos",
+      "Personalização completa da marca",
+      "Notificações de resposta de orçamento",
+      "1 funcionário auxiliar incluso",
+      "Painel de permissões do funcionário",
       "Suporte VIP",
       "Economia de R$ 28 vs mensal",
     ],
@@ -128,7 +128,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao iniciar checkout")
-      if (!data.initPoint) throw new Error("URL de checkout nao recebida")
+      if (!data.initPoint) throw new Error("URL de checkout não recebida")
       window.location.href = data.initPoint
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao abrir checkout")
@@ -174,7 +174,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         <div className="pt-16 pb-12 text-center">
           <div className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-widest uppercase px-3 py-1 rounded-full border border-border bg-muted/30 text-muted-foreground mb-6">
             <Sparkles className="size-3 text-primary" />
-            {isRenovar ? "Renovacao de licenca" : "Planos e precos"}
+            {isRenovar ? "Renovação de licença" : "Planos e preços"}
           </div>
 
           <h1 className="text-[42px] sm:text-[56px] font-black tracking-tighter leading-[1.04] text-foreground text-balance mb-5">
@@ -185,13 +185,13 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
           </h1>
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-pretty mb-8">
-            Acesso completo a todos os modulos.
-            Pagamento unico, sem assinatura automatica.
+            Acesso completo a todos os módulos.
+            Pagamento único, sem assinatura automática.
           </p>
 
           {/* Metodos de pagamento aceitos */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {["Pix", "Cartao de credito", "Boleto"].map((m) => (
+            {["Pix", "Cartão de crédito", "Boleto"].map((m) => (
               <span
                 key={m}
                 className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-border bg-card text-muted-foreground"
@@ -345,18 +345,18 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
           {[
             {
               icon: ShieldCheck,
-              title: "Sem cobranca automatica",
-              desc: "Nenhuma assinatura recorrente. Voce renova apenas quando quiser.",
+              title: "Sem cobrança automática",
+              desc: "Nenhuma assinatura recorrente. Você renova apenas quando quiser.",
             },
             {
               icon: Sparkles,
-              title: "Ativacao instantanea",
-              desc: "Licenca ativada automaticamente apos confirmacao do pagamento.",
+              title: "Ativação instantânea",
+              desc: "Licença ativada automaticamente após confirmação do pagamento.",
             },
             {
               icon: Lock,
               title: "Pagamento 100% seguro",
-              desc: "Processado pelo Mercado Pago. Aceita Pix, cartao e boleto.",
+              desc: "Processado pelo Mercado Pago. Aceita Pix, cartão e boleto.",
             },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3.5">

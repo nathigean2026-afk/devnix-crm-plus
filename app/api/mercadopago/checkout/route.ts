@@ -9,20 +9,41 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
     const { planId } = await req.json()
     const plan = LICENSE_PLANS.find((p) => p.id === planId)
     if (!plan) {
-      return NextResponse.json({ error: "Plano invalido" }, { status: 400 })
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 })
     }
 
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN!
-    const baseUrl = req.nextUrl.origin
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
+    if (!accessToken) {
+      console.error("[v0] MP Checkout: MERCADOPAGO_ACCESS_TOKEN não definido")
+      return NextResponse.json({ error: "Configuração de pagamento ausente" }, { status: 500 })
+    }
+
+    // Prioridade: 1) BETTER_AUTH_URL (canonical) 2) VERCEL_PROJECT_PRODUCTION_URL 3) req.nextUrl.origin
+    const canonicalUrl =
+      process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ??
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : null)
+    const requestOrigin = req.nextUrl.origin
+    const baseUrl = canonicalUrl ?? requestOrigin
     const isPublicUrl = baseUrl.startsWith("https://") && !baseUrl.includes("localhost")
 
-    // Cria preferencia de pagamento — o MP abre o checkout completo com cartao, PIX e boleto
+    // back_urls exige HTTPS para o MP aceitar auto_return.
+    // Em desenvolvimento local a URL não é pública — usamos o domínio de produção como fallback.
+    const publicBase = isPublicUrl ? baseUrl : "https://crm.elevanthe.com"
+    const backUrls = {
+      success: `${publicBase}/planos/sucesso`,
+      failure: `${publicBase}/planos`,
+      pending: `${publicBase}/planos/sucesso`,
+    }
+
+    // Cria preferência de pagamento — o MP abre o checkout completo com cartão, Pix e boleto
     const preferenceBody: Record<string, unknown> = {
       items: [
         {
@@ -34,12 +55,10 @@ export async function POST(req: NextRequest) {
           unit_price: plan.priceInCents / 100,
         },
       ],
-      // NAO enviar payer.email — quando o email do comprador coincide com o
-      // email da conta vendedora do MP, o botao de pagamento fica inativo.
-      // O MP solicita o email ao comprador diretamente no checkout.
+      // NAO enviar payer.email — quando o e-mail do comprador coincide com o
+      // e-mail da conta vendedora do MP, o botão de pagamento fica inativo.
       external_reference: session.user.id,
       payment_methods: {
-        // Aceita PIX, cartao de credito e boleto
         excluded_payment_types: [],
         installments: 12,
       },
@@ -48,17 +67,13 @@ export async function POST(req: NextRequest) {
         plan_id: plan.id,
         duration_days: String(plan.durationDays),
       },
-      // URLs de retorno apos o pagamento
-      back_urls: {
-        success: `${baseUrl}/planos/sucesso`,
-        failure: `${baseUrl}/planos`,
-        pending: `${baseUrl}/planos/sucesso`,
-      },
-      auto_return: "approved",
+      back_urls: backUrls,
       statement_descriptor: "DEVNIX CRM PLUS",
     }
 
+    // auto_return só funciona com back_urls HTTPS válidas
     if (isPublicUrl) {
+      preferenceBody.auto_return = "approved"
       preferenceBody.notification_url = `${baseUrl}/api/mercadopago/webhook`
     }
 
@@ -75,8 +90,8 @@ export async function POST(req: NextRequest) {
     const result = await mpRes.json()
 
     if (!mpRes.ok) {
-      console.error("[MP Checkout] erro:", JSON.stringify(result))
-      return NextResponse.json({ error: result?.message ?? "Erro ao criar preferencia" }, { status: 400 })
+      console.error("[v0] MP Checkout erro:", JSON.stringify(result))
+      return NextResponse.json({ error: result?.message ?? "Erro ao criar preferência" }, { status: 400 })
     }
 
     // Registra pagamento como pending para rastreamento no admin
@@ -95,7 +110,9 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       }).onConflictDoNothing()
-    } catch { /* nao bloqueia o checkout */ }
+    } catch (dbErr) {
+      console.error("[v0] MP Checkout: erro ao inserir payment no DB:", dbErr)
+    }
 
     return NextResponse.json({
       preferenceId: result.id,

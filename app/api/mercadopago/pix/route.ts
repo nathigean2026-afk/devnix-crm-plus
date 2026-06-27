@@ -9,17 +9,22 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
     const { planId } = await req.json()
     const plan = LICENSE_PLANS.find((p) => p.id === planId)
     if (!plan) {
-      return NextResponse.json({ error: "Plano invalido" }, { status: 400 })
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 })
     }
 
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN!
-    const baseUrl = req.nextUrl.origin
+    // Prioridade: BETTER_AUTH_URL (canonical) → fallback hardcoded de produção
+    const baseUrl =
+      process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ??
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "https://crm.elevanthe.com")
     const isPublicUrl = baseUrl.startsWith("https://") && !baseUrl.includes("localhost")
 
     const body: Record<string, unknown> = {

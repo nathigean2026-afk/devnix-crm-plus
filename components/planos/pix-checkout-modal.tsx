@@ -58,7 +58,7 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
         if (data.status === "approved") {
           setState("approved")
           clearInterval(interval)
-          toast.success("Pagamento aprovado! Ativando sua licenca...")
+          toast.success("Pagamento aprovado! Ativando sua licença...")
           setTimeout(() => { router.push("/planos/sucesso"); router.refresh() }, 1500)
         } else if (data.status === "rejected" || data.status === "cancelled") {
           setState("error")
@@ -73,7 +73,7 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
     if (!qrCode) return
     navigator.clipboard.writeText(qrCode)
     setCopied(true)
-    toast.success("Codigo Pix copiado!")
+    toast.success("Código Pix copiado!")
     setTimeout(() => setCopied(false), 3000)
   }
 
@@ -168,7 +168,7 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
 
               {/* Copia e cola */}
               <div className="w-full">
-                <p className="text-xs text-muted-foreground mb-2">Ou use o codigo Pix Copia e Cola:</p>
+                <p className="text-xs text-muted-foreground mb-2">Ou use o código Pix Copia e Cola:</p>
                 <div className="flex gap-2 items-stretch">
                   <div className="flex-1 min-w-0 bg-muted/30 border border-border rounded-lg px-3 py-2">
                     <p className="text-xs text-muted-foreground font-mono truncate">{qrCode}</p>
@@ -190,7 +190,7 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
               <div className="w-full rounded-lg bg-green-500/5 border border-green-500/15 px-3 py-2.5 flex items-center gap-2.5">
                 <Loader2 className="size-4 text-green-400 animate-spin shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  Aguardando confirmacao do pagamento...
+                  Aguardando confirmação do pagamento...
                 </p>
               </div>
             </div>
@@ -204,7 +204,7 @@ export function PixCheckoutModal({ open, onClose, planId, planName, planPrice }:
               </div>
               <div className="text-center">
                 <p className="text-base font-semibold text-foreground">Pagamento confirmado!</p>
-                <p className="text-sm text-muted-foreground mt-1">Ativando sua licenca...</p>
+                <p className="text-sm text-muted-foreground mt-1">Ativando sua licença...</p>
               </div>
             </div>
           )}

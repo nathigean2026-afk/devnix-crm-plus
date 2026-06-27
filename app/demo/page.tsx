@@ -21,31 +21,31 @@ const modules = [
     icon: LayoutDashboard,
     label: "Dashboard",
     path: "dashboard",
-    tag: "Visao geral",
+    tag: "Visão geral",
     title: "Tudo que importa, em uma tela",
-    desc: "Acompanhe em tempo real os numeros mais importantes do seu negocio. Receita, clientes ativos, orcamentos e ordens de servico resumidos num painel limpo.",
+    desc: "Acompanhe em tempo real os números mais importantes do seu negócio. Receita, clientes ativos, orçamentos e ordens de serviço resumidos num painel limpo.",
     features: [
-      "Metricas financeiras em tempo real",
-      "Grafico de receita vs despesa",
-      "Clientes e orcamentos recentes",
-      "Acesso rapido a todos os modulos",
+      "Métricas financeiras em tempo real",
+      "Gráfico de receita vs despesa",
+      "Clientes e orçamentos recentes",
+      "Acesso rápido a todos os módulos",
     ],
     screenshot: "/demo-dashboard.png",
-    stat: { value: "100%", label: "visibilidade do negocio" },
+    stat: { value: "100%", label: "visibilidade do negócio" },
   },
   {
     id: "clientes",
     icon: Users,
     label: "Clientes",
     path: "dashboard/clientes",
-    tag: "Gestao de clientes",
-    title: "Sua base organizada e acessivel",
-    desc: "Cadastre e organize todos os seus clientes com informacoes completas. Busca rapida, filtros por status e historico de interacoes.",
+    tag: "Gestão de clientes",
+    title: "Sua base organizada e acessível",
+    desc: "Cadastre e organize todos os seus clientes com informações completas. Busca rápida, filtros por status e histórico de interações.",
     features: [
-      "Busca e filtros avancados",
+      "Busca e filtros avançados",
       "Cadastro completo com contatos",
       "Status ativo / inativo",
-      "Historico de servicos por cliente",
+      "Histórico de serviços por cliente",
     ],
     screenshot: "/demo-clientes.png",
     stat: { value: "∞", label: "clientes cadastrados" },
@@ -53,32 +53,32 @@ const modules = [
   {
     id: "orcamentos",
     icon: FileText,
-    label: "Orcamentos",
+    label: "Orçamentos",
     path: "dashboard/orcamentos",
     tag: "Propostas comerciais",
-    title: "Orcamentos profissionais em minutos",
-    desc: "Gere orcamentos detalhados com itens, quantidades e valores. Controle o status de cada proposta e saiba quais foram aprovadas.",
+    title: "Orçamentos profissionais em minutos",
+    desc: "Gere orçamentos detalhados com itens, quantidades e valores. Controle o status de cada proposta e saiba quais foram aprovadas.",
     features: [
-      "Criacao rapida de propostas",
+      "Criação rápida de propostas",
       "Itens e valores detalhados",
-      "Status de aprovacao",
-      "Historico completo",
+      "Status de aprovação",
+      "Histórico completo",
     ],
     screenshot: "/demo-orcamentos.png",
-    stat: { value: "3min", label: "para criar um orcamento" },
+    stat: { value: "3min", label: "para criar um orçamento" },
   },
   {
     id: "os",
     icon: Wrench,
-    label: "Ordens de Servico",
+    label: "Ordens de Serviço",
     path: "dashboard/ordens-servico",
     tag: "Controle operacional",
     title: "Controle total das suas OS",
-    desc: "Crie, acompanhe e finalize ordens de servico com status visual. Filtre por pendente, em andamento ou concluida e nunca perca uma OS.",
+    desc: "Crie, acompanhe e finalize ordens de serviço com status visual. Filtre por pendente, em andamento ou concluída e nunca perca uma OS.",
     features: [
-      "Status colorido por situacao",
-      "Filtros rapidos por etapa",
-      "Vinculo com clientes",
+      "Status colorido por situação",
+      "Filtros rápidos por etapa",
+      "Vínculo com clientes",
       "Data e valor de cada OS",
     ],
     screenshot: "/demo-os.png",
@@ -90,13 +90,13 @@ const modules = [
     label: "Financeiro",
     path: "dashboard/financeiro",
     tag: "Controle financeiro",
-    title: "Saiba exatamente onde esta o dinheiro",
-    desc: "Registre receitas e despesas, acompanhe o saldo e visualize a evolucao mensal com graficos comparativos claros e intuitivos.",
+    title: "Saiba exatamente onde está o dinheiro",
+    desc: "Registre receitas e despesas, acompanhe o saldo e visualize a evolução mensal com gráficos comparativos claros e intuitivos.",
     features: [
       "Resumo de receitas e despesas",
       "Saldo atualizado em tempo real",
-      "Categorias de lancamento",
-      "Grafico de evolucao mensal",
+      "Categorias de lançamento",
+      "Gráfico de evolução mensal",
     ],
     screenshot: "/demo-financeiro.png",
     stat: { value: "R$", label: "sob controle total" },
@@ -104,8 +104,8 @@ const modules = [
 ]
 
 const socialProof = [
-  { name: "Carlos M.", role: "Tecnico de informatica", text: "Antes eu usava planilha. Agora tenho tudo organizado e meu cliente recebe orcamento profissional na hora." },
-  { name: "Ana R.", role: "Agencia web", text: "O financeiro me deu clareza total de onde estava o dinheiro. Indispensavel para crescer." },
+  { name: "Carlos M.", role: "Técnico de informática", text: "Antes eu usava planilha. Agora tenho tudo organizado e meu cliente recebe orçamento profissional na hora." },
+  { name: "Ana R.", role: "Agência web", text: "O financeiro me deu clareza total de onde estava o dinheiro. Indispensável para crescer." },
   { name: "Pedro S.", role: "Freelancer", text: "O tour interativo me convenceu em 5 minutos. Comecei pelo plano Start e renovei no mesmo dia." },
 ]
 
@@ -178,7 +178,7 @@ export default function DemoPage() {
           className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed mb-8"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }}
         >
-          Navegue pelos modulos abaixo e veja capturas reais do sistema funcionando.
+          Navegue pelos módulos abaixo e veja capturas reais do sistema funcionando.
         </motion.p>
 
         {/* Stats linha */}
@@ -187,7 +187,7 @@ export default function DemoPage() {
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }}
         >
           {[
-            { v: "R$ 7", l: "para comecar" },
+            { v: "R$ 7", l: "para começar" },
             { v: "5 min", l: "para configurar" },
             { v: "100%", l: "web, sem instalar" },
           ].map((s) => (
@@ -423,11 +423,11 @@ export default function DemoPage() {
                 href={SIGNUP_URL}
                 className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-border text-muted-foreground text-[11px] font-bold tracking-widest uppercase hover:text-foreground hover:bg-muted/50 transition-all"
               >
-                Criar conta gratis
+                Criar conta grátis
               </Link>
             </div>
             <p className="mt-5 text-xs text-muted-foreground">
-              Pagamento via Pix ou cartao · Ativacao instantanea
+              Pagamento via Pix ou cartão · Ativação instantânea
             </p>
           </motion.div>
         </div>

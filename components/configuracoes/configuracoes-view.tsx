@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -34,7 +34,20 @@ const pixTypeLabels: Record<string, string> = {
   aleatoria: "Chave Aleatória",
 }
 
-// Retorna se o plano atual permite personalização de marca
+// Paleta de cores pré-definidas para os documentos
+const ACCENT_COLORS = [
+  { value: "#1e3a5f", label: "Azul-marinho" },
+  { value: "#1d4ed8", label: "Azul" },
+  { value: "#0369a1", label: "Azul-ciano" },
+  { value: "#7c3aed", label: "Violeta" },
+  { value: "#059669", label: "Esmeralda" },
+  { value: "#16a34a", label: "Verde" },
+  { value: "#d97706", label: "Âmbar" },
+  { value: "#ea580c", label: "Laranja" },
+  { value: "#dc2626", label: "Vermelho" },
+  { value: "#1f2937", label: "Grafite" },
+]
+
 function canCustomizeBrand(plan: string | null | undefined): boolean {
   const p = (plan ?? "starter").toLowerCase()
   return p === "business" || p === "enterprise"
@@ -64,8 +77,6 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
   )
 }
 
-// Bloco de bloqueio para campos restritos ao plano Start.
-// Usa layout de fluxo normal (sem absolute) para nunca vazar sobre outros elementos.
 function PlanGate({ locked, planRequired = "Business", featureName, featureBenefit, children }: {
   children: React.ReactNode
   locked: boolean
@@ -127,9 +138,9 @@ function LicenseCard({
     setSavingToggle(true)
     try {
       await upsertBusinessProfile({ [field]: value })
-      toast.success("Preferencia salva.")
+      toast.success("Preferência salva.")
     } catch {
-      toast.error("Erro ao salvar preferencia.")
+      toast.error("Erro ao salvar preferência.")
       if (field === "notifAlertEnabled") setAlertEnabled(!value)
       else setQuoteNotifEnabled(!value)
     } finally {
@@ -146,10 +157,10 @@ function LicenseCard({
       const expiry = new Date(result.newExpiry).toLocaleDateString("pt-BR", {
         day: "2-digit", month: "long", year: "numeric",
       })
-      toast.success(`Codigo ativado! +${result.days} dias no plano ${result.planName}. Novo vencimento: ${expiry}.`)
+      toast.success(`Código ativado! +${result.days} dias no plano ${result.planName}. Novo vencimento: ${expiry}.`)
       setPromoCode("")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao ativar codigo.")
+      toast.error(err instanceof Error ? err.message : "Erro ao ativar código.")
     } finally {
       setPromoLoading(false)
     }
@@ -160,10 +171,10 @@ function LicenseCard({
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <BadgeCheck className="size-5 text-primary" />
-          <CardTitle className="text-foreground text-lg">Licenca</CardTitle>
+          <CardTitle className="text-foreground text-lg">Licença</CardTitle>
         </div>
         <CardDescription className="text-muted-foreground">
-          Informacoes sobre sua assinatura ativa.
+          Informações sobre sua assinatura ativa.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -200,10 +211,10 @@ function LicenseCard({
         {isWarning && !isExpired && (
           <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-3">
             <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">
-              Sua licenca expira em {daysLeft} {daysLeft === 1 ? "dia" : "dias"}.
+              Sua licença expira em {daysLeft} {daysLeft === 1 ? "dia" : "dias"}.
             </p>
             <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-0.5">
-              Renove agora ou use um codigo promocional para nao perder o acesso.
+              Renove agora ou use um código promocional para não perder o acesso.
             </p>
           </div>
         )}
@@ -211,7 +222,7 @@ function LicenseCard({
         {/* Renovar */}
         <div className="flex items-center justify-between py-3 border-b border-border">
           <div>
-            <p className="text-sm font-medium text-foreground">Renovar licenca</p>
+            <p className="text-sm font-medium text-foreground">Renovar licença</p>
             <p className="text-xs text-muted-foreground">Adquira mais dias de acesso.</p>
           </div>
           <a
@@ -222,14 +233,14 @@ function LicenseCard({
           </a>
         </div>
 
-        {/* Codigo Promocional */}
+        {/* Código Promocional */}
         <div className="py-3 border-b border-border">
           <div className="flex items-center gap-2 mb-2">
             <Tag className="size-4 text-muted-foreground" />
-            <p className="text-sm font-medium text-foreground">Codigo promocional ou de teste</p>
+            <p className="text-sm font-medium text-foreground">Código promocional ou de teste</p>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Insira um codigo fornecido para adicionar dias ao seu plano.
+            Insira um código fornecido para adicionar dias ao seu plano.
           </p>
           <form onSubmit={handleRedeemPromo} className="flex gap-2">
             <Input
@@ -249,7 +260,7 @@ function LicenseCard({
           </form>
         </div>
 
-        {/* Toggle: Alerta de vencimento — disponivel em todos os planos */}
+        {/* Toggle: Alerta de vencimento */}
         <div className="flex items-center justify-between py-2 border-b border-border">
           <div className="flex-1 mr-4">
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -258,22 +269,23 @@ function LicenseCard({
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 ml-6">
               {alertEnabled
-                ? "Voce recebera uma notificacao quando faltarem 7 dias."
-                : "Ative para ser avisado antes de sua licenca expirar."}
+                ? "Você receberá uma notificação quando faltarem 7 dias."
+                : "Ative para ser avisado antes de sua licença expirar."}
             </p>
           </div>
           <Toggle
             checked={alertEnabled}
             onChange={v => handleToggle("notifAlertEnabled", v)}
+            disabled={savingToggle}
           />
         </div>
 
-        {/* Toggle: Notificacoes de orcamento — BLOQUEADO no plano Start */}
+        {/* Toggle: Notificações de orçamento */}
         <div className="flex items-center justify-between py-2">
           <div className="flex-1 mr-4">
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
               <Bell className="size-4 text-muted-foreground shrink-0" />
-              Notificacoes de resposta de orcamento
+              Notificações de resposta de orçamento
               {isStart && (
                 <span className="inline-flex items-center gap-1 text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5 ml-1">
                   <Lock className="size-3" />
@@ -283,16 +295,16 @@ function LicenseCard({
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 ml-6">
               {isStart
-                ? "Disponivel a partir do plano Business. Faca upgrade para ativar."
+                ? "Disponível a partir do plano Business. Faça upgrade para ativar."
                 : quoteNotifEnabled
-                  ? "Voce sera notificado quando um cliente aprovar ou recusar um orcamento."
-                  : "Notificacoes desativadas."}
+                  ? "Você será notificado quando um cliente aprovar ou recusar um orçamento."
+                  : "Notificações desativadas."}
             </p>
           </div>
           <Toggle
             checked={isStart ? false : quoteNotifEnabled}
             onChange={v => !isStart && handleToggle("notifQuoteEnabled", v)}
-            disabled={isStart}
+            disabled={isStart || savingToggle}
           />
         </div>
       </CardContent>
@@ -304,6 +316,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
   const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const colorInputRef = useRef<HTMLInputElement>(null)
 
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
   const isStart = plan === "starter" || plan === "start"
@@ -321,6 +334,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
     pixKey: profile?.pixKey ?? "",
     pixType: profile?.pixType ?? "cpf",
     logo: profile?.logo ?? "",
+    docAccentColor: profile?.docAccentColor ?? "#1d4ed8",
   })
 
   const [logoPreview, setLogoPreview] = useState<string>(profile?.logo ?? "")
@@ -335,7 +349,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Logo muito grande. Maximo 2MB.")
+      toast.error("Logo muito grande. Máximo 2 MB.")
       return
     }
     const reader = new FileReader()
@@ -350,14 +364,13 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
   function handleSave() {
     startTransition(async () => {
       try {
-        // Para o plano Start, nao salva nome, documento e logo (bloqueados)
         const payload = brandUnlocked
           ? form
           : { ...form, name: profile?.name ?? "", document: profile?.document ?? "", logo: profile?.logo ?? "" }
         await upsertBusinessProfile(payload)
-        toast.success("Configuracoes salvas com sucesso!")
+        toast.success("Configurações salvas com sucesso!")
       } catch {
-        toast.error("Erro ao salvar configuracoes.")
+        toast.error("Erro ao salvar configurações.")
       }
     })
   }
@@ -371,10 +384,10 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
           <Lock className="size-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-              Voce esta no plano Start
+              Você está no plano Start
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-              Personalizacao de marca (logotipo, nome, CNPJ/CPF e Chave Pix) e notificacoes de orcamento estao disponiveis
+              Personalização de marca (logotipo, nome, CNPJ/CPF e Chave Pix) e notificações de orçamento estão disponíveis
               a partir do plano <strong>Business</strong>.{" "}
               <a href="/planos?renovar=1" className="underline font-medium">Fazer upgrade agora</a>
             </p>
@@ -387,10 +400,10 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Building2 className="size-5 text-primary" />
-            <CardTitle className="text-foreground text-lg">Dados da Empresa / Negocio</CardTitle>
+            <CardTitle className="text-foreground text-lg">Dados da Empresa / Negócio</CardTitle>
           </div>
           <CardDescription className="text-muted-foreground">
-            Estas informacoes aparecem nos orcamentos e ordens de servico gerados.
+            Estas informações aparecem nos orçamentos e ordens de serviço gerados.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -399,7 +412,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
             <PlanGate
               locked={isStart}
               featureName="Logotipo"
-              featureBenefit="Adicione a logo da sua empresa nos orcamentos e ordens de servico enviados aos clientes."
+              featureBenefit="Adicione a logo da sua empresa nos orçamentos e ordens de serviço enviados aos clientes."
             />
           ) : (
             <div className="flex flex-col gap-2">
@@ -449,33 +462,33 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
                       Remover
                     </Button>
                   )}
-                  <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Max. 2MB.</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx. 2 MB.</p>
                 </div>
               </div>
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Nome — bloqueado no Start */}
+            {/* Nome */}
             <PlanGate
               locked={isStart}
               featureName="Nome da empresa"
-              featureBenefit="Seu nome comercial aparecera no cabecalho dos orcamentos e ordens de servico."
+              featureBenefit="Seu nome comercial aparecerá no cabeçalho dos orçamentos e ordens de serviço."
             >
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="biz-name" className="text-foreground text-sm">Nome da empresa / negocio</Label>
+                <Label htmlFor="biz-name" className="text-foreground text-sm">Nome da empresa / negócio</Label>
                 <Input
                   id="biz-name"
                   value={brandUnlocked ? form.name : "Elevanthe CRM"}
                   onChange={e => handleChange("name", e.target.value)}
-                  placeholder="Elevanthe Solucoes Web"
+                  placeholder="Elevanthe Soluções Web"
                   disabled={!brandUnlocked}
                   className="bg-input border-border"
                 />
               </div>
             </PlanGate>
 
-            {/* CPF/CNPJ — bloqueado no Start */}
+            {/* CPF/CNPJ */}
             <PlanGate
               locked={isStart}
               featureName="CPF / CNPJ"
@@ -494,31 +507,31 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
               </div>
             </PlanGate>
 
-            {/* Telefone — disponivel em todos os planos */}
+            {/* Telefone */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-phone" className="text-foreground text-sm">Telefone / WhatsApp</Label>
               <Input id="biz-phone" value={form.phone} onChange={e => handleChange("phone", e.target.value)} placeholder="(11) 99999-9999" className="bg-input border-border" />
             </div>
 
-            {/* Email comercial — disponivel em todos os planos */}
+            {/* Email comercial */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-email" className="text-foreground text-sm">E-mail comercial</Label>
               <Input id="biz-email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} placeholder="contato@empresa.com.br" className="bg-input border-border" />
             </div>
 
-            {/* Website — disponivel em todos os planos */}
+            {/* Website */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-website" className="text-foreground text-sm">Website</Label>
               <Input id="biz-website" value={form.website} onChange={e => handleChange("website", e.target.value)} placeholder="https://empresa.com.br" className="bg-input border-border" />
             </div>
 
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="biz-address" className="text-foreground text-sm">Endereco</Label>
+              <Label htmlFor="biz-address" className="text-foreground text-sm">Endereço</Label>
               <Input id="biz-address" value={form.address} onChange={e => handleChange("address", e.target.value)} placeholder="Rua Exemplo, 123" className="bg-input border-border" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-city" className="text-foreground text-sm">Cidade</Label>
-              <Input id="biz-city" value={form.city} onChange={e => handleChange("city", e.target.value)} placeholder="Sao Paulo" className="bg-input border-border" />
+              <Input id="biz-city" value={form.city} onChange={e => handleChange("city", e.target.value)} placeholder="São Paulo" className="bg-input border-border" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-state" className="text-foreground text-sm">Estado</Label>
@@ -528,7 +541,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
         </CardContent>
       </Card>
 
-      {/* Chave Pix — bloqueado no plano Start */}
+      {/* Chave Pix */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
@@ -536,14 +549,14 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
             <CardTitle className="text-foreground text-lg">Chave Pix</CardTitle>
           </div>
           <CardDescription className="text-muted-foreground">
-            A chave Pix e usada para gerar o QR Code nas ordens de servico.
+            A chave Pix é usada para gerar o QR Code nas ordens de serviço.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <PlanGate
             locked={isStart}
             featureName="Chave Pix"
-            featureBenefit="Gere QR Codes Pix automaticamente nas ordens de servico para seus clientes pagarem na hora."
+            featureBenefit="Gere QR Codes Pix automaticamente nas ordens de serviço para seus clientes pagarem na hora."
           >
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5">
@@ -579,50 +592,135 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
         </CardContent>
       </Card>
 
-      {/* Aparencia */}
+      {/* Aparência */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Palette className="size-5 text-primary" />
-            <CardTitle className="text-foreground text-lg">Aparencia</CardTitle>
+            <CardTitle className="text-foreground text-lg">Aparência</CardTitle>
           </div>
-          <CardDescription className="text-muted-foreground">Escolha o tema da interface.</CardDescription>
+          <CardDescription className="text-muted-foreground">
+            Personalize o tema da interface e a cor dos documentos gerados.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-3">
-            {([
-              { value: "light", icon: Sun, label: "Claro", desc: "Interface clara e limpa" },
-              { value: "dark", icon: Moon, label: "Escuro", desc: "Modo escuro para conforto visual" },
-              { value: "system", icon: Monitor, label: "Sistema", desc: "Segue a preferencia do sistema" },
-            ] as const).map(({ value, icon: Icon, label, desc }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setTheme(value)}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all text-center cursor-pointer",
-                  theme === value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                )}
-              >
-                <Icon className="size-6" />
-                <span className="text-sm font-medium">{label}</span>
-                <span className="text-xs leading-tight">{desc}</span>
-              </button>
-            ))}
+        <CardContent className="flex flex-col gap-6">
+          {/* Tema da interface */}
+          <div>
+            <Label className="text-foreground text-sm font-medium mb-3 block">Tema da interface</Label>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { value: "light", icon: Sun, label: "Claro", desc: "Interface clara e limpa" },
+                { value: "dark", icon: Moon, label: "Escuro", desc: "Modo escuro para conforto visual" },
+                { value: "system", icon: Monitor, label: "Sistema", desc: "Segue a preferência do sistema" },
+              ] as const).map(({ value, icon: Icon, label, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all text-center cursor-pointer",
+                    theme === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  )}
+                >
+                  <Icon className="size-6" />
+                  <span className="text-sm font-medium">{label}</span>
+                  <span className="text-xs leading-tight">{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cor de destaque dos documentos */}
+          <div className="border-t border-border pt-5">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="size-4 text-primary" />
+              <Label className="text-foreground text-sm font-medium">Cor de destaque dos documentos</Label>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Aplicada no cabeçalho, tabela e totais dos orçamentos e ordens de serviço públicos.
+            </p>
+
+            {/* Paleta de swatches */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {ACCENT_COLORS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleChange("docAccentColor", value)}
+                  title={label}
+                  className="size-8 rounded-lg border-2 transition-all active:scale-90 shrink-0"
+                  style={{
+                    backgroundColor: value,
+                    borderColor: form.docAccentColor === value ? "#fff" : "transparent",
+                    boxShadow: form.docAccentColor === value ? `0 0 0 2px ${value}` : "none",
+                  }}
+                  aria-label={label}
+                />
+              ))}
+              {/* Cor personalizada */}
+              <div className="relative size-8 shrink-0">
+                <input
+                  ref={colorInputRef}
+                  type="color"
+                  value={form.docAccentColor}
+                  onChange={e => handleChange("docAccentColor", e.target.value)}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  aria-label="Cor personalizada"
+                />
+                <div
+                  className="size-8 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: ACCENT_COLORS.some(c => c.value === form.docAccentColor) ? "transparent" : form.docAccentColor,
+                  }}
+                  onClick={() => colorInputRef.current?.click()}
+                  title="Cor personalizada"
+                >
+                  {ACCENT_COLORS.some(c => c.value === form.docAccentColor) && (
+                    <span className="text-[10px] font-bold">+</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Preview ao vivo */}
+            <div
+              className="rounded-xl overflow-hidden border border-border shadow-sm"
+              aria-label="Pré-visualização do documento"
+            >
+              <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: form.docAccentColor }}>
+                <div className="flex items-center gap-2">
+                  <div className="size-7 rounded-md bg-white/20 flex items-center justify-center">
+                    <Building2 className="size-4 text-white" />
+                  </div>
+                  <span className="text-xs font-bold text-white">{form.name || "Sua Empresa"}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-white/60 text-[9px] uppercase tracking-widest">Ordem de Serviço</p>
+                  <p className="text-white font-black text-lg leading-tight">#0001</p>
+                </div>
+              </div>
+              <div className="bg-white px-4 py-3 flex justify-between items-center">
+                <span className="text-xs text-slate-500">Total</span>
+                <span className="text-sm font-black" style={{ color: form.docAccentColor }}>R$ 1.500,00</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Cor selecionada: <span className="font-mono font-medium">{form.docAccentColor.toUpperCase()}</span>
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Seguranca */}
+      {/* Segurança */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Shield className="size-5 text-primary" />
-            <CardTitle className="text-foreground text-lg">Seguranca</CardTitle>
+            <CardTitle className="text-foreground text-lg">Segurança</CardTitle>
           </div>
-          <CardDescription className="text-muted-foreground">Informacoes de acesso e seguranca.</CardDescription>
+          <CardDescription className="text-muted-foreground">Informações de acesso e segurança.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col">
           <div className="flex items-center justify-between py-3 border-b border-border">
@@ -641,7 +739,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
         </CardContent>
       </Card>
 
-      {/* Licenca */}
+      {/* Licença */}
       <LicenseCard license={license} profile={profile} />
 
       <div className="flex justify-end pb-4">
@@ -650,7 +748,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
           disabled={isPending}
           className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-40"
         >
-          {isPending ? "Salvando..." : "Salvar configuracoes"}
+          {isPending ? "Salvando..." : "Salvar configurações"}
         </Button>
       </div>
     </div>

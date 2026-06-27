@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil, PenLine, CircleDot, CheckCircle2, XCircle, Clock, Ban } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -26,12 +26,12 @@ interface QuotesViewProps {
   services: Service[]
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  rascunho: { label: "Rascunho", color: "bg-muted text-muted-foreground" },
-  enviado: { label: "Enviado", color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
-  aprovado: { label: "Aprovado", color: "bg-green-500/15 text-green-400 border-green-500/20" },
-  recusado: { label: "Recusado", color: "bg-red-500/15 text-red-400 border-red-500/20" },
-  cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground" },
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  rascunho: { label: "Rascunho", color: "bg-muted text-muted-foreground",                               icon: PenLine },
+  enviado:  { label: "Enviado",  color: "bg-blue-500/15 text-blue-400 border-blue-500/20",               icon: Clock },
+  aprovado: { label: "Aprovado", color: "bg-green-500/15 text-green-400 border-green-500/20",            icon: CheckCircle2 },
+  recusado: { label: "Recusado", color: "bg-red-500/15 text-red-400 border-red-500/20",                  icon: XCircle },
+  cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground",                              icon: Ban },
 }
 
 interface QuoteItem {
@@ -304,7 +304,8 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
           <p className="text-muted-foreground text-sm mt-1">{quotes.length} orçamentos</p>
         </div>
         <Button onClick={() => { setEditingId(null); setForm(emptyForm); setItems([]); setOpen(true) }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus data-icon="inline-start" />Novo Orçamento
+          <Plus className="size-4 mr-2" />
+          Novo Orçamento
         </Button>
       </div>
 
@@ -350,6 +351,7 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
               <TableBody>
                 {filtered.map((q) => {
                   const sc = statusConfig[q.status] ?? statusConfig.rascunho
+                  const StatusIconQ = sc.icon
                   const isRecusado = q.status === "recusado"
                   const isAprovado = q.status === "aprovado"
                   const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
@@ -379,7 +381,10 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                       <TableCell className="font-semibold text-foreground">{formatCurrency(q.total)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Badge className={sc.color}>{sc.label}</Badge>
+                          <Badge className={`${sc.color} flex items-center gap-1`}>
+                            <StatusIconQ className="size-3 shrink-0" />
+                            {sc.label}
+                          </Badge>
                           {showNewBadge && (
                             <span className="relative flex size-2">
                               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />

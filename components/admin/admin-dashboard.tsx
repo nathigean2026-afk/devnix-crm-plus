@@ -833,7 +833,7 @@ export default function AdminDashboard({
                   ))}
                 </div>
                 <p className={cn("text-xs mt-3 border-t pt-3", darkMode ? "text-white/25 border-white/8" : "text-slate-400 border-slate-100")}>
-                  Pagamentos processados via <strong>Mercado Pago</strong> — PIX, cartao de credito e boleto. Os valores sao registrados automaticamente apos confirmacao do pagamento. Veja o historico completo na aba Pagamentos.
+                  Pagamentos processados via <strong>Mercado Pago</strong> — PIX, cartão de crédito e boleto. Os valores são registrados automaticamente após confirmação do pagamento. Veja o histórico completo na aba Pagamentos.
                 </p>
               </div>
 
@@ -1059,7 +1059,7 @@ export default function AdminDashboard({
                       </button>
                     ) : (
                       <div className={cn("rounded-lg border border-red-500/40 p-3 space-y-2", darkMode ? "bg-red-500/10" : "bg-red-50")}>
-                        <p className="text-xs text-red-400 font-medium text-center">Esta acao e irreversivel. Todos os dados do usuario serao apagados.</p>
+                        <p className="text-xs text-red-400 font-medium text-center">Esta ação é irreversível. Todos os dados do usuário serão apagados.</p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => setConfirmDelete(false)}

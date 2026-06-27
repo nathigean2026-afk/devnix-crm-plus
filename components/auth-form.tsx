@@ -18,10 +18,10 @@ interface AuthFormProps {
 }
 
 const features = [
-  "Clientes e ordens de servico ilimitados",
-  "Orcamentos profissionais em segundos",
+  "Clientes e ordens de serviço ilimitados",
+  "Orçamentos profissionais em segundos",
   "Controle financeiro completo",
-  "Relatorios e dashboard em tempo real",
+  "Relatórios e dashboard em tempo real",
 ]
 
 export function AuthForm({ mode }: AuthFormProps) {
@@ -116,7 +116,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           {/* Social proof */}
           <div className="pt-2 border-t border-white/[0.06]">
             <p className="text-xs text-white/25">
-              Pagamento seguro via Mercado Pago · Pix, cartao e boleto
+              Pagamento seguro via Mercado Pago · Pix, cartão e boleto
             </p>
           </div>
         </div>
@@ -224,7 +224,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={isSignIn ? "Sua senha" : "Minimo 8 caracteres"}
+                    placeholder={isSignIn ? "Sua senha" : "Mínimo 8 caracteres"}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     required
@@ -272,14 +272,14 @@ export function AuthForm({ mode }: AuthFormProps) {
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {isSignIn ? (
                 <>
-                  Nao tem conta?{" "}
+                  Não tem conta?{" "}
                   <Link href="/sign-up" className="text-primary hover:underline font-medium">
-                    Criar conta gratis
+                    Criar conta grátis
                   </Link>
                 </>
               ) : (
                 <>
-                  Ja tem conta?{" "}
+                  Já tem conta?{" "}
                   <Link href="/sign-in" className="text-primary hover:underline font-medium">
                     Entrar
                   </Link>
@@ -293,7 +293,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 href="/demo"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
-                Ver demonstracao do sistema
+                Ver demonstração do sistema
                 <ArrowRight className="size-3" />
               </Link>
             </div>
