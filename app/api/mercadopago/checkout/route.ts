@@ -20,23 +20,27 @@ export async function POST(req: NextRequest) {
 
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
     if (!accessToken) {
-      console.error("[v0] MP Checkout: MERCADOPAGO_ACCESS_TOKEN ausente")
+      console.error("[v0] MP Checkout: MERCADOPAGO_ACCESS_TOKEN não definido")
       return NextResponse.json({ error: "Configuração de pagamento ausente" }, { status: 500 })
     }
-    console.log("[v0] MP Checkout: token ok, prefixo=", accessToken.slice(0, 10))
 
-    const canonicalUrl = process.env.BETTER_AUTH_URL?.replace(/\/$/, "")
+    // Prioridade: 1) BETTER_AUTH_URL (canonical) 2) VERCEL_PROJECT_PRODUCTION_URL 3) req.nextUrl.origin
+    const canonicalUrl =
+      process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ??
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : null)
     const requestOrigin = req.nextUrl.origin
     const baseUrl = canonicalUrl ?? requestOrigin
     const isPublicUrl = baseUrl.startsWith("https://") && !baseUrl.includes("localhost")
-    console.log("[v0] MP Checkout: baseUrl=", baseUrl, "isPublicUrl=", isPublicUrl)
 
     // back_urls exige HTTPS para o MP aceitar auto_return.
-    // Se não tivermos URL pública (ex.: preview local), omitimos auto_return.
+    // Em desenvolvimento local a URL não é pública — usamos o domínio de produção como fallback.
+    const publicBase = isPublicUrl ? baseUrl : "https://crm.elevanthe.com"
     const backUrls = {
-      success: `${baseUrl}/planos/sucesso`,
-      failure: `${baseUrl}/planos`,
-      pending: `${baseUrl}/planos/sucesso`,
+      success: `${publicBase}/planos/sucesso`,
+      failure: `${publicBase}/planos`,
+      pending: `${publicBase}/planos/sucesso`,
     }
 
     // Cria preferência de pagamento — o MP abre o checkout completo com cartão, Pix e boleto
@@ -84,7 +88,6 @@ export async function POST(req: NextRequest) {
     })
 
     const result = await mpRes.json()
-    console.log("[v0] MP Checkout: status=", mpRes.status, "result=", JSON.stringify(result).slice(0, 200))
 
     if (!mpRes.ok) {
       console.error("[v0] MP Checkout erro:", JSON.stringify(result))
@@ -107,9 +110,7 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       }).onConflictDoNothing()
-      console.log("[v0] MP Checkout: payment registrado no DB, id=", tempId)
     } catch (dbErr) {
-      // Não bloqueia o checkout mas loga o erro de DB
       console.error("[v0] MP Checkout: erro ao inserir payment no DB:", dbErr)
     }
 

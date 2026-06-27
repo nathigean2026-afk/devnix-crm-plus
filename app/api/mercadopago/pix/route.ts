@@ -19,9 +19,12 @@ export async function POST(req: NextRequest) {
     }
 
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN!
-    // Usa o domínio canônico configurado em BETTER_AUTH_URL para garantir
-    // que o webhook bata no domínio correto (crm.elevanthe.com) em produção.
-    const baseUrl = process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ?? req.nextUrl.origin
+    // Prioridade: BETTER_AUTH_URL (canonical) → fallback hardcoded de produção
+    const baseUrl =
+      process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ??
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "https://crm.elevanthe.com")
     const isPublicUrl = baseUrl.startsWith("https://") && !baseUrl.includes("localhost")
 
     const body: Record<string, unknown> = {
