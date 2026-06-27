@@ -128,7 +128,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error ?? "Erro ao iniciar checkout")
-      if (!data.initPoint) throw new Error("URL de checkout nao recebida")
+      if (!data.initPoint) throw new Error("URL de checkout não recebida")
       window.location.href = data.initPoint
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao abrir checkout")

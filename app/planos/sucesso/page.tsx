@@ -15,15 +15,16 @@ export default async function SucessoPage() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect("/sign-in")
 
-  // Busca a licenca atualizada
+  // Busca a licença atualizada
   const license = await getUserLicense()
 
+  // Formata data em UTC para evitar hydration mismatch (servidor vs cliente)
   const expiryStr = license.expiresAt
-    ? license.expiresAt.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
+    ? (() => {
+        const d = license.expiresAt!
+        const months = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"]
+        return `${d.getUTCDate()} de ${months[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
+      })()
     : null
 
   return (
@@ -52,7 +53,7 @@ export default async function SucessoPage() {
 
         <h1 className="text-2xl font-bold text-foreground mb-2">Pagamento confirmado!</h1>
         <p className="text-muted-foreground text-sm mb-6 text-pretty">
-          Sua licenca foi ativada com sucesso. Bem-vindo ao Elevanthe CRM,{" "}
+          Sua licença foi ativada com sucesso. Bem-vindo ao Elevanthe CRM,{" "}
           <span className="font-medium text-foreground">{session.user.name}</span>.
         </p>
 
@@ -63,7 +64,7 @@ export default async function SucessoPage() {
               <Clock className="size-4 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Licenca ativa</p>
+              <p className="text-xs text-muted-foreground">Licença ativa</p>
               <p className="text-sm font-semibold text-foreground">Elevanthe CRM</p>
             </div>
             <div className="ml-auto">
@@ -97,7 +98,7 @@ export default async function SucessoPage() {
         </Link>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          Voce tambem recebera uma confirmacao por email.
+          Você também receberá uma confirmação por e-mail.
         </p>
       </div>
     </div>
