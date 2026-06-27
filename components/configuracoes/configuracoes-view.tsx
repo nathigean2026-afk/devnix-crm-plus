@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText } from "lucide-react"
 import Image from "next/image"
@@ -49,6 +50,12 @@ const ACCENT_COLORS = [
 ]
 
 function canCustomizeBrand(plan: string | null | undefined): boolean {
+  const p = (plan ?? "starter").toLowerCase()
+  return p === "business" || p === "enterprise"
+}
+
+function canCustomizeColor(plan: string | null | undefined): boolean {
+  // Cor de destaque disponível a partir do Business
   const p = (plan ?? "starter").toLowerCase()
   return p === "business" || p === "enterprise"
 }
@@ -321,6 +328,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
   const isStart = plan === "starter" || plan === "start"
   const brandUnlocked = canCustomizeBrand(plan)
+  const colorUnlocked = canCustomizeColor(plan)
 
   const [form, setForm] = useState({
     name: profile?.name ?? "",
@@ -341,6 +349,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
 
   function handleChange(field: keyof typeof form, value: string) {
     if (!brandUnlocked && (field === "name" || field === "document" || field === "logo")) return
+    if (!colorUnlocked && field === "docAccentColor") return
     setForm(f => ({ ...f, [field]: value }))
   }
 
@@ -637,78 +646,104 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
             <div className="flex items-center gap-2 mb-1">
               <FileText className="size-4 text-primary" />
               <Label className="text-foreground text-sm font-medium">Cor de destaque dos documentos</Label>
+              {!colorUnlocked && (
+                <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/5 ml-1">
+                  <Lock className="size-3 mr-1" />Business+
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mb-4">
               Aplicada no cabeçalho, tabela e totais dos orçamentos e ordens de serviço públicos.
             </p>
 
-            {/* Paleta de swatches */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {ACCENT_COLORS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => handleChange("docAccentColor", value)}
-                  title={label}
-                  className="size-8 rounded-lg border-2 transition-all active:scale-90 shrink-0"
-                  style={{
-                    backgroundColor: value,
-                    borderColor: form.docAccentColor === value ? "#fff" : "transparent",
-                    boxShadow: form.docAccentColor === value ? `0 0 0 2px ${value}` : "none",
-                  }}
-                  aria-label={label}
-                />
-              ))}
-              {/* Cor personalizada */}
-              <div className="relative size-8 shrink-0">
-                <input
-                  ref={colorInputRef}
-                  type="color"
-                  value={form.docAccentColor}
-                  onChange={e => handleChange("docAccentColor", e.target.value)}
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                  aria-label="Cor personalizada"
-                />
-                <div
-                  className="size-8 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary transition-colors cursor-pointer"
-                  style={{
-                    backgroundColor: ACCENT_COLORS.some(c => c.value === form.docAccentColor) ? "transparent" : form.docAccentColor,
-                  }}
-                  onClick={() => colorInputRef.current?.click()}
-                  title="Cor personalizada"
+            {/* Paleta bloqueada para Start */}
+            {!colorUnlocked ? (
+              <div className="rounded-xl border border-dashed border-border bg-muted/20 flex flex-col items-center gap-3 py-8 px-6 text-center">
+                <Lock className="size-6 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Disponível no plano Business</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Personalize a cor de destaque dos seus documentos públicos.
+                  </p>
+                </div>
+                <a
+                  href="/planos?renovar=1"
+                  className="text-xs bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors"
                 >
-                  {ACCENT_COLORS.some(c => c.value === form.docAccentColor) && (
-                    <span className="text-[10px] font-bold">+</span>
-                  )}
-                </div>
+                  Ver planos
+                </a>
               </div>
-            </div>
-
-            {/* Preview ao vivo */}
-            <div
-              className="rounded-xl overflow-hidden border border-border shadow-sm"
-              aria-label="Pré-visualização do documento"
-            >
-              <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: form.docAccentColor }}>
-                <div className="flex items-center gap-2">
-                  <div className="size-7 rounded-md bg-white/20 flex items-center justify-center">
-                    <Building2 className="size-4 text-white" />
+            ) : (
+              <>
+                {/* Paleta de swatches */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {ACCENT_COLORS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleChange("docAccentColor", value)}
+                      title={label}
+                      className="size-8 rounded-lg border-2 transition-all active:scale-90 shrink-0"
+                      style={{
+                        backgroundColor: value,
+                        borderColor: form.docAccentColor === value ? "#fff" : "transparent",
+                        boxShadow: form.docAccentColor === value ? `0 0 0 2px ${value}` : "none",
+                      }}
+                      aria-label={label}
+                    />
+                  ))}
+                  {/* Cor personalizada */}
+                  <div className="relative size-8 shrink-0">
+                    <input
+                      ref={colorInputRef}
+                      type="color"
+                      value={form.docAccentColor}
+                      onChange={e => handleChange("docAccentColor", e.target.value)}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      aria-label="Cor personalizada"
+                    />
+                    <div
+                      className="size-8 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary transition-colors cursor-pointer"
+                      style={{
+                        backgroundColor: ACCENT_COLORS.some(c => c.value === form.docAccentColor) ? "transparent" : form.docAccentColor,
+                      }}
+                      onClick={() => colorInputRef.current?.click()}
+                      title="Cor personalizada"
+                    >
+                      {ACCENT_COLORS.some(c => c.value === form.docAccentColor) && (
+                        <span className="text-[10px] font-bold">+</span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-white">{form.name || "Sua Empresa"}</span>
                 </div>
-                <div className="text-right">
-                  <p className="text-white/60 text-[9px] uppercase tracking-widest">Ordem de Serviço</p>
-                  <p className="text-white font-black text-lg leading-tight">#0001</p>
+
+                {/* Preview ao vivo */}
+                <div
+                  className="rounded-xl overflow-hidden border border-border shadow-sm"
+                  aria-label="Pré-visualização do documento"
+                >
+                  <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: form.docAccentColor }}>
+                    <div className="flex items-center gap-2">
+                      <div className="size-7 rounded-md bg-white/20 flex items-center justify-center">
+                        <Building2 className="size-4 text-white" />
+                      </div>
+                      <span className="text-xs font-bold text-white">{form.name || "Sua Empresa"}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white/60 text-[9px] uppercase tracking-widest">Ordem de Serviço</p>
+                      <p className="text-white font-black text-lg leading-tight">#0001</p>
+                    </div>
+                  </div>
+                  <div className="bg-white px-4 py-3 flex justify-between items-center">
+                    <span className="text-xs text-slate-500">Total</span>
+                    <span className="text-sm font-black" style={{ color: form.docAccentColor }}>R$ 1.500,00</span>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-white px-4 py-3 flex justify-between items-center">
-                <span className="text-xs text-slate-500">Total</span>
-                <span className="text-sm font-black" style={{ color: form.docAccentColor }}>R$ 1.500,00</span>
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Cor selecionada: <span className="font-mono font-medium">{form.docAccentColor.toUpperCase()}</span>
-            </p>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Cor selecionada: <span className="font-mono font-medium">{form.docAccentColor.toUpperCase()}</span>
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

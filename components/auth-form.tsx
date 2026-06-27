@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up"
+  kicked?: boolean
 }
 
 const features = [
@@ -24,7 +25,7 @@ const features = [
   "Relatórios e dashboard em tempo real",
 ]
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, kicked }: AuthFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -168,6 +169,18 @@ export function AuthForm({ mode }: AuthFormProps) {
                   : "Crie sua conta e escolha um plano para comecar."}
               </p>
             </div>
+
+            {kicked && (
+              <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                <Lock className="size-4 text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-400">Sessão encerrada</p>
+                  <p className="text-xs text-amber-400/80 mt-0.5">
+                    Sua conta foi acessada em outro dispositivo. Por segurança, sua sessão anterior foi encerrada.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isSignIn && (

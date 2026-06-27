@@ -221,7 +221,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
               </p>
             </div>
             <a
-              href="/planos"
+              href="/planos?renovar=1"
               className="text-xs bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors"
             >
               Ver plano Enterprise
