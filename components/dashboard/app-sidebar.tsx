@@ -210,24 +210,28 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const SidebarHeader = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={cn(
+      <div className={cn(
       "flex items-center border-b border-sidebar-border shrink-0",
-      (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "gap-3 px-4 py-3 h-[60px]"
+      (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "px-4 py-3 h-[60px]"
     )}>
-      <div className="size-8 shrink-0 flex items-center justify-center rounded-lg bg-primary">
+      {(!isMobile && collapsed) ? (
+        <div className="size-8 shrink-0 flex items-center justify-center rounded-lg bg-primary">
+          <Image
+            src="/elevanthe-logo.png"
+            alt="Elevanthe CRM"
+            width={24}
+            height={24}
+            className="object-contain brightness-0 invert"
+          />
+        </div>
+      ) : (
         <Image
           src="/elevanthe-logo.png"
           alt="Elevanthe CRM"
-          width={24}
-          height={24}
-          className="object-contain"
+          width={150}
+          height={42}
+          className="object-contain dark:brightness-0 dark:invert"
         />
-      </div>
-      {(isMobile || !collapsed) && (
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight truncate">Elevanthe CRM</p>
-          <p className="text-xs text-sidebar-foreground/60 truncate">Gestão que eleva resultados</p>
-        </div>
       )}
       {isMobile ? (
         <button

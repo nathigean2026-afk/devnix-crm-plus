@@ -34,9 +34,9 @@ export default async function SucessoPage() {
           <Image
             src="/elevanthe-logo.png"
             alt="Elevanthe CRM"
-            width={48}
-            height={48}
-            className="object-contain"
+            width={180}
+            height={50}
+            className="object-contain dark:brightness-0 dark:invert"
           />
         </div>
 

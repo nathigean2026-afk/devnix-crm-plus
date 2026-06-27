@@ -123,16 +123,13 @@ export default function DemoPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="size-7 rounded-lg bg-muted border border-border flex items-center justify-center">
-              <Image
-                src="/elevanthe-logo.png"
-                alt="Elevanthe CRM"
-                width={18}
-                height={18}
-                className="object-contain"
-              />
-            </div>
-            <span className="text-sm font-bold text-foreground">Elevanthe CRM</span>
+            <Image
+              src="/elevanthe-logo.png"
+              alt="Elevanthe CRM"
+              width={140}
+              height={40}
+              className="object-contain dark:brightness-0 dark:invert"
+            />
             <span className="hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
               Demo
             </span>

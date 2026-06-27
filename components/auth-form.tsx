@@ -77,17 +77,14 @@ export function AuthForm({ mode }: AuthFormProps) {
         <div className="absolute top-0 left-0 w-full h-72 bg-gradient-to-b from-primary/8 to-transparent pointer-events-none" />
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="size-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
-            <Image
-              src="/elevanthe-logo.png"
-              alt="Elevanthe CRM"
-              width={22}
-              height={22}
-              className="object-contain"
-            />
-          </div>
-          <span className="text-white font-semibold text-sm tracking-tight">Elevanthe CRM</span>
+        <div className="relative z-10">
+          <Image
+            src="/elevanthe-logo.png"
+            alt="Elevanthe CRM"
+            width={200}
+            height={56}
+            className="object-contain brightness-0 invert"
+          />
         </div>
 
         {/* Conteudo central */}
@@ -134,15 +131,14 @@ export function AuthForm({ mode }: AuthFormProps) {
         {/* Top bar com theme toggle */}
         <div className="flex items-center justify-between px-6 py-4">
           {/* Logo mobile */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center lg:hidden">
             <Image
               src="/elevanthe-logo.png"
               alt="Elevanthe CRM"
-              width={24}
-              height={24}
-              className="object-contain"
+              width={140}
+              height={40}
+              className="object-contain dark:brightness-0 dark:invert"
             />
-            <span className="font-semibold text-sm text-foreground">Elevanthe CRM</span>
           </div>
           <div className="hidden lg:block" />
 

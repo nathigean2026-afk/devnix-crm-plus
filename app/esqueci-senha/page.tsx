@@ -34,14 +34,10 @@ export default function EsqueciSenhaPage() {
           <Image
             src="/elevanthe-logo.png"
             alt="Elevanthe CRM"
-            width={56}
+            width={200}
             height={56}
-            className="object-contain"
+            className="object-contain dark:brightness-0 dark:invert"
           />
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground">Elevanthe CRM</h1>
-            <p className="text-sm text-muted-foreground mt-1">Gestão de relacionamento que eleva resultados</p>
-          </div>
         </div>
 
         <Card className="bg-card border-border shadow-2xl">

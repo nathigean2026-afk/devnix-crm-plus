@@ -144,15 +144,14 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex items-center shrink-0">
             <Image
               src="/elevanthe-logo.png"
               alt="Elevanthe CRM"
-              width={24}
-              height={24}
-              className="object-contain"
+              width={150}
+              height={42}
+              className="object-contain dark:brightness-0 dark:invert"
             />
-            <span className="font-semibold text-sm tracking-tight">Elevanthe CRM</span>
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
