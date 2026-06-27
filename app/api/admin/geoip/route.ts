@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 // Cache simples em memória para evitar chamadas repetidas ao ip-api
 const geoCache = new Map<string, { city: string; region: string; isp: string; country: string; lat: number; lon: number; ts: number }>()
 const CACHE_TTL = 30 * 60 * 1000 // 30 min
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies()
-  const session = cookieStore.get("admin_session")
-  if (!session?.value || session.value !== "admin-nathigean-001") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
 
   const { ips } = await req.json() as { ips: string[] }
   if (!Array.isArray(ips) || ips.length === 0) {
@@ -24,8 +18,8 @@ export async function POST(req: NextRequest) {
   const toFetch: string[] = []
   for (const ip of ips) {
     const clean = ip.replace(/^::ffff:/, "")
-    if (!clean || clean === "—" || clean === "127.0.0.1" || clean.startsWith("192.168") || clean.startsWith("10.")) {
-      result[ip] = { city: "Local", region: "", isp: "Localhost", country: "" }
+    if (!clean || clean === "—" || clean === "::1" || clean === "127.0.0.1" || clean.startsWith("192.168") || clean.startsWith("10.") || clean.startsWith("fc00:") || clean.startsWith("fe80:")) {
+      result[ip] = { city: "Localhost", region: "", isp: "Rede local", country: "" }
       continue
     }
     const cached = geoCache.get(clean)

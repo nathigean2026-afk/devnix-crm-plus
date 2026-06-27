@@ -53,8 +53,27 @@ function formatTimestamp(ts: Date | string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
+/** Retorna os dados de branding: usa dados da empresa apenas se plano Business/Enterprise
+ *  e o campo estiver preenchido; caso contrário, cai para o padrão Elevanthe. */
+function getBranding(profile: BusinessProfile | null | undefined) {
+  const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
+  return {
+    name:    (isPaid && profile?.name)    ? profile.name    : "Elevanthe CRM",
+    logo:    (isPaid && profile?.logo)    ? profile.logo    : "/elevanthe-icon.png",
+    document:(isPaid && profile?.document)? profile.document: null,
+    phone:   (isPaid && profile?.phone)   ? profile.phone   : null,
+    email:   (isPaid && profile?.email)   ? profile.email   : null,
+    address: (isPaid && profile?.address) ? profile.address : null,
+    city:    (isPaid && profile?.city)    ? profile.city    : null,
+    state:   (isPaid && profile?.state)   ? profile.state   : null,
+    website: (isPaid && profile?.website) ? profile.website : null,
+    isPaid,
+  }
+}
+
 export function PublicQuoteView({ quote, client, items, providerPhone, profile }: PublicQuoteViewProps) {
   const alreadyRespondedAt = (quote as PublicQuoteViewProps["quote"]).respondedAt
+  const branding = getBranding(profile)
 
   const [step, setStep] = useState<"idle" | "reject-form" | "loading" | "done-accept" | "done-reject">(
     quote.status === "aprovado" ? "done-accept"
@@ -167,25 +186,21 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <div className="size-10 rounded-xl border border-border flex items-center justify-center shrink-0 overflow-hidden" style={{ background: "var(--muted)" }}>
-                  {profile?.logo ? (
-                    <Image
-                      src={profile.logo}
-                      alt={profile.name ?? "Logo"}
-                      width={40}
-                      height={40}
-                      className="object-contain"
-                      style={{ width: 40, height: "auto" }}
-                    />
-                  ) : (
-                    <Building2 className="size-5 text-muted-foreground" />
-                  )}
+                  <Image
+                    src={branding.logo}
+                    alt={branding.name}
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                    style={{ width: 40, height: "auto" }}
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5 leading-tight">
-                    {profile?.name || "Elevanthe CRM"}
+                    {branding.name}
                   </p>
-                  {profile?.document && (
-                    <p className="text-[10px] text-muted-foreground/70 mb-0.5">{profile.document}</p>
+                  {branding.document && (
+                    <p className="text-[10px] text-muted-foreground/70 mb-0.5">{branding.document}</p>
                   )}
                   <h1 className="text-xl font-bold text-foreground leading-snug break-words">{quote.title}</h1>
                 </div>
@@ -519,7 +534,7 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
         <p className="text-center text-xs text-muted-foreground mt-6 pb-4">
           Orçamento gerado por{" "}
           <span className="font-semibold text-foreground">
-            {profile?.name ? `${profile.name} via Elevanthe CRM` : "Elevanthe CRM"}
+            {branding.isPaid ? `${branding.name} via Elevanthe CRM` : "Elevanthe CRM"}
           </span>
         </p>
       </div>

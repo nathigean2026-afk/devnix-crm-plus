@@ -112,12 +112,31 @@ const statusLabels: Record<string, { label: string; cls: string }> = {
   cancelado: { label: "Cancelado", cls: "bg-red-500/20 text-red-300" },
 }
 
+/** Retorna dados de branding: usa dados da empresa se plano Business/Enterprise e campos preenchidos;
+ *  caso contrário usa padrão Elevanthe. */
+function getBranding(profile: BusinessProfile | null | undefined) {
+  const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
+  return {
+    name:     (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
+    logo:     (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-icon.png",
+    document: (isPaid && profile?.document) ? profile.document : null,
+    phone:    (isPaid && profile?.phone)    ? profile.phone    : null,
+    email:    (isPaid && profile?.email)    ? profile.email    : null,
+    address:  (isPaid && profile?.address)  ? profile.address  : null,
+    city:     (isPaid && profile?.city)     ? profile.city     : null,
+    state:    (isPaid && profile?.state)    ? profile.state    : null,
+    website:  (isPaid && profile?.website)  ? profile.website  : null,
+    isPaid,
+  }
+}
+
 export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
   const qrCanvasRef = useRef<HTMLCanvasElement>(null)
   const [pixPayload, setPixPayload] = useState("")
   const [qrError, setQrError] = useState(false)
   const profile = order.profile
   const client = order.client
+  const branding = getBranding(profile)
 
   const pixKey = order.pixKey || profile?.pixKey || ""
   const pixName = profile?.name || "RECEBEDOR"
@@ -150,23 +169,17 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
         <div className="bg-gray-900 text-white px-8 py-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              {profile?.logo ? (
-                <Image
-                  src={profile.logo}
-                  alt={profile.name ?? "Logo"}
-                  width={56}
-                  height={56}
-                  style={{ width: 56, height: "auto" }}
-                  className="object-contain rounded-md bg-white p-1 shrink-0"
-                />
-              ) : (
-                <div className="size-14 rounded-md bg-white/10 flex items-center justify-center shrink-0">
-                  <Building2 className="size-7 text-white/60" />
-                </div>
-              )}
+              <Image
+                src={branding.logo}
+                alt={branding.name}
+                width={56}
+                height={56}
+                style={{ width: 56, height: "auto" }}
+                className="object-contain rounded-md bg-white p-1 shrink-0"
+              />
               <div>
-                <h1 className="text-xl font-bold leading-tight">{profile?.name || "Empresa"}</h1>
-                {profile?.document && <p className="text-sm text-gray-400 mt-0.5">{profile.document}</p>}
+                <h1 className="text-xl font-bold leading-tight">{branding.name}</h1>
+                {branding.document && <p className="text-sm text-gray-400 mt-0.5">{branding.document}</p>}
               </div>
             </div>
             <div className="text-right shrink-0">
@@ -186,14 +199,14 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Prestador</p>
               <div className="flex flex-col gap-1 text-sm">
-                <p className="font-semibold text-gray-900">{profile?.name || "—"}</p>
-                {profile?.phone && <p className="flex items-center gap-1.5 text-gray-500"><Phone className="size-3 shrink-0" />{profile.phone}</p>}
-                {profile?.email && <p className="flex items-center gap-1.5 text-gray-500"><Mail className="size-3 shrink-0" />{profile.email}</p>}
-                {profile?.website && <p className="flex items-center gap-1.5 text-gray-500"><Globe className="size-3 shrink-0" />{profile.website}</p>}
-                {(profile?.address || profile?.city) && (
+                <p className="font-semibold text-gray-900">{branding.name}</p>
+                {branding.phone && <p className="flex items-center gap-1.5 text-gray-500"><Phone className="size-3 shrink-0" />{branding.phone}</p>}
+                {branding.email && <p className="flex items-center gap-1.5 text-gray-500"><Mail className="size-3 shrink-0" />{branding.email}</p>}
+                {branding.website && <p className="flex items-center gap-1.5 text-gray-500"><Globe className="size-3 shrink-0" />{branding.website}</p>}
+                {(branding.address || branding.city) && (
                   <p className="flex items-center gap-1.5 text-gray-500">
                     <MapPin className="size-3 shrink-0" />
-                    {[profile.address, profile.city, profile.state].filter(Boolean).join(", ")}
+                    {[branding.address, branding.city, branding.state].filter(Boolean).join(", ")}
                   </p>
                 )}
               </div>
@@ -351,7 +364,7 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
           <p className="text-xs text-gray-400">
             Ordem de Serviço gerada por{" "}
             <span className="font-semibold text-gray-600">
-              {profile?.name ? `${profile.name} via Elevanthe CRM` : "Elevanthe CRM"}
+              {branding.isPaid ? `${branding.name} via Elevanthe CRM` : "Elevanthe CRM"}
             </span>
           </p>
         </div>

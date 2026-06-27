@@ -66,14 +66,14 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 
 // Bloco de bloqueio para campos restritos ao plano Start.
 // Usa layout de fluxo normal (sem absolute) para nunca vazar sobre outros elementos.
-function PlanGate({ locked, planRequired = "Business", featureName, featureBenefit }: {
+function PlanGate({ locked, planRequired = "Business", featureName, featureBenefit, children }: {
   children: React.ReactNode
   locked: boolean
   planRequired?: string
   featureName?: string
   featureBenefit?: string
 }) {
-  if (!locked) return null
+  if (!locked) return <>{children}</>
 
   return (
     <div className="flex flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-5">

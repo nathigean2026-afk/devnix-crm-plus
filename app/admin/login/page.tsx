@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Shield } from "lucide-react"
 
 export default function AdminLoginPage() {
-  const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -21,12 +19,13 @@ export default function AdminLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       })
+      const data = await res.json()
       if (!res.ok) {
-        const data = await res.json()
         setError(data.error ?? "Erro ao fazer login.")
         return
       }
-      router.push("/admin")
+      // Usa token na URL como fallback para ambientes de preview (iframe) onde cookies são bloqueados
+      window.location.href = `/admin?t=${data.token ?? ""}`
     } catch {
       setError("Erro de conexão.")
     } finally {

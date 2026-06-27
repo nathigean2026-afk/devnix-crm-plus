@@ -61,76 +61,99 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const prevQuotesRef = useRef(initialQuotes)
+  const prevStatusMapRef = useRef<Record<string, string>>(
+    Object.fromEntries(initialQuotes.map(q => [q.id, q.status]))
+  )
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
   // Sincroniza estado local quando o servidor retorna dados novos (ex: após polling)
   useEffect(() => {
-    const prev = prevQuotesRef.current
-    const changed = initialQuotes.some((q) => {
-      const old = prev.find(p => p.id === q.id)
-      return !old || old.status !== q.status
-    }) || initialQuotes.length !== prev.length
-    if (changed) {
-      setQuotes(initialQuotes)
-      prevQuotesRef.current = initialQuotes
-    }
+    setQuotes(initialQuotes)
   }, [initialQuotes])
 
-  // Polling a cada 20s enquanto houver orçamentos pendentes de resposta
+  // Toca som de notificação via Web Audio API
+  function playNotificationSound(type: "aprovado" | "recusado") {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      const gainNode = ctx.createGain()
+      gainNode.connect(ctx.destination)
+      gainNode.gain.setValueAtTime(0.45, ctx.currentTime)
+
+      if (type === "aprovado") {
+        // Acorde ascendente: C5 → E5 → G5
+        const notes = [523.25, 659.25, 783.99]
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator()
+          osc.type = "sine"
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.13)
+          osc.connect(gainNode)
+          osc.start(ctx.currentTime + i * 0.13)
+          osc.stop(ctx.currentTime + i * 0.13 + 0.11)
+        })
+      } else {
+        // Bipes descendentes: A4 → F4
+        const notes = [440, 349.23]
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator()
+          osc.type = "sine"
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.18)
+          osc.connect(gainNode)
+          osc.start(ctx.currentTime + i * 0.18)
+          osc.stop(ctx.currentTime + i * 0.18 + 0.13)
+        })
+      }
+
+      setTimeout(() => ctx.close(), 1200)
+    } catch {
+      // Web Audio API não suportado — ignora silenciosamente
+    }
+  }
+
+  // Detecta mudanças de status após polling e dispara toast + som
   useEffect(() => {
-    const hasPending = quotes.some(q => q.status === "enviado" || q.status === "rascunho")
-    if (!hasPending) return
-    const interval = setInterval(() => {
-      router.refresh()
-    }, 20000)
-    return () => clearInterval(interval)
-  }, [quotes, router])
+    const prev = prevStatusMapRef.current
+    const changed: Quote[] = []
 
-  // Notifica via toast para orçamentos respondidos nas últimas 24h (respeita preferência do usuário)
-  useEffect(() => {
-    const notifEnabled = localStorage.getItem("devnix_quote_notifications_enabled")
-    // Habilitado por padrão (null = nunca configurou = ativo)
-    if (notifEnabled === "false") return
-
-    const STORAGE_KEY = "devnix_notified_quotes"
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000
-    const alreadyNotified: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
-
-    const recent = initialQuotes.filter((q) => {
-      const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
-      if (!respondedAt) return false
-      const ts = new Date(respondedAt).getTime()
-      return ts > cutoff && !alreadyNotified.includes(q.id)
+    initialQuotes.forEach(q => {
+      const oldStatus = prev[q.id]
+      if (oldStatus && oldStatus !== q.status &&
+          (q.status === "aprovado" || q.status === "recusado")) {
+        changed.push(q)
+      }
     })
 
-    if (recent.length === 0) return
+    // Atualiza o mapa de referência
+    prevStatusMapRef.current = Object.fromEntries(initialQuotes.map(q => [q.id, q.status]))
 
-    // Pequeno delay para garantir que o Toaster esteja montado após hidratação
-    const timer = setTimeout(() => {
-      recent.forEach((q) => {
-        const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
-        if (q.status === "aprovado") {
-          toast.success(`Orçamento aprovado por ${clientName}`, {
-            description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
-            duration: 10000,
-          })
-        } else if (q.status === "recusado") {
-          toast.error(`Orçamento recusado por ${clientName}`, {
-            description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
-            duration: 10000,
-          })
-        }
-      })
+    if (changed.length === 0) return
 
-      const newNotified = [...alreadyNotified, ...recent.map(q => q.id)]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotified))
-    }, 1200)
-
-    return () => clearTimeout(timer)
+    changed.forEach(q => {
+      const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
+      if (q.status === "aprovado") {
+        playNotificationSound("aprovado")
+        toast.success(`Orçamento aprovado por ${clientName}`, {
+          description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
+          duration: 12000,
+        })
+      } else if (q.status === "recusado") {
+        playNotificationSound("recusado")
+        toast.error(`Orçamento recusado por ${clientName}`, {
+          description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
+          duration: 12000,
+        })
+      }
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [initialQuotes])
+
+  // Polling a cada 15s enquanto houver orçamentos enviados aguardando resposta
+  useEffect(() => {
+    const hasPending = quotes.some(q => q.status === "enviado")
+    if (!hasPending) return
+    const interval = setInterval(() => router.refresh(), 15000)
+    return () => clearInterval(interval)
+  }, [quotes, router])
 
   function getClientPhone(q: Quote): string {
     const phone = clients.find(c => c.id === q.clientId)?.phone ?? ""
@@ -479,47 +502,58 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                 </p>
               )}
               {items.map((item, idx) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-md p-3 bg-muted/20">
-                  <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
-                    <Label className="text-muted-foreground text-xs">Serviço / Descrição</Label>
-                    <Select value={item.serviceId ?? "__manual__"} onValueChange={(v) => updateItem(item.id, "serviceId", v === "__manual__" ? "" : v)}>
-                      <SelectTrigger className="bg-input border-border text-foreground h-8 text-sm">
-                        <SelectValue>
-                          {item.serviceId
-                            ? services.find((s) => s.id === item.serviceId)?.name ?? "Manual"
-                            : "Manual"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border">
-                        <SelectItem value="__manual__">Manual</SelectItem>
-                        {services.filter(s => s.active || s.id === item.serviceId).map((s) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="Descrição"
-                      value={item.description}
-                      onChange={(e) => updateItem(item.id, "description", e.target.value)}
-                      className="bg-input border-border text-foreground h-8 text-sm mt-1"
-                    />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 flex flex-col gap-1">
-                    <Label className="text-muted-foreground text-xs">Qtd</Label>
-                    <Input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", e.target.value)} className="bg-input border-border text-foreground h-8 text-sm" />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 flex flex-col gap-1">
-                    <Label className="text-muted-foreground text-xs">Preço Unit.</Label>
-                    <Input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(item.id, "unitPrice", e.target.value)} className="bg-input border-border text-foreground h-8 text-sm" />
-                  </div>
-                  <div className="col-span-3 sm:col-span-2 flex flex-col gap-1">
-                    <Label className="text-muted-foreground text-xs">Total</Label>
-                    <p className="h-8 flex items-center text-sm font-semibold text-foreground">{formatCurrency(item.total)}</p>
-                  </div>
-                  <div className="col-span-1 flex items-end justify-end pb-0.5">
-                    <Button type="button" variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)}>
-                      <X className="size-4" />
+                <div key={item.id} className="flex flex-col gap-2 border border-border rounded-md p-3 bg-muted/20">
+                  {/* Cabeçalho do item: número + botão excluir */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Item {idx + 1}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 text-xs font-medium"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Excluir item
                     </Button>
+                  </div>
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
+                      <Label className="text-muted-foreground text-xs">Serviço / Descrição</Label>
+                      <Select value={item.serviceId ?? "__manual__"} onValueChange={(v) => updateItem(item.id, "serviceId", v === "__manual__" ? "" : v)}>
+                        <SelectTrigger className="bg-input border-border text-foreground h-8 text-sm">
+                          <SelectValue>
+                            {item.serviceId
+                              ? services.find((s) => s.id === item.serviceId)?.name ?? "Manual"
+                              : "Manual"}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border-border">
+                          <SelectItem value="__manual__">Manual</SelectItem>
+                          {services.filter(s => s.active || s.id === item.serviceId).map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Descrição"
+                        value={item.description}
+                        onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                        className="bg-input border-border text-foreground h-8 text-sm mt-1"
+                      />
+                    </div>
+                    <div className="col-span-4 sm:col-span-2 flex flex-col gap-1">
+                      <Label className="text-muted-foreground text-xs">Qtd</Label>
+                      <Input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", e.target.value)} className="bg-input border-border text-foreground h-8 text-sm" />
+                    </div>
+                    <div className="col-span-4 sm:col-span-2 flex flex-col gap-1">
+                      <Label className="text-muted-foreground text-xs">Preço Unit.</Label>
+                      <Input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(item.id, "unitPrice", e.target.value)} className="bg-input border-border text-foreground h-8 text-sm" />
+                    </div>
+                    <div className="col-span-4 sm:col-span-3 flex flex-col gap-1">
+                      <Label className="text-muted-foreground text-xs">Total</Label>
+                      <p className="h-8 flex items-center text-sm font-semibold text-foreground">{formatCurrency(item.total)}</p>
+                    </div>
                   </div>
                 </div>
               ))}

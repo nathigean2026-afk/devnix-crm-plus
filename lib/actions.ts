@@ -933,6 +933,36 @@ export async function sendSupportMessage(
   revalidatePath(`/dashboard/suporte/${ticketId}`)
 }
 
+/** Fecha o ticket pelo próprio usuário (resolvido por conta própria) */
+export async function closeTicketByUser(ticketId: string) {
+  const userId = await getUserId()
+  const [ticket] = await db
+    .select({ id: supportTickets.id, status: supportTickets.status })
+    .from(supportTickets)
+    .where(and(eq(supportTickets.id, ticketId), eq(supportTickets.userId, userId)))
+    .limit(1)
+  if (!ticket) throw new Error("Ticket não encontrado")
+  if (ticket.status === "fechado" || ticket.status === "resolvido")
+    throw new Error("Ticket já está fechado.")
+  await db
+    .update(supportTickets)
+    .set({ status: "fechado", updatedAt: new Date() })
+    .where(and(eq(supportTickets.id, ticketId), eq(supportTickets.userId, userId)))
+  revalidatePath(`/dashboard/suporte/${ticketId}`)
+  revalidatePath("/dashboard/suporte")
+}
+
+/** Retorna o licensePlan do usuário logado */
+export async function getUserLicensePlan(): Promise<string> {
+  const userId = await getUserId()
+  const [profile] = await db
+    .select({ licensePlan: businessProfile.licensePlan })
+    .from(businessProfile)
+    .where(eq(businessProfile.userId, userId))
+    .limit(1)
+  return (profile?.licensePlan ?? "starter").toLowerCase()
+}
+
 // ── Suporte (Admin) ───────────────────────────────────────────────────────────
 
 export async function adminGetTickets() {
@@ -948,9 +978,11 @@ export async function adminGetTickets() {
       userId: supportTickets.userId,
       userName: user.name,
       userEmail: user.email,
+      licensePlan: businessProfile.licensePlan,
     })
     .from(supportTickets)
     .leftJoin(user, eq(user.id, supportTickets.userId))
+    .leftJoin(businessProfile, eq(businessProfile.userId, supportTickets.userId))
     .orderBy(desc(supportTickets.updatedAt))
   return tickets
 }
@@ -1082,7 +1114,8 @@ export async function createServiceOrder(data: {
 export async function updateServiceOrderStatus(
   id: string,
   status: string,
-  paymentMethod?: "pix" | "cash" | "card" | "other"
+  paymentMethod?: "pix" | "cash" | "card" | "other",
+  customAmount?: string
 ) {
   const userId = await getUserId()
   await db
@@ -1094,51 +1127,72 @@ export async function updateServiceOrderStatus(
     })
     .where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, userId)))
 
-  // Auto-lançamento financeiro ao concluir OS
-  if (status === "concluido") {
-    const [order] = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
-    if (order && Number(order.total) > 0) {
-      // Anti-duplicata: verifica se já existe lançamento para esta OS
-      const existing = await db
-        .select({ id: transactions.id })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.userId, userId),
-            like(transactions.description, `OS #${String(order.number).padStart(4, "0")} —%`)
-          )
+  const [order] = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
+  if (!order) { revalidatePath("/dashboard/ordens-servico"); return }
+
+  const orderPrefix = `OS #${String(order.number).padStart(4, "0")} —`
+
+  // Se o status foi revertido (não-concluído), remove o lançamento financeiro desta OS
+  if (status !== "concluido") {
+    await db
+      .delete(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          like(transactions.description, `${orderPrefix}%`)
         )
-        .limit(1)
+      )
+    revalidatePath("/dashboard/financeiro")
+    revalidatePath("/dashboard/relatorios")
+    revalidatePath("/dashboard/ordens-servico")
+    return
+  }
 
-      if (existing.length === 0) {
-        // Determina valor com base na forma de pagamento escolhida
-        let amountToRecord = order.total
-        if ((paymentMethod === "cash" || paymentMethod === "pix") && order.cashPrice && Number(order.cashPrice) > 0) {
-          amountToRecord = order.cashPrice
-        } else if (paymentMethod === "card" && order.cardPrice && Number(order.cardPrice) > 0) {
-          amountToRecord = order.cardPrice
-        }
+  // Auto-lançamento financeiro ao concluir OS
+  if (Number(order.total) > 0 || (customAmount && Number(customAmount) > 0)) {
+    // Anti-duplicata: verifica se já existe lançamento para esta OS
+    const existing = await db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          like(transactions.description, `${orderPrefix}%`)
+        )
+      )
+      .limit(1)
 
-        // Monta a descrição com a forma de pagamento
-        const paymentLabel = paymentMethod === "pix" ? " (Pix)"
-          : paymentMethod === "cash" ? " (À vista)"
-          : paymentMethod === "card" ? " (Cartão)"
-          : ""
-
-        await db.insert(transactions).values({
-          id: crypto.randomUUID(),
-          userId,
-          clientId: order.clientId,
-          type: "receita",
-          description: `OS #${String(order.number).padStart(4, "0")} — ${order.title}${paymentLabel}`,
-          amount: amountToRecord,
-          category: "Serviço",
-          status: "pago",
-          paidAt: new Date().toISOString().split("T")[0],
-          dueDate: new Date().toISOString().split("T")[0],
-        })
-        revalidatePath("/dashboard/financeiro")
+    if (existing.length === 0) {
+      // Determina valor: customAmount > cashPrice/cardPrice > total
+      let amountToRecord: string = order.total
+      if (customAmount && Number(customAmount) > 0) {
+        amountToRecord = customAmount
+      } else if ((paymentMethod === "cash" || paymentMethod === "pix") && order.cashPrice && Number(order.cashPrice) > 0) {
+        amountToRecord = order.cashPrice
+      } else if (paymentMethod === "card" && order.cardPrice && Number(order.cardPrice) > 0) {
+        amountToRecord = order.cardPrice
       }
+
+      const paymentLabel = paymentMethod === "pix" ? " (Pix)"
+        : paymentMethod === "cash" ? " (À vista)"
+        : paymentMethod === "card" ? " (Cartão)"
+        : customAmount && Number(customAmount) > 0 ? " (Valor informado)"
+        : ""
+
+      await db.insert(transactions).values({
+        id: crypto.randomUUID(),
+        userId,
+        clientId: order.clientId,
+        type: "receita",
+        description: `${orderPrefix} ${order.title}${paymentLabel}`,
+        amount: amountToRecord,
+        category: "Serviço",
+        status: "pago",
+        paidAt: new Date().toISOString().split("T")[0],
+        dueDate: new Date().toISOString().split("T")[0],
+      })
+      revalidatePath("/dashboard/financeiro")
+      revalidatePath("/dashboard/relatorios")
     }
   }
 
@@ -1322,7 +1376,7 @@ export async function getDashboardStats() {
   }
 }
 
-// ── Funcionarios (Enterprise) ─────────────────────────────────────────────────
+// ── Funcionarios (Enterprise) ──────────────────────────────────────────────��──
 
 /** Retorna o funcionario vinculado ao dono (se houver) e o convite pendente */
 export async function getEmployeeData() {

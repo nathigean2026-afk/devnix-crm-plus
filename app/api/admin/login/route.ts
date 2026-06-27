@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sql } from "drizzle-orm"
 import { scryptSync, timingSafeEqual } from "crypto"
-import { cookies } from "next/headers"
 
 function verifyPassword(password: string, stored: string): boolean {
   try {
@@ -27,20 +26,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 })
   }
 
-  const cookieStore = await cookies()
-  cookieStore.set("admin_session", admin.id, {
+  const isProd = process.env.NODE_ENV === "production"
+  // Retorna o token no JSON para fallback via query string em ambientes de preview
+  const res = NextResponse.json({ ok: true, token: "admin-nathigean-001" })
+  res.cookies.set("admin_session", "admin-nathigean-001", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 8, // 8 horas
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 60 * 60 * 8,
     path: "/",
   })
-
-  return NextResponse.json({ ok: true })
+  return res
 }
 
 export async function DELETE() {
-  const cookieStore = await cookies()
-  cookieStore.delete("admin_session")
-  return NextResponse.json({ ok: true })
+  const res = NextResponse.json({ ok: true })
+  res.cookies.delete("admin_session")
+  return res
 }
