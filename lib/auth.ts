@@ -19,6 +19,9 @@ const trustedOrigins = [
     : undefined,
   process.env.V0_RUNTIME_URL,
   "http://localhost:3000",
+  // Domínio de produção personalizado
+  "https://crm.elevanthe.com",
+  "https://devnix-crm-plus.vercel.app",
   // Suporta wildcard nativo do Better Auth para o preview iframe da v0
   "https://*.vusercontent.net",
   "https://*.vercel.app",

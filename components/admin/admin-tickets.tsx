@@ -25,12 +25,15 @@ function getPlanBadge(plan: string | null | undefined) {
   return null
 }
 
-// Formatação de data sem dependência de fuso local (evita hydration mismatch)
+// Usa getters UTC diretamente para evitar hydration mismatch entre Node.js e browser
+function _p(n: number) { return String(n).padStart(2, "0") }
 function fmtDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })
+  const dt = new Date(d)
+  return `${_p(dt.getUTCDate())}/${_p(dt.getUTCMonth() + 1)}/${dt.getUTCFullYear()}`
 }
 function fmtDateTime(d: Date | string) {
-  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
+  const dt = new Date(d)
+  return `${_p(dt.getUTCDate())}/${_p(dt.getUTCMonth() + 1)}, ${_p(dt.getUTCHours())}:${_p(dt.getUTCMinutes())}`
 }
 type MsgRow = {
   id: string; body: string; authorRole: string; attachments: string | null; createdAt: Date

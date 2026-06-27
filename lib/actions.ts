@@ -630,7 +630,7 @@ export async function adminGetStats() {
       profileEmail: businessProfile.email,
       licensePlan: businessProfile.licensePlan,
       lastSessionIp: sql<string>`(SELECT "ipAddress" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
-      lastSessionAt: sql<Date>`(SELECT "updatedAt" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
+      lastSessionAt: sql<string>`(SELECT TO_CHAR("updatedAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
       lastUserAgent: sql<string>`(SELECT "userAgent" FROM session WHERE "userId" = ${user.id} ORDER BY "updatedAt" DESC LIMIT 1)`,
     })
     .from(user)
@@ -642,13 +642,14 @@ export async function adminGetStats() {
   let dailyLogins: { day: string; logins: number }[] = []
   try {
     const result = await db.execute(sql`
-      SELECT DATE("createdAt") as day, COUNT(*) as logins
+      SELECT TO_CHAR(DATE("createdAt"), 'YYYY-MM-DD') as day, COUNT(*) as logins
       FROM session
       WHERE "createdAt" >= NOW() - INTERVAL '14 days'
       GROUP BY DATE("createdAt")
       ORDER BY day ASC
     `)
     const rows = (result as any)?.rows ?? (Array.isArray(result) ? result : [])
+    // day já vem como string "YYYY-MM-DD" via TO_CHAR, sem conversão de Date object
     dailyLogins = rows.map((r: any) => ({ day: String(r.day), logins: Number(r.logins) }))
   } catch { /* logins diários opcionais */ }
 
@@ -809,6 +810,33 @@ export async function adminExtendLicense(userId: string, days: number) {
 
 export async function adminRevokeAccess(userId: string) {
   await db.update(user).set({ accessExpiresAt: new Date(0), updatedAt: new Date() }).where(eq(user.id, userId))
+  revalidatePath("/admin")
+}
+
+export async function adminDeleteUser(userId: string) {
+  // Remove dados do usuário em ordem segura antes de deletar o registro principal.
+  // Tabelas com onDelete:"cascade" são limpas automaticamente (session, account, etc.)
+  // supportMessages não tem userId — deletar via ticketId dos tickets do usuário
+  await db.delete(supportMessages).where(
+    sql`"ticketId" IN (SELECT id FROM support_tickets WHERE "userId" = ${userId})`
+  )
+  await db.delete(supportTickets).where(eq(supportTickets.userId, userId))
+  await db.delete(payments).where(eq(payments.userId, userId))
+  await db.delete(transactions).where(eq(transactions.userId, userId))
+  await db.delete(serviceOrderItems).where(
+    sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+  )
+  await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
+  await db.delete(quoteItems).where(
+    sql`"quoteId" IN (SELECT id FROM quotes WHERE "userId" = ${userId})`
+  )
+  await db.delete(quotes).where(eq(quotes.userId, userId))
+  await db.delete(services).where(eq(services.userId, userId))
+  await db.delete(clients).where(eq(clients.userId, userId))
+  await db.delete(employeePermissions).where(eq(employeePermissions.employeeId, userId))
+  await db.delete(employeeInvites).where(eq(employeeInvites.ownerId, userId))
+  await db.delete(businessProfile).where(eq(businessProfile.userId, userId))
+  await db.delete(user).where(eq(user.id, userId))
   revalidatePath("/admin")
 }
 
@@ -1311,7 +1339,7 @@ export async function getReportData() {
   }
 }
 
-// ── Dashboard Stats ───────────────────────────────────────────────────────────
+// ── Dashboard Stats ───────────────────────────────────────────────��───────────
 export async function getDashboardStats() {
   const userId = await getUserId()
 

@@ -6,6 +6,7 @@ import type { PromoCode } from "@/lib/db/schema"
 import {
   adminCreatePromoCode, adminDeletePromoCode,
   adminUpdateUser, adminSendPasswordReset, adminExtendLicense, adminRevokeAccess,
+  adminDeleteUser,
   adminGetPayments,
 } from "@/lib/actions"
 import { AdminTickets } from "@/components/admin/admin-tickets"
@@ -81,20 +82,29 @@ type TicketRow = {
   licensePlan?: string | null
 }
 
-// Todas as formatações usam timeZone: "UTC" para evitar mismatch de hidratação
-// entre servidor (UTC) e cliente (fuso local)
+// Usa getters UTC diretamente — sem Intl/toLocaleString que pode divergir
+// entre Node.js (servidor) e browser (cliente) causando hydration mismatch.
+function pad(n: number) { return String(n).padStart(2, "0") }
+
 function formatDate(d: Date | string | null) {
   if (!d) return "—"
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return "—"
+  return `${pad(dt.getUTCDate())}/${pad(dt.getUTCMonth() + 1)}/${dt.getUTCFullYear()}`
 }
 
 function formatDateTime(d: Date | string | null) {
   if (!d) return "—"
-  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return "—"
+  return `${pad(dt.getUTCDate())}/${pad(dt.getUTCMonth() + 1)}, ${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}`
 }
 
 function formatDayLabel(d: string) {
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" })
+  // d vem como "YYYY-MM-DD" via TO_CHAR no Postgres — extrai por split, sem Date()
+  const parts = String(d).slice(0, 10).split("-")
+  if (parts.length !== 3) return d
+  return `${parts[2]}/${parts[1]}`
 }
 
 function daysLeft(d: Date | string | null) {
@@ -147,7 +157,7 @@ export default function AdminDashboard({
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, expiresAt: "" })
   const [showForm, setShowForm] = useState(false)
   const [localCodes, setLocalCodes] = useState(codes)
-  const [stats] = useState(initialStats)
+  const [stats, setStats] = useState(initialStats)
   const [userSearch, setUserSearch] = useState("")
   const [userFilter, setUserFilter] = useState<"todos" | "ativos" | "expirados" | "online">("todos")
   const [editingUser, setEditingUser] = useState<LicenseRow | null>(null)
@@ -159,6 +169,7 @@ export default function AdminDashboard({
   const [paymentsList, setPaymentsList] = useState<PaymentRow[]>([])
   const [paymentsLoading, setPaymentsLoading] = useState(false)
   const [paymentFilter, setPaymentFilter] = useState<"todos" | "approved" | "pending" | "rejected">("todos")
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const onlineUserIds = new Set(stats.onlineSessions.map(s => s.userId))
 
@@ -184,6 +195,29 @@ export default function AdminDashboard({
   async function handleLogout() {
     await fetch("/api/admin/login", { method: "DELETE" })
     router.push("/admin/login")
+  }
+
+  function handleDeleteUser() {
+    if (!editingUser) return
+    const deletedId = editingUser.userId
+    startTransition(async () => {
+      try {
+        await adminDeleteUser(deletedId)
+        // Remove o usuário da lista local imediatamente, sem precisar de F5
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.filter(u => u.userId !== deletedId),
+          totalUsers: prev.totalUsers - 1,
+          onlineSessions: prev.onlineSessions.filter(s => s.userId !== deletedId),
+        }))
+        setEditingUser(null)
+        setConfirmDelete(false)
+        toast.success("Usuário excluído com sucesso.")
+        router.refresh()
+      } catch {
+        toast.error("Erro ao excluir usuário.")
+      }
+    })
   }
 
   async function handleCreateCode(e: React.FormEvent) {
@@ -821,7 +855,7 @@ export default function AdminDashboard({
                     <span className={cn("text-xs font-medium", darkMode ? "text-white/60" : "text-slate-500")}>Latência (ping)</span>
                   </div>
                   <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>
-                    {stats.dbMetrics?.latencyMs != null ? `${stats.dbMetrics.latencyMs}ms` : "—"}
+                    {stats.dbMetrics?.latencyMs != null ? `${stats.dbMetrics.latencyMs}ms` : "��"}
                   </p>
                   <p className={cn("text-xs mt-1", darkMode ? "text-white/30" : "text-slate-400")}>
                     {stats.dbMetrics?.latencyMs != null
@@ -936,7 +970,7 @@ export default function AdminDashboard({
                     <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{editingUser.profileEmail || editingUser.userEmail}</p>
                   </div>
                 </div>
-                <button onClick={() => { setEditingUser(null); setResetLink(null) }} className={cn("p-1 rounded-lg", darkMode ? "hover:bg-white/10 text-white/50" : "hover:bg-slate-100 text-slate-400")}>
+                <button onClick={() => { setEditingUser(null); setResetLink(null); setConfirmDelete(false) }} className={cn("p-1 rounded-lg", darkMode ? "hover:bg-white/10 text-white/50" : "hover:bg-slate-100 text-slate-400")}>
                   <X className="size-4" />
                 </button>
               </div>
@@ -1010,9 +1044,40 @@ export default function AdminDashboard({
                 {/* Zona perigosa */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider mb-3 text-red-400">Zona perigosa</p>
-                  <button onClick={handleRevokeAccess} disabled={isPending} className="w-full flex items-center justify-center gap-2 text-sm py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-60">
-                    <Ban className="size-4" />Revogar acesso imediatamente
-                  </button>
+                  <div className="space-y-2">
+                    <button onClick={handleRevokeAccess} disabled={isPending} className="w-full flex items-center justify-center gap-2 text-sm py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-60">
+                      <Ban className="size-4" />Revogar acesso imediatamente
+                    </button>
+
+                    {!confirmDelete ? (
+                      <button
+                        onClick={() => setConfirmDelete(true)}
+                        disabled={isPending}
+                        className="w-full flex items-center justify-center gap-2 text-sm py-2 rounded-lg border border-red-600/50 bg-red-600/10 text-red-400 hover:bg-red-600/20 transition-colors disabled:opacity-60"
+                      >
+                        <Trash2 className="size-4" />Excluir conta permanentemente
+                      </button>
+                    ) : (
+                      <div className={cn("rounded-lg border border-red-500/40 p-3 space-y-2", darkMode ? "bg-red-500/10" : "bg-red-50")}>
+                        <p className="text-xs text-red-400 font-medium text-center">Esta acao e irreversivel. Todos os dados do usuario serao apagados.</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setConfirmDelete(false)}
+                            className={cn("flex-1 text-sm py-1.5 rounded-lg border transition-colors", darkMode ? "border-white/10 text-white/50 hover:bg-white/5" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={handleDeleteUser}
+                            disabled={isPending}
+                            className="flex-1 text-sm py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-60"
+                          >
+                            {isPending ? "Excluindo..." : "Confirmar exclusao"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
