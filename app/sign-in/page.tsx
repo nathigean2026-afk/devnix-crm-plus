@@ -6,8 +6,13 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Entrar" }
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kicked?: string }>
+}) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (session?.user) redirect("/dashboard")
-  return <AuthForm mode="sign-in" />
+  const params = await searchParams
+  return <AuthForm mode="sign-in" kicked={params.kicked === "1"} />
 }

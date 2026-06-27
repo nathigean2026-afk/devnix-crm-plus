@@ -90,8 +90,10 @@ export async function POST(req: NextRequest) {
     const result = await mpRes.json()
 
     if (!mpRes.ok) {
-      console.error("[v0] MP Checkout erro:", JSON.stringify(result))
-      return NextResponse.json({ error: result?.message ?? "Erro ao criar preferência" }, { status: 400 })
+      console.error("[v0] MP Checkout erro status:", mpRes.status)
+      console.error("[v0] MP Checkout erro body:", JSON.stringify(result, null, 2))
+      console.error("[v0] MP Checkout preferenceBody enviado:", JSON.stringify(preferenceBody, null, 2))
+      return NextResponse.json({ error: result?.message ?? "Erro ao criar preferência", detail: result }, { status: 400 })
     }
 
     // Registra pagamento como pending para rastreamento no admin

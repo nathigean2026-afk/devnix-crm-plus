@@ -21,7 +21,12 @@ export default async function PlanosPage({
   const params = await searchParams
   const isRenovar = params.renovar === "1"
 
-  const license = await getUserLicense()
+  let license = { isActive: false, expiresAt: null as Date | null, daysLeft: 0 }
+  try {
+    license = await getUserLicense()
+  } catch {
+    // Se getUserLicense falhar (ex.: sessão inconsistente), segue sem redirecionar
+  }
   // Se ja tem licenca ativa e nao e renovacao, vai pro dashboard
   if (license.isActive && !isRenovar) redirect("/dashboard")
 
