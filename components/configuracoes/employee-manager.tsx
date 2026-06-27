@@ -100,7 +100,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
 
   const { employee, pendingInvite } = data
 
-  // Permissoes editaveis localmente antes de salvar
+  // Permissões editáveis localmente antes de salvar
   const [perms, setPerms] = useState({
     canClients: employee?.canClients ?? false,
     canServices: employee?.canServices ?? false,
@@ -119,9 +119,9 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
     setSavingPerms(true)
     try {
       await updateEmployeePermissions(employee.id, perms)
-      toast.success("Permissoes atualizadas com sucesso.")
+      toast.success("Permissões atualizadas com sucesso.")
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao salvar permissoes.")
+      toast.error(err?.message ?? "Erro ao salvar permissões.")
     } finally {
       setSavingPerms(false)
     }
@@ -168,12 +168,12 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
 
   async function handleRemoveEmployee() {
     if (!employee) return
-    if (!confirm("Tem certeza que deseja remover o funcionario? Ele perdera acesso imediatamente.")) return
+    if (!confirm("Tem certeza que deseja remover o funcionário? Ele perderá acesso imediatamente.")) return
     startTransition(async () => {
       try {
         await removeEmployee(employee.id)
         setData({ employee: null, pendingInvite: null })
-        toast.success("Funcionario removido.")
+        toast.success("Funcionário removido.")
       } catch (err: any) {
         toast.error(err?.message ?? "Erro ao remover funcionario.")
       }
@@ -199,13 +199,13 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Users className="size-5 text-primary" />
-          <CardTitle className="text-foreground text-lg">Funcionario</CardTitle>
+          <CardTitle className="text-foreground text-lg">Funcionário</CardTitle>
           <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5 ml-auto">
             Enterprise
           </Badge>
         </div>
         <CardDescription className="text-muted-foreground">
-          Convide 1 funcionario para acessar o sistema com permissoes que voce define.
+          Convide 1 funcionário para acessar o sistema com permissões que você define.
         </CardDescription>
       </CardHeader>
 
@@ -215,9 +215,9 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
           <div className="rounded-xl border border-dashed border-border bg-muted/20 flex flex-col items-center gap-3 py-10 px-6 text-center">
             <Users className="size-8 text-muted-foreground" />
             <div>
-              <p className="text-sm font-medium text-foreground">Disponivel no plano Enterprise</p>
+              <p className="text-sm font-medium text-foreground">Disponível no plano Enterprise</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Faca upgrade para adicionar um funcionario e definir suas permissoes de acesso.
+                Faça upgrade para adicionar um funcionário e definir suas permissões de acesso.
               </p>
             </div>
             <a
@@ -237,7 +237,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    {employee.employeeName ?? "Funcionario"}
+                    {employee.employeeName ?? "Funcionário"}
                   </p>
                   <p className="text-xs text-muted-foreground">{employee.employeeEmail}</p>
                 </div>
@@ -258,7 +258,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
             <div className="rounded-xl border border-border bg-card">
               <div className="flex items-center gap-2 px-4 pt-4 pb-2">
                 <ShieldCheck className="size-4 text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">Permissoes de acesso</p>
+                <p className="text-sm font-medium text-foreground">Permissões de acesso</p>
               </div>
               <div className="px-4 pb-2">
                 {PERMS_CONFIG.map(({ key, label, description }) => (
@@ -278,7 +278,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   size="sm"
                 >
-                  {savingPerms ? "Salvando..." : "Salvar permissoes"}
+                  {savingPerms ? "Salvando..." : "Salvar permissões"}
                 </Button>
               </div>
             </div>
@@ -333,7 +333,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Compartilhe este link com seu funcionario. Ele precisara estar cadastrado no sistema com o e-mail{" "}
+                  Compartilhe este link com seu funcionário. Ele precisará estar cadastrado no sistema com o e-mail{" "}
                   <strong>{pendingInvite.email}</strong>.
                 </p>
               </div>
@@ -345,15 +345,15 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
             <div className="rounded-xl border border-dashed border-border bg-muted/10 p-4 flex items-start gap-3">
               <UserPlus className="size-5 text-muted-foreground mt-0.5 shrink-0" />
               <div className="text-xs text-muted-foreground leading-relaxed">
-                Convide um funcionario informando o e-mail cadastrado ou que ele ira cadastrar no sistema.
-                Voce define exatamente quais modulos ele pode acessar apos a aceitacao.
+                Convide um funcionário informando o e-mail cadastrado ou que ele irá cadastrar no sistema.
+                Você define exatamente quais módulos ele pode acessar após a aceitação.
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="emp-email" className="text-foreground text-sm">
                 <Mail className="size-3.5 inline mr-1.5" />
-                E-mail do funcionario
+                E-mail do funcionário
               </Label>
               <div className="flex gap-2">
                 <Input

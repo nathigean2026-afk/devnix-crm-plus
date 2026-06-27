@@ -57,6 +57,10 @@ import {
   Mail,
   Share2,
   Receipt,
+  Circle,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -76,11 +80,11 @@ interface ServiceOrdersViewProps {
   services: Service[]
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  aberto: { label: "Aberto", color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
-  "em-andamento": { label: "Em andamento", color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20" },
-  concluido: { label: "Concluído", color: "bg-green-500/15 text-green-400 border-green-500/20" },
-  cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground" },
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  aberto:        { label: "Aberto",        color: "bg-blue-500/15 text-blue-400 border-blue-500/20",     icon: Circle },
+  "em-andamento":{ label: "Em andamento",  color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20", icon: Clock },
+  concluido:     { label: "Concluído",     color: "bg-green-500/15 text-green-400 border-green-500/20",  icon: CheckCircle2 },
+  cancelado:     { label: "Cancelado",     color: "bg-muted text-muted-foreground",                       icon: XCircle },
 }
 
 function formatCurrency(value: string | number) {
@@ -363,6 +367,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
               <div className="flex flex-col divide-y divide-border md:hidden">
                 {filtered.map((o) => {
                   const sc = statusConfig[o.status] ?? statusConfig.aberto
+                  const StatusIconMobile = sc.icon
                   return (
                     <div key={o.id} className="flex items-center gap-3 px-4 py-3">
                       <div className="flex-1 min-w-0">
@@ -370,7 +375,9 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                           <span className="text-xs font-mono text-muted-foreground">
                             #{String(o.number).padStart(4, "0")}
                           </span>
-                          <Badge className={`${sc.color} text-xs`}>{sc.label}</Badge>
+                          <Badge className={`${sc.color} text-xs flex items-center gap-1`}>
+                            <StatusIconMobile className="size-3 shrink-0" />{sc.label}
+                          </Badge>
                         </div>
                         <p className="font-medium text-foreground text-sm truncate">{o.title}</p>
                         <p className="text-xs text-muted-foreground truncate">{getClientName(o.clientId)}</p>
@@ -429,6 +436,7 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
               <TableBody>
                 {filtered.map((o) => {
                   const sc = statusConfig[o.status] ?? statusConfig.aberto
+                  const StatusIcon = sc.icon
                   return (
                     <TableRow key={o.id} className="border-border hover:bg-muted/20">
                       <TableCell className="text-muted-foreground font-mono text-sm">
@@ -442,7 +450,10 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                         {formatCurrency(o.total)}
                       </TableCell>
                       <TableCell>
-                        <Badge className={sc.color}>{sc.label}</Badge>
+                        <Badge className={`${sc.color} flex items-center gap-1 w-fit`}>
+                          <StatusIcon className="size-3 shrink-0" />
+                          {sc.label}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                         {format(new Date(o.createdAt), "dd/MM/yyyy", { locale: ptBR })}

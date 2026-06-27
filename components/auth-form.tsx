@@ -116,7 +116,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           {/* Social proof */}
           <div className="pt-2 border-t border-white/[0.06]">
             <p className="text-xs text-white/25">
-              Pagamento seguro via Mercado Pago · Pix, cartao e boleto
+              Pagamento seguro via Mercado Pago · Pix, cartão e boleto
             </p>
           </div>
         </div>
@@ -293,7 +293,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 href="/demo"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
-                Ver demonstracao do sistema
+                Ver demonstração do sistema
                 <ArrowRight className="size-3" />
               </Link>
             </div>

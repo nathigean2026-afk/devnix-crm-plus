@@ -70,7 +70,7 @@ const modules = [
   {
     id: "os",
     icon: Wrench,
-    label: "Ordens de Servico",
+    label: "Ordens de Serviço",
     path: "dashboard/ordens-servico",
     tag: "Controle operacional",
     title: "Controle total das suas OS",
@@ -104,8 +104,8 @@ const modules = [
 ]
 
 const socialProof = [
-  { name: "Carlos M.", role: "Tecnico de informatica", text: "Antes eu usava planilha. Agora tenho tudo organizado e meu cliente recebe orcamento profissional na hora." },
-  { name: "Ana R.", role: "Agencia web", text: "O financeiro me deu clareza total de onde estava o dinheiro. Indispensavel para crescer." },
+  { name: "Carlos M.", role: "Técnico de informática", text: "Antes eu usava planilha. Agora tenho tudo organizado e meu cliente recebe orçamento profissional na hora." },
+  { name: "Ana R.", role: "Agência web", text: "O financeiro me deu clareza total de onde estava o dinheiro. Indispensável para crescer." },
   { name: "Pedro S.", role: "Freelancer", text: "O tour interativo me convenceu em 5 minutos. Comecei pelo plano Start e renovei no mesmo dia." },
 ]
 
@@ -178,7 +178,7 @@ export default function DemoPage() {
           className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed mb-8"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }}
         >
-          Navegue pelos modulos abaixo e veja capturas reais do sistema funcionando.
+          Navegue pelos módulos abaixo e veja capturas reais do sistema funcionando.
         </motion.p>
 
         {/* Stats linha */}
@@ -187,7 +187,7 @@ export default function DemoPage() {
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }}
         >
           {[
-            { v: "R$ 7", l: "para comecar" },
+            { v: "R$ 7", l: "para começar" },
             { v: "5 min", l: "para configurar" },
             { v: "100%", l: "web, sem instalar" },
           ].map((s) => (
@@ -423,11 +423,11 @@ export default function DemoPage() {
                 href={SIGNUP_URL}
                 className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-border text-muted-foreground text-[11px] font-bold tracking-widest uppercase hover:text-foreground hover:bg-muted/50 transition-all"
               >
-                Criar conta gratis
+                Criar conta grátis
               </Link>
             </div>
             <p className="mt-5 text-xs text-muted-foreground">
-              Pagamento via Pix ou cartao · Ativacao instantanea
+              Pagamento via Pix ou cartão · Ativação instantânea
             </p>
           </motion.div>
         </div>

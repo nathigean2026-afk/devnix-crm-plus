@@ -174,7 +174,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         <div className="pt-16 pb-12 text-center">
           <div className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-widest uppercase px-3 py-1 rounded-full border border-border bg-muted/30 text-muted-foreground mb-6">
             <Sparkles className="size-3 text-primary" />
-            {isRenovar ? "Renovacao de licenca" : "Planos e precos"}
+            {isRenovar ? "Renovação de licença" : "Planos e preços"}
           </div>
 
           <h1 className="text-[42px] sm:text-[56px] font-black tracking-tighter leading-[1.04] text-foreground text-balance mb-5">
@@ -185,13 +185,13 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
           </h1>
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-pretty mb-8">
-            Acesso completo a todos os modulos.
-            Pagamento unico, sem assinatura automatica.
+            Acesso completo a todos os módulos.
+            Pagamento único, sem assinatura automática.
           </p>
 
           {/* Metodos de pagamento aceitos */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {["Pix", "Cartao de credito", "Boleto"].map((m) => (
+            {["Pix", "Cartão de crédito", "Boleto"].map((m) => (
               <span
                 key={m}
                 className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-border bg-card text-muted-foreground"
@@ -345,18 +345,18 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
           {[
             {
               icon: ShieldCheck,
-              title: "Sem cobranca automatica",
-              desc: "Nenhuma assinatura recorrente. Voce renova apenas quando quiser.",
+              title: "Sem cobrança automática",
+              desc: "Nenhuma assinatura recorrente. Você renova apenas quando quiser.",
             },
             {
               icon: Sparkles,
-              title: "Ativacao instantanea",
-              desc: "Licenca ativada automaticamente apos confirmacao do pagamento.",
+              title: "Ativação instantânea",
+              desc: "Licença ativada automaticamente após confirmação do pagamento.",
             },
             {
               icon: Lock,
               title: "Pagamento 100% seguro",
-              desc: "Processado pelo Mercado Pago. Aceita Pix, cartao e boleto.",
+              desc: "Processado pelo Mercado Pago. Aceita Pix, cartão e boleto.",
             },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3.5">
