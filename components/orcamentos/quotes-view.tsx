@@ -61,32 +61,16 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const prevQuotesRef = useRef(initialQuotes)
+  const prevStatusMapRef = useRef<Record<string, string>>(
+    Object.fromEntries(initialQuotes.map(q => [q.id, q.status]))
+  )
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
   // Sincroniza estado local quando o servidor retorna dados novos (ex: após polling)
   useEffect(() => {
-    const prev = prevQuotesRef.current
-    const changed = initialQuotes.some((q) => {
-      const old = prev.find(p => p.id === q.id)
-      return !old || old.status !== q.status
-    }) || initialQuotes.length !== prev.length
-    if (changed) {
-      setQuotes(initialQuotes)
-      prevQuotesRef.current = initialQuotes
-    }
+    setQuotes(initialQuotes)
   }, [initialQuotes])
-
-  // Polling a cada 20s enquanto houver orçamentos pendentes de resposta
-  useEffect(() => {
-    const hasPending = quotes.some(q => q.status === "enviado" || q.status === "rascunho")
-    if (!hasPending) return
-    const interval = setInterval(() => {
-      router.refresh()
-    }, 20000)
-    return () => clearInterval(interval)
-  }, [quotes, router])
 
   // Toca som de notificação via Web Audio API
   function playNotificationSound(type: "aprovado" | "recusado") {
@@ -94,86 +78,82 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
       const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const gainNode = ctx.createGain()
       gainNode.connect(ctx.destination)
-      gainNode.gain.setValueAtTime(0.4, ctx.currentTime)
+      gainNode.gain.setValueAtTime(0.45, ctx.currentTime)
 
       if (type === "aprovado") {
-        // Dois bipes ascendentes: sucesso
-        const notes = [523.25, 659.25, 783.99] // C5, E5, G5
+        // Acorde ascendente: C5 → E5 → G5
+        const notes = [523.25, 659.25, 783.99]
         notes.forEach((freq, i) => {
           const osc = ctx.createOscillator()
           osc.type = "sine"
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12)
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.13)
           osc.connect(gainNode)
-          osc.start(ctx.currentTime + i * 0.12)
-          osc.stop(ctx.currentTime + i * 0.12 + 0.1)
+          osc.start(ctx.currentTime + i * 0.13)
+          osc.stop(ctx.currentTime + i * 0.13 + 0.11)
         })
       } else {
-        // Dois bipes descendentes: alerta
-        const notes = [440, 349.23] // A4, F4
+        // Bipes descendentes: A4 → F4
+        const notes = [440, 349.23]
         notes.forEach((freq, i) => {
           const osc = ctx.createOscillator()
           osc.type = "sine"
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15)
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.18)
           osc.connect(gainNode)
-          osc.start(ctx.currentTime + i * 0.15)
-          osc.stop(ctx.currentTime + i * 0.15 + 0.12)
+          osc.start(ctx.currentTime + i * 0.18)
+          osc.stop(ctx.currentTime + i * 0.18 + 0.13)
         })
       }
 
-      // Fecha o contexto após o som terminar
-      setTimeout(() => ctx.close(), 1000)
+      setTimeout(() => ctx.close(), 1200)
     } catch {
-      // Web Audio API não suportado ou bloqueado — ignora silenciosamente
+      // Web Audio API não suportado — ignora silenciosamente
     }
   }
 
-  // Notifica via toast + som para orçamentos respondidos nas últimas 24h
+  // Detecta mudanças de status após polling e dispara toast + som
   useEffect(() => {
-    const notifEnabled = localStorage.getItem("devnix_quote_notifications_enabled")
-    // Habilitado por padrão (null = nunca configurou = ativo)
-    if (notifEnabled === "false") return
+    const prev = prevStatusMapRef.current
+    const changed: Quote[] = []
 
-    const STORAGE_KEY = "devnix_notified_quotes"
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000
-    const alreadyNotified: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
-
-    const recent = initialQuotes.filter((q) => {
-      const respondedAt = (q as Quote & { respondedAt?: string | Date | null }).respondedAt
-      if (!respondedAt) return false
-      const ts = new Date(respondedAt).getTime()
-      return ts > cutoff && !alreadyNotified.includes(q.id)
+    initialQuotes.forEach(q => {
+      const oldStatus = prev[q.id]
+      if (oldStatus && oldStatus !== q.status &&
+          (q.status === "aprovado" || q.status === "recusado")) {
+        changed.push(q)
+      }
     })
 
-    if (recent.length === 0) return
+    // Atualiza o mapa de referência
+    prevStatusMapRef.current = Object.fromEntries(initialQuotes.map(q => [q.id, q.status]))
 
-    // Pequeno delay para garantir que o Toaster esteja montado após hidratação
-    const timer = setTimeout(() => {
-      recent.forEach((q) => {
-        const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
-        if (q.status === "aprovado") {
-          playNotificationSound("aprovado")
-          toast.success(`Orçamento aprovado por ${clientName}`, {
-            description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
-            duration: 10000,
-            icon: "✅",
-          })
-        } else if (q.status === "recusado") {
-          playNotificationSound("recusado")
-          toast.error(`Orçamento recusado por ${clientName}`, {
-            description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
-            duration: 10000,
-            icon: "❌",
-          })
-        }
-      })
+    if (changed.length === 0) return
 
-      const newNotified = [...alreadyNotified, ...recent.map(q => q.id)]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotified))
-    }, 1200)
-
-    return () => clearTimeout(timer)
+    changed.forEach(q => {
+      const clientName = clients.find(c => c.id === q.clientId)?.name ?? "Cliente"
+      if (q.status === "aprovado") {
+        playNotificationSound("aprovado")
+        toast.success(`Orçamento aprovado por ${clientName}`, {
+          description: `#${String(q.number).padStart(4, "0")} — ${q.title} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(q.total))}`,
+          duration: 12000,
+        })
+      } else if (q.status === "recusado") {
+        playNotificationSound("recusado")
+        toast.error(`Orçamento recusado por ${clientName}`, {
+          description: `#${String(q.number).padStart(4, "0")} — ${q.title}`,
+          duration: 12000,
+        })
+      }
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [initialQuotes])
+
+  // Polling a cada 15s enquanto houver orçamentos enviados aguardando resposta
+  useEffect(() => {
+    const hasPending = quotes.some(q => q.status === "enviado")
+    if (!hasPending) return
+    const interval = setInterval(() => router.refresh(), 15000)
+    return () => clearInterval(interval)
+  }, [quotes, router])
 
   function getClientPhone(q: Quote): string {
     const phone = clients.find(c => c.id === q.clientId)?.phone ?? ""
