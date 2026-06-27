@@ -19,13 +19,13 @@ export default function AdminLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       })
+      const data = await res.json()
       if (!res.ok) {
-        const data = await res.json()
         setError(data.error ?? "Erro ao fazer login.")
         return
       }
-      // Força navegação HTTP completa para o servidor ler o cookie corretamente
-      window.location.href = "/admin"
+      // Usa token na URL como fallback para ambientes de preview (iframe) onde cookies são bloqueados
+      window.location.href = `/admin?t=${data.token ?? ""}`
     } catch {
       setError("Erro de conexão.")
     } finally {

@@ -5,10 +5,19 @@ import AdminDashboard from "@/components/admin/admin-dashboard"
 
 export const dynamic = "force-dynamic"
 
-export default async function AdminPage() {
+const ADMIN_TOKEN = "admin-nathigean-001"
+
+export default async function AdminPage(props: { searchParams?: Promise<{ t?: string }> }) {
+  const searchParams = await (props.searchParams ?? Promise.resolve({}))
   const cookieStore = await cookies()
   const session = cookieStore.get("admin_session")
-  if (!session?.value || session.value !== "admin-nathigean-001") {
+  const queryToken = searchParams?.t
+
+  // Aceita via cookie OU via query string (fallback para iframe/preview)
+  const isAuthorized =
+    session?.value === ADMIN_TOKEN || queryToken === ADMIN_TOKEN
+
+  if (!isAuthorized) {
     redirect("/admin/login")
   }
 

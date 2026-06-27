@@ -26,13 +26,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 })
   }
 
-  // Seta o cookie diretamente na Response (correto para Route Handlers)
-  const res = NextResponse.json({ ok: true })
+  const isProd = process.env.NODE_ENV === "production"
+  // Retorna o token no JSON para fallback via query string em ambientes de preview
+  const res = NextResponse.json({ ok: true, token: "admin-nathigean-001" })
   res.cookies.set("admin_session", "admin-nathigean-001", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 8, // 8 horas
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 60 * 60 * 8,
     path: "/",
   })
   return res
