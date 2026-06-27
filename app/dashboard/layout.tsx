@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
@@ -12,8 +12,18 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) redirect("/sign-in")
+  const reqHeaders = await headers()
+  const cookieStore = await cookies()
+  const session = await auth.api.getSession({ headers: reqHeaders })
+
+  if (!session?.user) {
+    // Se havia um cookie de sessão mas ela não existe mais no banco,
+    // o usuário foi kickado por outro login — redireciona para a página de aviso
+    const hadSession =
+      cookieStore.get("better-auth.session_token") ||
+      cookieStore.get("__Secure-better-auth.session_token")
+    redirect(hadSession ? "/sessao-encerrada" : "/sign-in")
+  }
 
   // Verifica licenca ativa
   const [u] = await db
