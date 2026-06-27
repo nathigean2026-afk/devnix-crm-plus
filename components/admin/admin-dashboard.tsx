@@ -81,25 +81,29 @@ type TicketRow = {
   licensePlan?: string | null
 }
 
-// Todas as formatações usam timeZone: "UTC" para evitar mismatch de hidratação
-// entre servidor (UTC) e cliente (fuso local)
+// Usa getters UTC diretamente — sem Intl/toLocaleString que pode divergir
+// entre Node.js (servidor) e browser (cliente) causando hydration mismatch.
+function pad(n: number) { return String(n).padStart(2, "0") }
+
 function formatDate(d: Date | string | null) {
   if (!d) return "—"
-  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return "—"
+  return `${pad(dt.getUTCDate())}/${pad(dt.getUTCMonth() + 1)}/${dt.getUTCFullYear()}`
 }
 
 function formatDateTime(d: Date | string | null) {
   if (!d) return "—"
-  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return "—"
+  return `${pad(dt.getUTCDate())}/${pad(dt.getUTCMonth() + 1)}, ${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}`
 }
 
 function formatDayLabel(d: string) {
-  // d é uma string ISO "YYYY-MM-DD" ou similar vindo do Postgres DATE()
-  // Extrai ano, mês e dia diretamente por substring para evitar qualquer
-  // conversão de fuso que causaria mismatch servidor (UTC) vs cliente (local)
-  const iso = String(d).slice(0, 10) // garante "YYYY-MM-DD"
-  const [, mm, dd] = iso.split("-")
-  return `${dd}/${mm}`
+  // d vem como "YYYY-MM-DD" via TO_CHAR no Postgres — extrai por split, sem Date()
+  const parts = String(d).slice(0, 10).split("-")
+  if (parts.length !== 3) return d
+  return `${parts[2]}/${parts[1]}`
 }
 
 function daysLeft(d: Date | string | null) {
