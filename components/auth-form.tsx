@@ -56,10 +56,9 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         })
         if (error) throw new Error(error.message)
         toast.success("Bem-vindo de volta!")
+        // Revoga todas as outras sessões ativas — garante sessão única por usuário
+        await authClient.revokeOtherSessions().catch(() => {})
       }
-      // Grava os cookies de sessão única (ea-latest-sid / ea-current-sid)
-      // para que o middleware possa detectar sessões duplicadas
-      await fetch("/api/auth/set-latest-session", { method: "POST" }).catch(() => {})
       router.push("/dashboard")
       router.refresh()
     } catch (err: unknown) {
