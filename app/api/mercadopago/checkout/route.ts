@@ -19,12 +19,22 @@ export async function POST(req: NextRequest) {
     }
 
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN!
-    // Usa o domínio canônico configurado em BETTER_AUTH_URL para garantir
-    // que notification_url e back_urls apontem para o domínio correto.
-    const baseUrl = process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ?? req.nextUrl.origin
+    // Usa sempre BETTER_AUTH_URL como domínio canônico (crm.elevanthe.com).
+    // Fallback para req.nextUrl.origin apenas em desenvolvimento local.
+    const canonicalUrl = process.env.BETTER_AUTH_URL?.replace(/\/$/, "")
+    const requestOrigin = req.nextUrl.origin
+    const baseUrl = canonicalUrl ?? requestOrigin
     const isPublicUrl = baseUrl.startsWith("https://") && !baseUrl.includes("localhost")
 
-    // Cria preferencia de pagamento — o MP abre o checkout completo com cartao, PIX e boleto
+    // back_urls exige HTTPS para o MP aceitar auto_return.
+    // Se não tivermos URL pública (ex.: preview local), omitimos auto_return.
+    const backUrls = {
+      success: `${baseUrl}/planos/sucesso`,
+      failure: `${baseUrl}/planos`,
+      pending: `${baseUrl}/planos/sucesso`,
+    }
+
+    // Cria preferência de pagamento — o MP abre o checkout completo com cartão, Pix e boleto
     const preferenceBody: Record<string, unknown> = {
       items: [
         {
@@ -36,12 +46,10 @@ export async function POST(req: NextRequest) {
           unit_price: plan.priceInCents / 100,
         },
       ],
-      // NAO enviar payer.email — quando o email do comprador coincide com o
-      // email da conta vendedora do MP, o botao de pagamento fica inativo.
-      // O MP solicita o email ao comprador diretamente no checkout.
+      // NAO enviar payer.email — quando o e-mail do comprador coincide com o
+      // e-mail da conta vendedora do MP, o botão de pagamento fica inativo.
       external_reference: session.user.id,
       payment_methods: {
-        // Aceita PIX, cartao de credito e boleto
         excluded_payment_types: [],
         installments: 12,
       },
@@ -50,17 +58,13 @@ export async function POST(req: NextRequest) {
         plan_id: plan.id,
         duration_days: String(plan.durationDays),
       },
-      // URLs de retorno apos o pagamento
-      back_urls: {
-        success: `${baseUrl}/planos/sucesso`,
-        failure: `${baseUrl}/planos`,
-        pending: `${baseUrl}/planos/sucesso`,
-      },
-      auto_return: "approved",
+      back_urls: backUrls,
       statement_descriptor: "DEVNIX CRM PLUS",
     }
 
+    // auto_return só funciona com back_urls HTTPS válidas
     if (isPublicUrl) {
+      preferenceBody.auto_return = "approved"
       preferenceBody.notification_url = `${baseUrl}/api/mercadopago/webhook`
     }
 
