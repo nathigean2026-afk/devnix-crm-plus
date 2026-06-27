@@ -197,7 +197,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-primary/8 to-transparent pointer-events-none" />
         <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full bg-blue-600/8 blur-[100px] pointer-events-none" />
 
-        {/* Logo horizontal completa */}
+        {/* Logo horizontal completa — mix-blend-mode:screen remove o fundo escuro da imagem */}
         <div className="relative z-10">
           <Image
             src="/elevanthe-logo-dark.png"
@@ -205,6 +205,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             width={280}
             height={70}
             className="object-contain h-12 w-auto"
+            style={{ mixBlendMode: "screen" }}
           />
         </div>
 
@@ -236,9 +237,27 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
       </aside>
 
       {/* ─── Painel direito — formulário ─── */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden bg-[#0a0a10]">
+
+        {/* Grade de pontos sutil no fundo */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Orb azul — canto superior direito */}
+        <div className="absolute -top-40 -right-40 size-[500px] rounded-full bg-primary/15 blur-[120px] pointer-events-none" />
+        {/* Orb roxo — canto inferior esquerdo */}
+        <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full bg-violet-600/10 blur-[100px] pointer-events-none" />
+        {/* Orb ciano — centro superior */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 size-[300px] rounded-full bg-cyan-500/5 blur-[90px] pointer-events-none" />
+
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.04]">
+        <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/[0.05]">
           {/* Logo mobile — usa a logo horizontal também */}
           <div className="lg:hidden">
             <Image
@@ -247,21 +266,25 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               width={160}
               height={40}
               className="object-contain h-8 w-auto"
+              style={{ mixBlendMode: "screen" }}
             />
           </div>
           <div className="hidden lg:block" />
 
           <Link
             href={isSignIn ? "/sign-up" : "/sign-in"}
-            className="text-xs text-white/40 hover:text-white/70 transition-colors border border-white/[0.08] hover:border-white/20 rounded-lg px-3 py-1.5"
+            className="text-xs text-white/40 hover:text-white/70 transition-colors border border-white/[0.08] hover:border-white/20 rounded-lg px-3 py-1.5 backdrop-blur-sm"
           >
             {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
           </Link>
         </div>
 
         {/* Form centralizado */}
-        <div className="flex-1 flex items-center justify-center px-6 py-10">
-          <div className="w-full max-w-[380px]">
+        <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10">
+          {/* Card com borda brilhante ao redor do formulário */}
+          <div className="w-full max-w-[420px] rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm shadow-2xl shadow-black/60 px-8 py-9 relative">
+            {/* Linha de brilho no topo do card */}
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
             {/* Header do form */}
             <div className="mb-8">
@@ -415,7 +438,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                 <ArrowRight className="size-3" />
               </Link>
             </div>
-          </div>
+          </div>{/* fim card */}
         </div>
       </div>
 
