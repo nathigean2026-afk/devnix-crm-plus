@@ -8,7 +8,7 @@ import { CheckCircle2, ArrowRight, Clock } from "lucide-react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Pagamento Confirmado | Devnix CRM Plus",
+  title: "Pagamento Confirmado | Elevanthe CRM",
 }
 
 export default async function SucessoPage() {
@@ -32,8 +32,8 @@ export default async function SucessoPage() {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-            alt="Devnix CRM Plus"
+            src="/elevanthe-logo.png"
+            alt="Elevanthe CRM"
             width={48}
             height={48}
             className="object-contain"
@@ -49,7 +49,7 @@ export default async function SucessoPage() {
 
         <h1 className="text-2xl font-bold text-foreground mb-2">Pagamento confirmado!</h1>
         <p className="text-muted-foreground text-sm mb-6 text-pretty">
-          Sua licenca foi ativada com sucesso. Bem-vindo ao Devnix CRM Plus,{" "}
+          Sua licenca foi ativada com sucesso. Bem-vindo ao Elevanthe CRM,{" "}
           <span className="font-medium text-foreground">{session.user.name}</span>.
         </p>
 
@@ -61,7 +61,7 @@ export default async function SucessoPage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Licenca ativa</p>
-              <p className="text-sm font-semibold text-foreground">Devnix CRM Plus</p>
+              <p className="text-sm font-semibold text-foreground">Elevanthe CRM</p>
             </div>
             <div className="ml-auto">
               <span className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded-full font-medium">

@@ -182,7 +182,7 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-0.5 leading-tight">
-                    {profile?.name || "Devnix CRM Plus"}
+                    {profile?.name || "Elevanthe CRM"}
                   </p>
                   {profile?.document && (
                     <p className="text-[10px] text-muted-foreground/70 mb-0.5">{profile.document}</p>
@@ -519,7 +519,7 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
         <p className="text-center text-xs text-muted-foreground mt-6 pb-4">
           Orçamento gerado por{" "}
           <span className="font-semibold text-foreground">
-            {profile?.name ? `${profile.name} via Devnix CRM Plus` : "Devnix CRM Plus"}
+            {profile?.name ? `${profile.name} via Elevanthe CRM` : "Elevanthe CRM"}
           </span>
         </p>
       </div>

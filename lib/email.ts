@@ -57,7 +57,7 @@ export async function sendQuoteResponseEmail(params: QuoteResponseEmailParams): 
   const html = `
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #0f172a;">
     <div style="text-align: center; margin-bottom: 24px;">
-      <span style="font-size: 13px; letter-spacing: 1px; color: #64748b; text-transform: uppercase;">Devnix CRM Plus</span>
+      <span style="font-size: 13px; letter-spacing: 1px; color: #64748b; text-transform: uppercase;">Elevanthe CRM</span>
     </div>
     <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
       <div style="background: ${accent}; color: #ffffff; padding: 16px 24px; font-size: 18px; font-weight: 700;">
@@ -90,13 +90,13 @@ export async function sendQuoteResponseEmail(params: QuoteResponseEmailParams): 
       </div>
     </div>
     <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #94a3b8;">
-      Notificação automática do Devnix CRM Plus
+      Notificação automática do Elevanthe CRM
     </p>
   </div>`
 
   try {
     const { error } = await resend.emails.send({
-      from: "Devnix CRM Plus <onboarding@resend.dev>",
+      from: "Elevanthe CRM <onboarding@resend.dev>",
       to,
       subject,
       html,

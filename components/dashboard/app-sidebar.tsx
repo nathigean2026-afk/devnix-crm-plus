@@ -216,8 +216,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
     )}>
       <div className="size-8 shrink-0 flex items-center justify-center rounded-lg bg-primary">
         <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-          alt="Devnix"
+          src="/elevanthe-logo.png"
+          alt="Elevanthe CRM"
           width={24}
           height={24}
           className="object-contain"
@@ -225,8 +225,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </div>
       {(isMobile || !collapsed) && (
         <div className="flex-1 min-w-0 overflow-hidden">
-          <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight truncate">Devnix CRM Plus</p>
-          <p className="text-xs text-sidebar-foreground/60 truncate">Soluções Web Inteligentes</p>
+          <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight truncate">Elevanthe CRM</p>
+          <p className="text-xs text-sidebar-foreground/60 truncate">Gestão que eleva resultados</p>
         </div>
       )}
       {isMobile ? (

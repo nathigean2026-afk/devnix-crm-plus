@@ -32,15 +32,15 @@ export default function EsqueciSenhaPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center gap-3 mb-8">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-            alt="Devnix"
+            src="/elevanthe-logo.png"
+            alt="Elevanthe CRM"
             width={56}
             height={56}
             className="object-contain"
           />
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground">Devnix CRM Plus</h1>
-            <p className="text-sm text-muted-foreground mt-1">Soluções Web Inteligentes</p>
+            <h1 className="text-2xl font-bold text-foreground">Elevanthe CRM</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gestão de relacionamento que eleva resultados</p>
           </div>
         </div>
 
@@ -109,7 +109,7 @@ export default function EsqueciSenhaPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          &copy; {new Date().getFullYear()} Devnix. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.
         </p>
       </div>
     </div>

@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Devnix CRM Plus",
-    template: "%s | Devnix CRM Plus",
+    default: "Elevanthe CRM",
+    template: "%s | Elevanthe CRM",
   },
   description:
-    "CRM profissional para agências web. Gerencie clientes, orçamentos e financeiro em um só lugar.",
-  applicationName: "Devnix CRM Plus",
+    "Gestão de relacionamento que eleva resultados. Gerencie clientes, orçamentos e financeiro em um só lugar.",
+  applicationName: "Elevanthe CRM",
 }
 
 export const viewport: Viewport = {

@@ -25,7 +25,7 @@ const plans = [
     duration: "7 dias",
     price: 7,
     period: "acesso por 7 dias",
-    description: "Experimente a plataforma. Marca padrao Devnix, ideal para avaliar antes de assinar.",
+    description: "Experimente a plataforma. Ideal para avaliar antes de assinar.",
     icon: Zap,
     features: [
       "Acesso completo por 7 dias",
@@ -146,13 +146,13 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-              alt="Devnix CRM Plus"
+              src="/elevanthe-logo.png"
+              alt="Elevanthe CRM"
               width={24}
               height={24}
               className="object-contain"
             />
-            <span className="font-semibold text-sm tracking-tight">Devnix CRM Plus</span>
+            <span className="font-semibold text-sm tracking-tight">Elevanthe CRM</span>
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />

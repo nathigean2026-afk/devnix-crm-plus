@@ -125,14 +125,14 @@ export default function DemoPage() {
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="size-7 rounded-lg bg-muted border border-border flex items-center justify-center">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo%20reduzida-B2qAbWz2qQ52LWM7e7hYbiRRWNXHqD.png"
-                alt="Devnix"
+                src="/elevanthe-logo.png"
+                alt="Elevanthe CRM"
                 width={18}
                 height={18}
                 className="object-contain"
               />
             </div>
-            <span className="text-sm font-bold text-foreground">Devnix CRM Plus</span>
+            <span className="text-sm font-bold text-foreground">Elevanthe CRM</span>
             <span className="hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
               Demo
             </span>

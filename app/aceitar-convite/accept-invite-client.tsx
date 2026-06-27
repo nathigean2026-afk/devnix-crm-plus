@@ -48,7 +48,7 @@ export function AcceptInviteClient({ token, userName }: AcceptInviteClientProps)
           <p className="text-sm text-muted-foreground mt-2">
             {done
               ? "Convite aceito. Redirecionando para o dashboard..."
-              : `Ola, ${userName}. Voce recebeu um convite para colaborar no Devnix CRM Plus como funcionario.`}
+              : `Ola, ${userName}. Voce recebeu um convite para colaborar no Elevanthe CRM como funcionario.`}
           </p>
         </div>
 

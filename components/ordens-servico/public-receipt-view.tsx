@@ -229,7 +229,7 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
             {/* Rodapé */}
             <div className="border-t border-gray-100 pt-4 text-center">
               <p className="text-xs text-gray-400">
-                Recibo gerado por <span className="font-medium text-emerald-600">{profile?.name || "Devnix CRM Plus"}</span>
+                Recibo gerado por <span className="font-medium text-emerald-600">{profile?.name || "Elevanthe CRM"}</span>
                 {profile?.email && <> &bull; {profile.email}</>}
               </p>
               <p className="text-xs text-gray-300 mt-1">Este documento serve como comprovante de prestação de serviço</p>

@@ -332,7 +332,7 @@ export default function AdminDashboard({
               <ShieldCheck className="size-4 text-primary" />
             </div>
             <div>
-              <h1 className={cn("font-bold text-sm leading-none", darkMode ? "text-white" : "text-slate-900")}>Devnix CRM Plus</h1>
+              <h1 className={cn("font-bold text-sm leading-none", darkMode ? "text-white" : "text-slate-900")}>Elevanthe CRM</h1>
               <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-500")}>Painel de Controle</p>
             </div>
           </div>

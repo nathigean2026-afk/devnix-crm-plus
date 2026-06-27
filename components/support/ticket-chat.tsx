@@ -167,7 +167,7 @@ export function TicketChat({ ticketId, initialMessages, status, userName }: Tick
               </div>
               <div className={cn("flex flex-col max-w-[75%]", isUser ? "items-end" : "items-start")}>
                 <span className="text-xs text-muted-foreground mb-1">
-                  {isUser ? "Você" : "Suporte Devnix"} •{" "}
+                  {isUser ? "Você" : "Suporte Elevanthe"} •{" "}
                   {new Date(m.createdAt!).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <div className={cn(
