@@ -221,7 +221,7 @@ function ThemedLogo({ className }: { className?: string }) {
   const isDark = resolvedTheme === "dark"
   return (
     <Image
-      src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
+      src="/elevanthe-logo-transparent-dark.png"
       alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
       width={260}
       height={65}
