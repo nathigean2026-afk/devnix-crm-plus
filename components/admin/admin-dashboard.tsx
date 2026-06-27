@@ -157,7 +157,7 @@ export default function AdminDashboard({
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, expiresAt: "" })
   const [showForm, setShowForm] = useState(false)
   const [localCodes, setLocalCodes] = useState(codes)
-  const [stats] = useState(initialStats)
+  const [stats, setStats] = useState(initialStats)
   const [userSearch, setUserSearch] = useState("")
   const [userFilter, setUserFilter] = useState<"todos" | "ativos" | "expirados" | "online">("todos")
   const [editingUser, setEditingUser] = useState<LicenseRow | null>(null)
@@ -199,12 +199,21 @@ export default function AdminDashboard({
 
   function handleDeleteUser() {
     if (!editingUser) return
+    const deletedId = editingUser.userId
     startTransition(async () => {
       try {
-        await adminDeleteUser(editingUser.userId)
-        toast.success("Usuário excluído com sucesso.")
+        await adminDeleteUser(deletedId)
+        // Remove o usuário da lista local imediatamente, sem precisar de F5
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.filter(u => u.userId !== deletedId),
+          totalUsers: prev.totalUsers - 1,
+          onlineSessions: prev.onlineSessions.filter(s => s.userId !== deletedId),
+        }))
         setEditingUser(null)
         setConfirmDelete(false)
+        toast.success("Usuário excluído com sucesso.")
+        router.refresh()
       } catch {
         toast.error("Erro ao excluir usuário.")
       }
