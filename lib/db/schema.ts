@@ -106,6 +106,9 @@ export const quotes = pgTable("quotes", {
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull().default("0"),
   discount: numeric("discount", { precision: 10, scale: 2 }).notNull().default("0"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull().default("0"),
+  cashPrice: numeric("cashPrice", { precision: 10, scale: 2 }),
+  cardPrice: numeric("cardPrice", { precision: 10, scale: 2 }),
+  cardInstallments: integer("cardInstallments").default(1),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })

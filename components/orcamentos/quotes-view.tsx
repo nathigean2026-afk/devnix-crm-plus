@@ -49,6 +49,7 @@ function formatCurrency(value: string | number) {
 
 const emptyForm = {
   clientId: "", title: "", validUntil: "", notes: "", internalNotes: "", discount: "0",
+  cashPrice: "", cardPrice: "", cardInstallments: "1",
 }
 
 export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps) {
@@ -232,6 +233,9 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
         notes: data.notes ?? "",
         internalNotes: data.internalNotes ?? "",
         discount: String(data.discount ?? "0"),
+        cashPrice: data.cashPrice ? String(data.cashPrice) : "",
+        cardPrice: data.cardPrice ? String(data.cardPrice) : "",
+        cardInstallments: String(data.cardInstallments ?? "1"),
       })
       setItems(
         data.items.map((it) => ({
@@ -258,6 +262,9 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
         subtotal: String(subtotal),
         discount: String(discount),
         total: String(total),
+        cashPrice: form.cashPrice || undefined,
+        cardPrice: form.cardPrice || undefined,
+        cardInstallments: Number(form.cardInstallments) || 1,
         items: items.map(({ id: _id, ...rest }) => rest),
       }
       if (editingId) {
@@ -564,20 +571,89 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
               ))}
             </div>
 
-            {/* Totals */}
+            {/* Totals + Formas de pagamento no cartao */}
             {items.length > 0 && (
-              <div className="flex flex-col gap-2 border-t border-border pt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-foreground">{formatCurrency(subtotal)}</span>
+              <div className="flex flex-col gap-4 border-t border-border pt-4">
+                {/* Subtotal / desconto / total */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-foreground">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Desconto (R$)</span>
+                    <Input type="number" min="0" step="0.01" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} className="w-28 h-7 bg-input border-border text-foreground text-sm text-right" />
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span className="text-foreground">Total</span>
+                    <span className="text-primary text-lg">{formatCurrency(total)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Desconto (R$)</span>
-                  <Input type="number" min="0" step="0.01" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} className="w-28 h-7 bg-input border-border text-foreground text-sm text-right" />
-                </div>
-                <div className="flex justify-between font-bold">
-                  <span className="text-foreground">Total</span>
-                  <span className="text-primary text-lg">{formatCurrency(total)}</span>
+
+                {/* Valores de pagamento opcionais */}
+                <div className="flex flex-col gap-3">
+                  <Label className="text-foreground font-semibold text-sm">Condições de pagamento (opcional)</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-foreground text-sm">Valor à vista (R$)</Label>
+                      <Input
+                        type="number" min="0" step="0.01"
+                        value={form.cashPrice}
+                        onChange={(e) => setForm({ ...form, cashPrice: e.target.value })}
+                        placeholder="Opcional"
+                        className="bg-input border-border text-foreground"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-foreground text-sm">Valor no cartão de crédito (R$)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number" min="0" step="0.01"
+                          value={form.cardPrice}
+                          onChange={(e) => setForm({ ...form, cardPrice: e.target.value })}
+                          placeholder="Opcional"
+                          className="bg-input border-border text-foreground flex-1"
+                        />
+                        <Select value={form.cardInstallments} onValueChange={(v) => setForm({ ...form, cardInstallments: v })}>
+                          <SelectTrigger className="w-24 bg-input border-border text-foreground text-sm shrink-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                              <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Parcelas no cartão de crédito</p>
+                    </div>
+                  </div>
+
+                  {/* Preview do resumo de pagamento */}
+                  {(form.cashPrice || form.cardPrice) && (
+                    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/20 px-4 py-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Resumo exibido ao cliente</p>
+                      {form.cashPrice && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">A vista / Pix</span>
+                          <span className="text-green-400 font-semibold">{formatCurrency(form.cashPrice)}</span>
+                        </div>
+                      )}
+                      {form.cardPrice && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Cartão de crédito ({form.cardInstallments}x)
+                          </span>
+                          <span className="text-blue-400 font-semibold">
+                            {form.cardInstallments === "1"
+                              ? formatCurrency(form.cardPrice)
+                              : `${form.cardInstallments}x de ${formatCurrency(Number(form.cardPrice) / Number(form.cardInstallments))}`
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

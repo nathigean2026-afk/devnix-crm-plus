@@ -204,6 +204,9 @@ export async function createQuote(data: {
   subtotal: string
   discount: string
   total: string
+  cashPrice?: string
+  cardPrice?: string
+  cardInstallments?: number
   items: {
     serviceId?: string
     description: string
@@ -228,6 +231,9 @@ export async function createQuote(data: {
     subtotal: data.subtotal,
     discount: data.discount,
     total: data.total,
+    cashPrice: data.cashPrice || undefined,
+    cardPrice: data.cardPrice || undefined,
+    cardInstallments: data.cardInstallments || undefined,
   })
 
   if (data.items.length > 0) {
@@ -255,6 +261,9 @@ export async function updateQuote(
     subtotal: string
     discount: string
     total: string
+    cashPrice?: string
+    cardPrice?: string
+    cardInstallments?: number
     items: {
       serviceId?: string
       description: string
@@ -275,7 +284,7 @@ export async function updateQuote(
   if (!existing) throw new Error("Orçamento não encontrado")
 
   // Ao editar, o orçamento volta para "enviado" para o cliente responder novamente,
-  // limpando qualquer resposta anterior (recusa/aprova��ão) e o motivo.
+  // limpando qualquer resposta anterior (recusa/aprovação) e o motivo.
   await db
     .update(quotes)
     .set({
@@ -287,6 +296,9 @@ export async function updateQuote(
       subtotal: data.subtotal,
       discount: data.discount,
       total: data.total,
+      cashPrice: data.cashPrice || null,
+      cardPrice: data.cardPrice || null,
+      cardInstallments: data.cardInstallments || null,
       status: "enviado",
       rejectionReason: null,
       respondedAt: null,
@@ -1340,7 +1352,7 @@ export async function getReportData() {
   }
 }
 
-// ── Dashboard Stats ───────────────────────────────────────────────��───────────
+// ── Dashboard Stats ────────────────────────────────────���──────────��───────────
 export async function getDashboardStats() {
   const userId = await getUserId()
 
