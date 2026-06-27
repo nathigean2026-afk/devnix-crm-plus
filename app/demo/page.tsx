@@ -124,12 +124,13 @@ export default function DemoPage() {
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <Image
-              src="/elevanthe-logo.png"
+              src="/elevanthe-icon.png"
               alt="Elevanthe CRM"
-              width={140}
-              height={40}
-              className="object-contain dark:brightness-0 dark:invert"
+              width={28}
+              height={28}
+              className="object-contain"
             />
+            <span className="font-bold text-sm text-foreground">Elevanthe CRM</span>
             <span className="hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
               Demo
             </span>

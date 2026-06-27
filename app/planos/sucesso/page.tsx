@@ -31,13 +31,16 @@ export default async function SucessoPage() {
       <div className="w-full max-w-md text-center">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Image
-            src="/elevanthe-logo.png"
-            alt="Elevanthe CRM"
-            width={180}
-            height={50}
-            className="object-contain dark:brightness-0 dark:invert"
-          />
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/elevanthe-icon.png"
+              alt="Elevanthe CRM"
+              width={34}
+              height={34}
+              className="object-contain"
+            />
+            <span className="font-bold text-lg tracking-tight">Elevanthe CRM</span>
+          </div>
         </div>
 
         {/* Icone de sucesso */}

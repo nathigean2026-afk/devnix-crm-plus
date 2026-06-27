@@ -32,12 +32,13 @@ export default function EsqueciSenhaPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="flex flex-col items-center gap-3 mb-8">
           <Image
-            src="/elevanthe-logo.png"
+            src="/elevanthe-icon.png"
             alt="Elevanthe CRM"
-            width={200}
-            height={56}
-            className="object-contain dark:brightness-0 dark:invert"
+            width={40}
+            height={40}
+            className="object-contain"
           />
+          <span className="font-bold text-lg tracking-tight">Elevanthe CRM</span>
         </div>
 
         <Card className="bg-card border-border shadow-2xl">

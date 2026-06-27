@@ -215,23 +215,27 @@ export function AppSidebar({ user }: AppSidebarProps) {
       (!isMobile && collapsed) ? "justify-center px-2 py-3 h-[60px]" : "px-4 py-3 h-[60px]"
     )}>
       {(!isMobile && collapsed) ? (
-        <div className="size-8 shrink-0 flex items-center justify-center rounded-lg bg-primary">
-          <Image
-            src="/elevanthe-logo.png"
-            alt="Elevanthe CRM"
-            width={24}
-            height={24}
-            className="object-contain brightness-0 invert"
-          />
-        </div>
-      ) : (
         <Image
-          src="/elevanthe-logo.png"
+          src="/elevanthe-icon.png"
           alt="Elevanthe CRM"
-          width={150}
-          height={42}
-          className="object-contain dark:brightness-0 dark:invert"
+          width={32}
+          height={32}
+          className="object-contain"
         />
+      ) : (
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/elevanthe-icon.png"
+            alt="Elevanthe CRM"
+            width={34}
+            height={34}
+            className="object-contain shrink-0"
+          />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-bold text-sidebar-accent-foreground leading-tight tracking-tight">Elevanthe CRM</span>
+            <span className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">Gestão que eleva resultados</span>
+          </div>
+        </div>
       )}
       {isMobile ? (
         <button
