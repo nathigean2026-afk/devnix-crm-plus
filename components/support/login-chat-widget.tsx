@@ -12,160 +12,254 @@ type ChatMsg = {
   suggestions?: string[]
 }
 
+// ─── Normaliza texto para comparação ──────────────────────────────────────────
+function norm(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+}
+
 // ─── Base de conhecimento completa ────────────────────────────────────────────
-const FAQ: Array<{ keywords: string[]; answer: string; suggestions: string[] }> = [
+// Cada FAQ tem:
+//   keywords  — termos que DEVEM aparecer na mensagem
+//   exclusive — se presente, pelo menos um desses termos OBRIGATORIAMENTE aparece
+//               (impede que FAQs gerais engolam perguntas específicas)
+type FAQEntry = {
+  keywords: string[]
+  exclusive?: string[]
+  answer: string
+  suggestions: string[]
+}
+
+const FAQ: FAQEntry[] = [
+  // ── Saudação ──────────────────────────────────────────────────────────────
   {
-    keywords: ["oi", "ola", "olá", "bom dia", "boa tarde", "boa noite", "opa", "ei", "hello"],
+    exclusive: ["oi", "ola", "bom dia", "boa tarde", "boa noite", "opa", "ei", "hello", "tudo bem", "tudo bom"],
+    keywords:  ["oi", "ola", "bom dia", "boa tarde", "boa noite", "opa", "ei", "hello", "tudo bem", "tudo bom"],
     answer:
-      "Olá! Seja bem-vindo ao **Elevanthe CRM**.\n\nSou seu assistente virtual e estou aqui para responder dúvidas sobre planos, funcionalidades, como começar e muito mais. No que posso te ajudar hoje?",
+      "Olá! Seja bem-vindo ao **Elevanthe CRM**.\n\nSou seu assistente virtual e estou aqui para tirar todas as suas dúvidas sobre planos, funcionalidades, como começar e muito mais. No que posso te ajudar?",
     suggestions: ["Quanto custa?", "Quais funcionalidades tem?", "Tem período grátis?", "Como criar minha conta?"],
   },
-  // Planos e preços
+
+  // ── Criar conta / Cadastro ────────────────────────────────────────────────
   {
-    keywords: ["plano", "planos", "preco", "preço", "valor", "custa", "quanto", "mensalidade", "assinatura", "contratar", "pacote"],
+    exclusive: ["criar conta", "cadastrar", "cadastro", "registrar", "comecar", "como abrir", "quero comecar", "quero entrar"],
+    keywords:  ["criar", "cadastrar", "cadastro", "conta", "registrar", "comecar", "inicio", "comecar a usar"],
     answer:
-      "O Elevanthe CRM tem planos para todos os tamanhos de negócio:\n\n**Starter — R$ 49/mês**\nAté 2 usuários, 200 clientes, orçamentos, OS e financeiro básico.\n\n**Pro — R$ 99/mês**\nUsuários ilimitados, clientes ilimitados, relatórios avançados, link público de orçamento, WhatsApp e estoque.\n\n**Business — R$ 189/mês**\nTudo do Pro + multi-empresa, assinatura digital, API, suporte prioritário e personalização de marca completa.\n\nTodos os planos incluem **14 dias grátis**, sem cartão de crédito.",
-    suggestions: ["O que inclui cada plano?", "Tem período grátis?", "Como contratar?"],
+      "Criar sua conta é rápido, gratuito e sem precisar de cartão:\n\n1. Clique em **\"Criar conta grátis\"** no botão acima\n2. Preencha nome completo, e-mail e senha\n3. Confirme seu e-mail (o link chega em até 2 minutos)\n4. Configure sua empresa e comece a usar imediatamente\n\nVocê ganha **14 dias grátis** com acesso completo ao plano Pro, sem nenhum compromisso.",
+    suggestions: ["Quanto custa após o período grátis?", "Quais funcionalidades tem?", "Tem app mobile?"],
   },
-  // Trial
+
+  // ── Trial / Período grátis ────────────────────────────────────────────────
   {
-    keywords: ["gratis", "grátis", "free", "teste", "testar", "trial", "gratuito", "experimentar", "14 dias", "periodo", "período"],
+    exclusive: ["gratis", "free", "trial", "gratuito", "experimentar", "14 dias", "periodo gratis", "teste gratis", "sem pagar"],
+    keywords:  ["gratis", "free", "trial", "gratuito", "experimentar", "14 dias", "periodo", "teste"],
     answer:
-      "Sim! Todos os planos têm **14 dias de teste grátis** — sem precisar cadastrar cartão de crédito.\n\nDurante o trial você tem acesso completo ao plano escolhido:\n- Cadastro de clientes e serviços\n- Criação de orçamentos e OS\n- Cobranças via Pix\n- Relatórios e financeiro\n\nAo final dos 14 dias, escolha um plano para continuar ou cancele sem custo.",
-    suggestions: ["Quais planos existem?", "Como criar minha conta?", "Quais funcionalidades tem?"],
+      "Sim! Todos os planos incluem **14 dias de teste grátis** — sem cartão de crédito, sem compromisso.\n\nDurante o trial você tem acesso **completo** ao plano Pro:\n- Cadastro ilimitado de clientes e serviços\n- Criação de orçamentos com link público\n- Ordens de Serviço completas\n- Cobranças via Pix integrado\n- Relatórios e financeiro\n- Notificações via WhatsApp\n\nAo final dos 14 dias, escolha um plano para continuar ou cancele sem custo.",
+    suggestions: ["Quais são os planos?", "O que inclui o Pro?", "Como criar minha conta?"],
   },
-  // Funcionalidades
+
+  // ── Plano Starter ─────────────────────────────────────────────────────────
   {
-    keywords: ["funcionalidade", "funcionalidades", "recurso", "recursos", "o que faz", "o que tem", "modulo", "módulo", "features"],
+    exclusive: ["starter", "plano basico", "plano inicial", "mais barato", "entrada"],
+    keywords:  ["starter", "basico", "basico", "inicial", "mais barato", "menor plano"],
     answer:
-      "O Elevanthe CRM é uma plataforma completa para prestadores de serviço:\n\n**Gestão comercial**\n- Clientes com histórico completo\n- Orçamentos com link público de aprovação\n- Ordens de Serviço com acompanhamento\n\n**Financeiro**\n- Receitas e despesas\n- Cobranças via Pix integrado\n- Relatórios de inadimplência\n\n**Operações**\n- Catálogo de serviços e produtos\n- Controle de estoque\n- Notificações via WhatsApp\n\n**Avançado (Business)**\n- Assinatura digital\n- Multi-empresa\n- Personalização de marca\n- API e Webhooks",
-    suggestions: ["Quanto custa?", "Como funciona o Pix?", "Tem integração com WhatsApp?"],
+      "O **Plano Starter — R$ 49/mês** é ideal para autônomos e pequenas operações:\n\n- Até **2 usuários**\n- Até **200 clientes cadastrados**\n- Orçamentos e Ordens de Serviço\n- Cobranças via Pix\n- Financeiro básico (receitas e despesas)\n- Catálogo de serviços\n\nNão inclui: relatórios avançados, WhatsApp, estoque, link público de orçamento.",
+    suggestions: ["O que tem no Plano Pro?", "Tem período grátis?", "Como contratar?"],
   },
-  // WhatsApp
+
+  // ── Plano Pro ─────────────────────────────────────────────────────────────
   {
-    keywords: ["whatsapp", "zap", "notificacao", "notificação", "mensagem", "automatico", "automático", "aviso", "envio"],
+    exclusive: ["plano pro", "pro ", "o pro", "assinar pro", "quero pro"],
+    keywords:  ["pro", "segundo plano", "plano intermediario"],
     answer:
-      "Sim! O Elevanthe integra com **WhatsApp** para notificações automáticas:\n\n- Envio do **link de orçamento** para o cliente aprovar\n- Confirmação de **abertura de OS**\n- Aviso de **conclusão de serviço** com o valor\n- Lembretes de **pagamento em aberto**\n\nAs mensagens são enviadas com o nome da sua empresa e você pode personalizar o texto.\n\nDisponível nos planos **Pro e Business**.",
-    suggestions: ["Como funciona o orçamento público?", "Tem cobrança via Pix?", "Qual plano inclui WhatsApp?"],
+      "O **Plano Pro — R$ 99/mês** é o mais popular para empresas em crescimento:\n\n- **Usuários ilimitados**\n- **Clientes ilimitados**\n- Tudo do Starter, mais:\n- Orçamentos com **link público** de aprovação pelo cliente\n- **Relatórios avançados** (receita, OS, taxa de aprovação, inadimplência)\n- **Notificações via WhatsApp** automáticas\n- **Controle de Estoque**\n- **Métricas de receita** em tempo real\n\nInclui **14 dias grátis**.",
+    suggestions: ["O que tem no Business?", "Tem período grátis?", "Como contratar?"],
   },
-  // Pix e pagamentos
+
+  // ── Plano Business ────────────────────────────────────────────────────────
   {
-    keywords: ["pix", "pagamento", "cobranca", "cobrança", "qr code", "receber", "cartao", "cartão", "parcelar", "parcela", "credito"],
+    exclusive: ["business", "plano business", "plano empresarial", "plano avancado", "mais completo"],
+    keywords:  ["business", "empresarial", "avancado", "completo", "maior plano"],
     answer:
-      "O Elevanthe tem **Pix integrado** para cobranças diretas:\n\n- Gere QR Code ou código copia-cola em qualquer OS ou orçamento\n- O pagamento é confirmado automaticamente no financeiro\n\nNos orçamentos e OS você também pode informar:\n- **Valor à vista / Pix** com desconto\n- **Valor no cartão de crédito** em até 12 parcelas\n\nEssa informação aparece de forma clara na proposta enviada ao cliente.",
-    suggestions: ["Como funciona o financeiro?", "Tem relatórios de recebimentos?", "Quanto custa?"],
+      "O **Plano Business — R$ 189/mês** é a solução completa para empresas consolidadas:\n\n- Tudo do Pro, mais:\n- **Multi-empresa** — gerencie vários CNPJs no mesmo sistema\n- **Assinatura Digital** — contratos assinados online com validade jurídica\n- **Personalização de marca** — sua logo, cores e dados nos documentos\n- **API REST + Webhooks** — integre com ERP, e-commerce e outros sistemas\n- **Suporte prioritário** — atendimento dedicado\n\nInclui **14 dias grátis**.",
+    suggestions: ["O que é multi-empresa?", "Como funciona a assinatura digital?", "Como contratar?"],
   },
-  // Orçamento público
+
+  // ── Preços / Comparação de planos ─────────────────────────────────────────
   {
-    keywords: ["orcamento", "orçamento", "proposta", "link", "publico", "público", "aprovacao", "aprovação", "cliente aprova"],
+    exclusive: ["quanto custa", "qual o preco", "qual o valor", "mensalidade", "planos e precos", "comparar planos", "tabela de planos"],
+    keywords:  ["custa", "preco", "valor", "mensalidade", "planos"],
     answer:
-      "O **link público de orçamento** é um dos destaques do sistema:\n\n1. Você cria o orçamento com itens, preços e condições de pagamento\n2. O sistema gera um **link único** para enviar ao cliente\n3. O cliente abre no celular — sem instalar nada ou fazer login\n4. Ele aprova ou recusa com um clique, podendo deixar um comentário\n5. Você recebe notificação em tempo real da resposta\n\nDisponível a partir do plano **Pro**.",
+      "O Elevanthe tem 3 planos — todos com **14 dias grátis**, sem cartão:\n\n**Starter — R$ 49/mês**\nAté 2 usuários, 200 clientes, OS, orçamentos e Pix.\n\n**Pro — R$ 99/mês** _(mais popular)_\nUsuários ilimitados, clientes ilimitados, WhatsApp, relatórios avançados, estoque e link público.\n\n**Business — R$ 189/mês**\nTudo do Pro + multi-empresa, assinatura digital, API e personalização de marca.\n\nTodos aceitam pagamento via **Pix, Cartão de crédito ou Boleto**.",
+    suggestions: ["O que inclui o Starter?", "O que tem no Pro?", "Tem período grátis?"],
+  },
+
+  // ── Como contratar ────────────────────────────────────────────────────────
+  {
+    exclusive: ["como contratar", "como assinar", "como pagar", "forma de pagamento", "boleto", "parcelar assinatura"],
+    keywords:  ["contratar", "assinar", "pagar assinatura", "boleto"],
+    answer:
+      "Para contratar um plano do Elevanthe:\n\n1. Crie sua conta grátis (botão no topo)\n2. Após os 14 dias de trial, vá em **Configurações > Minha Assinatura**\n3. Escolha o plano desejado\n4. Pague via **Pix** (desconto de 5%), **Cartão de crédito** ou **Boleto**\n\nO acesso é liberado imediatamente após a confirmação do pagamento. Você pode mudar de plano a qualquer momento.",
+    suggestions: ["Quais são os planos?", "Tem período grátis?", "Como cancelar?"],
+  },
+
+  // ── WhatsApp ──────────────────────────────────────────────────────────────
+  {
+    exclusive: ["whatsapp", "zap", "zap zap", "wpp"],
+    keywords:  ["whatsapp", "zap", "wpp"],
+    answer:
+      "Sim! O Elevanthe integra com **WhatsApp** para envios automáticos ao cliente:\n\n- Link do orçamento para **aprovação** pelo cliente\n- Confirmação de **abertura de OS**\n- Aviso de **conclusão de serviço** com o valor total\n- Lembrete de **pagamento em aberto**\n- Notificação quando o cliente **aprovar ou recusar** um orçamento\n\nAs mensagens saem com o **nome da sua empresa** e você pode personalizar os textos.\n\nDisponível nos planos **Pro e Business**.",
+    suggestions: ["Como funciona o orçamento público?", "Tem cobrança via Pix?", "Quanto custa o Pro?"],
+  },
+
+  // ── Pix / Pagamentos ──────────────────────────────────────────────────────
+  {
+    exclusive: ["pix", "qr code", "qrcode", "cobranca", "receber pagamento", "cartao de credito", "parcelar", "boleto cliente"],
+    keywords:  ["pix", "cobranca", "qr code", "cartao", "parcela", "receber"],
+    answer:
+      "O Elevanthe tem **Pix integrado** para cobranças diretas:\n\n- Gere **QR Code ou código copia-cola** em qualquer OS ou orçamento\n- O pagamento é confirmado automaticamente no financeiro\n- Zero taxa para cobranças via Pix\n\nNos orçamentos e OS você também informa as condições de pagamento:\n- **Valor à vista / Pix** (com possível desconto)\n- **Valor no cartão de crédito** dividido em até **12 parcelas**\n\nEssas informações aparecem de forma clara na proposta enviada ao cliente.",
+    suggestions: ["Como funciona o financeiro?", "Tem relatório de recebimentos?", "Quanto custa?"],
+  },
+
+  // ── Orçamento público ─────────────────────────────────────────────────────
+  {
+    exclusive: ["orcamento", "link publico", "proposta", "cliente aprova", "aprovacao de orcamento"],
+    keywords:  ["orcamento", "proposta", "link", "publico", "aprovacao"],
+    answer:
+      "O **link público de orçamento** é um dos destaques do Elevanthe:\n\n1. Você cria o orçamento com itens, preços e condições de pagamento\n2. O sistema gera um **link único e seguro**\n3. Você envia por WhatsApp, e-mail ou mensagem\n4. O cliente abre no celular **sem precisar de login ou app**\n5. Ele aprova ou recusa com um clique, podendo deixar comentário\n6. Você recebe notificação em tempo real\n\nAo aprovar, uma **OS pode ser aberta automaticamente**.\n\nDisponível no plano **Pro e Business**.",
     suggestions: ["Tem envio via WhatsApp?", "Como funciona a assinatura digital?", "Quanto custa o Pro?"],
   },
-  // OS
+
+  // ── Ordens de Serviço ─────────────────────────────────────────────────────
   {
-    keywords: ["ordem de servico", "ordem de serviço", "os", "servico", "serviço", "chamado", "ticket"],
+    exclusive: ["ordem de servico", "ordem de serviço", "os ", "abrir os", "chamado", "ticket de servico"],
+    keywords:  ["ordem de servico", "os", "chamado", "servico"],
     answer:
-      "As **Ordens de Serviço** do Elevanthe permitem controlar toda a execução:\n\n- Abertura de OS vinculada ao cliente e ao orçamento aprovado\n- Status em tempo real: Aberta, Em andamento, Aguardando, Concluída\n- Registro de materiais e mão de obra utilizados\n- Condições de pagamento (à vista, cartão e parcelas)\n- Envio automático de notificação ao cliente ao abrir e concluir\n- Impressão de OS formatada para entrega\n\nTudo integrado ao financeiro para controle de receita.",
+      "As **Ordens de Serviço (OS)** do Elevanthe controlam toda a execução:\n\n- Abertura vinculada ao cliente e ao orçamento aprovado\n- Status em tempo real: **Aberta, Em andamento, Aguardando, Concluída**\n- Registro de materiais e mão de obra utilizados\n- Condições de pagamento: à vista, Pix e **cartão em até 12x**\n- Notificação automática ao cliente na abertura e conclusão\n- **Impressão de OS** formatada para entrega\n- Histórico completo vinculado ao cliente\n\nTudo integrado ao financeiro para controle de receita.",
     suggestions: ["Como funciona o Pix?", "Tem orçamento com link público?", "Quanto custa?"],
   },
-  // Relatórios
+
+  // ── Relatórios ────────────────────────────────────────────────────────────
   {
-    keywords: ["relatorio", "relatório", "relatorios", "relatórios", "metricas", "métricas", "dashboard", "grafico", "gráfico", "kpi", "analise", "análise"],
+    exclusive: ["relatorio", "relatorios", "metricas", "dashboard", "grafico", "kpi", "analise de vendas"],
+    keywords:  ["relatorio", "metricas", "dashboard", "grafico", "kpi", "analise"],
     answer:
-      "O módulo de **Relatórios** oferece visão completa do negócio:\n\n- Receita por período (dia, semana, mês, ano)\n- Volume e taxa de conclusão de OS\n- Taxa de aprovação de orçamentos\n- Clientes novos, recorrentes e inativos\n- Inadimplência e cobranças em aberto\n- Ranking de serviços mais vendidos\n\nExporte todos os relatórios em **PDF ou Excel**.\n\nDisponível nos planos **Pro e Business**.",
+      "O módulo de **Relatórios** dá visão completa do negócio:\n\n- Receita por período (dia, semana, mês, ano)\n- Volume e taxa de conclusão de OS\n- Taxa de aprovação de orçamentos\n- Clientes novos, recorrentes e inativos\n- Inadimplência e cobranças em aberto\n- Ranking dos **serviços mais vendidos**\n- Comparativo de períodos\n\nExporte tudo em **PDF ou Excel**.\n\nDisponível nos planos **Pro e Business**.",
     suggestions: ["Tem financeiro integrado?", "Quanto custa o Pro?", "Quais funcionalidades tem?"],
   },
-  // Estoque
+
+  // ── Estoque ───────────────────────────────────────────────────────────────
   {
-    keywords: ["estoque", "produto", "produtos", "inventario", "inventário", "item", "peca", "peça", "material"],
+    exclusive: ["estoque", "inventario", "produto", "produtos", "peca", "material", "insumo"],
+    keywords:  ["estoque", "inventario", "produto", "peca", "material"],
     answer:
-      "O **Controle de Estoque** permite gerenciar produtos e insumos usados nos serviços:\n\n- Cadastre produtos com código, descrição, quantidade e custo\n- Ao usar um item em uma OS, o estoque é descontado automaticamente\n- Alertas quando o estoque estiver abaixo do mínimo definido\n- Histórico completo de entradas e saídas\n\nDisponível nos planos **Pro e Business**.",
+      "O **Controle de Estoque** permite gerenciar produtos e insumos:\n\n- Cadastre itens com código, descrição, quantidade e custo\n- Ao usar um produto em uma OS, o estoque é **descontado automaticamente**\n- **Alertas** quando o estoque cair abaixo do mínimo definido\n- Histórico completo de entradas e saídas\n- Relatório de consumo por período\n\nDisponível nos planos **Pro e Business**.",
     suggestions: ["Como funciona a OS?", "Tem catálogo de serviços?", "Quanto custa o Pro?"],
   },
-  // Multi-usuário
+
+  // ── Multi-usuário ─────────────────────────────────────────────────────────
   {
-    keywords: ["usuario", "usuário", "funcionario", "funcionário", "equipe", "permissao", "permissão", "acesso", "colaborador"],
+    exclusive: ["usuario", "funcionario", "equipe", "permissao", "colaborador", "acesso de funcionario"],
+    keywords:  ["usuario", "funcionario", "equipe", "permissao", "colaborador"],
     answer:
-      "O Elevanthe suporta **múltiplos usuários** com controle de permissões individuais:\n\n- Cada funcionário tem seu próprio login e senha\n- O administrador define o que cada um pode ver e editar\n- Permissões por módulo: clientes, orçamentos, OS, financeiro e relatórios\n- Starter: 2 usuários — Pro e Business: usuários ilimitados",
+      "O Elevanthe suporta **múltiplos usuários** com controle de permissões:\n\n- Cada funcionário tem seu próprio **login e senha**\n- O administrador define o que cada um pode **ver e editar**\n- Permissões por módulo: clientes, orçamentos, OS, financeiro e relatórios\n- Log de atividades por usuário\n\n**Starter:** até 2 usuários\n**Pro e Business:** usuários ilimitados",
     suggestions: ["Tem multi-empresa?", "Quanto custa o Pro?", "Quais funcionalidades tem?"],
   },
-  // Multi-empresa
+
+  // ── Multi-empresa ─────────────────────────────────────────────────────────
   {
-    keywords: ["multi-empresa", "multiempresa", "cnpj", "filial", "varios negocios", "vários negócios"],
+    exclusive: ["multi-empresa", "multiempresa", "varios cnpj", "duas empresas", "filial"],
+    keywords:  ["multi-empresa", "multiempresa", "cnpj", "filial", "duas empresas"],
     answer:
-      "Com o **Multi-empresa** você gerencia múltiplos CNPJs dentro do mesmo sistema:\n\n- Cada empresa tem clientes, orçamentos, OS e financeiro separados\n- Troque entre empresas com um clique, sem precisar sair\n- Cada empresa tem sua própria logo, nome e dados fiscais\n- Ideal para grupos empresariais ou donos de mais de um negócio\n\nExclusivo do plano **Business**.",
-    suggestions: ["O que inclui o Business?", "Quanto custa?", "Tem personalização de marca?"],
+      "Com o **Multi-empresa** você gerencia vários CNPJs em um só sistema:\n\n- Cada empresa tem clientes, orçamentos, OS e financeiro **totalmente separados**\n- Troque entre empresas com um clique, sem sair\n- Cada empresa com sua própria logo, nome e dados fiscais\n- Relatórios por empresa ou consolidado\n- Ideal para grupos empresariais ou donos de mais de um negócio\n\nExclusivo do plano **Business — R$ 189/mês**.",
+    suggestions: ["O que inclui o Business?", "Tem personalização de marca?", "Quanto custa?"],
   },
-  // Assinatura digital
+
+  // ── Assinatura digital ────────────────────────────────────────────────────
   {
-    keywords: ["assinatura", "digital", "contrato", "documento", "assinar", "eletronico", "eletrônico"],
+    exclusive: ["assinatura digital", "assinar contrato", "contrato online", "documento online", "assinar online"],
+    keywords:  ["assinatura digital", "contrato", "assinar", "documento"],
     answer:
-      "A **Assinatura Digital** permite que contratos e propostas sejam assinados online:\n\n- Envie qualquer documento para assinatura pelo cliente\n- O cliente assina pelo celular ou computador, sem instalar nada\n- Documento assinado fica armazenado com validade jurídica\n- Ideal para contratos de prestação de serviço, termos e garantias\n\nExclusivo do plano **Business**.",
-    suggestions: ["Como contratar o Business?", "Tem orçamento público?", "Quanto custa?"],
+      "A **Assinatura Digital** permite que contratos e propostas sejam assinados online:\n\n- Envie qualquer documento para o cliente assinar\n- O cliente assina pelo **celular ou computador**, sem instalar nada\n- Documento assinado armazenado com **validade jurídica**\n- Histórico de quem assinou, quando e de qual IP\n- Ideal para: contratos de prestação de serviço, termos de garantia, autorizações\n\nExclusivo do plano **Business**.",
+    suggestions: ["Como contratar o Business?", "Tem link público de orçamento?", "Quanto custa?"],
   },
-  // Personalização
+
+  // ── Personalização de marca ───────────────────────────────────────────────
   {
-    keywords: ["personalizar", "personalizacao", "personalização", "logo", "marca", "branca", "white label", "identidade", "visual"],
+    exclusive: ["personalizar", "personalizacao", "minha logo", "minha marca", "white label", "identidade visual"],
+    keywords:  ["personalizar", "personalizacao", "logo", "marca", "white label"],
     answer:
-      "No plano **Business** você personaliza completamente a aparência:\n\n- **Logo** da sua empresa no sistema e nos documentos\n- **Nome e dados** exibidos em orçamentos e OS\n- **CNPJ e informações fiscais** na documentação\n- **Cores** da interface adaptadas à sua marca\n\nSeus clientes veem sua empresa, não a marca do Elevanthe.",
+      "No plano **Business** você personaliza a aparência completamente:\n\n- Sua **logo** nos documentos, orçamentos e OS enviados ao cliente\n- **Nome e CNPJ** da empresa em toda a documentação\n- **Cores** da interface adaptadas à sua identidade visual\n\nSeus clientes veem sua empresa, não a marca do Elevanthe — ideal para quem preza pela imagem profissional.",
     suggestions: ["Quanto custa o Business?", "Tem assinatura digital?", "Tem multi-empresa?"],
   },
-  // Segurança
+
+  // ── App mobile ────────────────────────────────────────────────────────────
   {
-    keywords: ["seguranca", "segurança", "privacidade", "lgpd", "dado", "criptografia", "backup", "seguro"],
+    exclusive: ["app", "aplicativo", "android", "ios", "iphone", "play store", "app store"],
+    keywords:  ["app", "mobile", "celular", "android", "ios", "aplicativo"],
     answer:
-      "A segurança dos seus dados é prioridade absoluta:\n\n- Criptografia **AES-256** nos dados armazenados\n- Conexões protegidas com **SSL/TLS**\n- **Backups automáticos** diários\n- Em conformidade com a **LGPD**\n- Senhas armazenadas com hash seguro (nunca em texto puro)\n- Sessão única por dispositivo com encerramento seguro\n\nSeus dados jamais são vendidos ou compartilhados com terceiros.",
-    suggestions: ["Como faço login?", "Esqueci minha senha", "Falar com suporte"],
-  },
-  // Recuperar senha
-  {
-    keywords: ["esqueci", "senha", "recuperar", "redefinir", "reset", "acesso", "entrar", "login"],
-    answer:
-      "Para redefinir sua senha:\n\n1. Na tela de login, clique em **\"Esqueci a senha\"**\n2. Digite seu e-mail cadastrado\n3. Acesse sua caixa de entrada e clique no link recebido\n4. Defina uma nova senha\n\nO link expira em **1 hora**. Não chegou? Verifique o spam ou fale conosco: **suporte@elevanthe.com.br**",
-    suggestions: ["Como criar minha conta?", "Falar com suporte", "Quais planos existem?"],
-  },
-  // Criar conta
-  {
-    keywords: ["criar", "cadastrar", "cadastro", "conta", "registrar", "comecar", "começar", "novo", "inicio", "início"],
-    answer:
-      "Criar sua conta é simples e gratuito:\n\n1. Clique em **\"Criar conta grátis\"** no canto superior direito\n2. Preencha nome, e-mail e senha\n3. Confirme seu e-mail (chega em alguns minutos)\n4. Configure sua empresa e comece a usar\n\nVocê tem **14 dias grátis** do plano Pro sem precisar de cartão de crédito.",
-    suggestions: ["Tem período grátis?", "Quais funcionalidades tem?", "Quanto custa?"],
-  },
-  // App mobile
-  {
-    keywords: ["app", "mobile", "celular", "android", "ios", "iphone", "smartphone", "aplicativo"],
-    answer:
-      "O Elevanthe é **100% responsivo** — funciona perfeitamente no celular pelo navegador (Chrome ou Safari), sem precisar instalar nada:\n\n- Crie OS e orçamentos direto do campo\n- Acesse financeiro e relatórios em qualquer lugar\n- Receba notificações em tempo real\n\nUm **aplicativo nativo** para Android e iOS está no nosso roadmap. Fique de olho nas novidades!",
+      "O Elevanthe é **100% responsivo** — funciona perfeitamente no celular pelo navegador (Chrome ou Safari), sem instalar nada:\n\n- Crie OS e orçamentos direto do campo\n- Acesse financeiro e relatórios em qualquer lugar\n- Receba notificações em tempo real\n- Funciona em qualquer smartphone, tablet ou computador\n\nUm **aplicativo nativo** para Android e iOS está no roadmap para 2025. Fique de olho nas novidades!",
     suggestions: ["Quais funcionalidades tem?", "Tem notificações?", "Quanto custa?"],
   },
-  // Suporte
+
+  // ── Segurança ─────────────────────────────────────────────────────────────
   {
-    keywords: ["suporte", "ajuda", "atendimento", "contato", "falar", "humano", "problema", "bug", "erro"],
+    exclusive: ["seguranca", "privacidade", "lgpd", "criptografia", "backup", "meus dados"],
+    keywords:  ["seguranca", "privacidade", "lgpd", "dado", "criptografia", "backup"],
     answer:
-      "Nosso suporte está disponível por:\n\n- **Chat ao vivo** — dentro da plataforma após login, em horário comercial\n- **E-mail** — suporte@elevanthe.com.br (resposta em até 4h úteis)\n- **WhatsApp** — disponível para planos Pro e Business\n- **Central de ajuda** — help.elevanthe.com.br com tutoriais e vídeos\n\nHorário de atendimento: **segunda a sexta, das 8h às 18h**.",
-    suggestions: ["Como abrir um ticket?", "Tem documentação?", "Quais planos existem?"],
+      "A segurança dos seus dados é prioridade:\n\n- Criptografia **AES-256** nos dados armazenados\n- Conexões protegidas com **SSL/TLS**\n- **Backups automáticos** diários em múltiplos servidores\n- Em conformidade com a **LGPD**\n- Senhas com **hash bcrypt** (nunca armazenadas em texto puro)\n- Sessões com expiração automática e revogação por dispositivo\n\nSeus dados **jamais** são vendidos ou compartilhados com terceiros.",
+    suggestions: ["Como redefinir minha senha?", "Falar com suporte", "Quais planos existem?"],
   },
-  // Cancelamento
+
+  // ── Recuperar senha ───────────────────────────────────────────────────────
   {
-    keywords: ["cancelar", "cancelamento", "sair", "encerrar", "parar", "desativar", "excluir"],
+    exclusive: ["esqueci a senha", "recuperar senha", "redefinir senha", "reset de senha", "nao consigo entrar", "nao lembro a senha"],
+    keywords:  ["esqueci", "senha", "recuperar", "redefinir", "reset"],
     answer:
-      "Você pode cancelar a qualquer momento, sem multa:\n\n1. Acesse **Configurações > Minha Assinatura**\n2. Clique em **\"Cancelar plano\"**\n3. O acesso segue ativo até o fim do período pago\n\nSeus dados ficam disponíveis por **30 dias** após o cancelamento para exportação. Após esse prazo são removidos permanentemente.\n\nPrecisa de ajuda? **suporte@elevanthe.com.br**",
+      "Para redefinir sua senha:\n\n1. Na tela de login, clique em **\"Esqueci a senha\"**\n2. Digite o e-mail cadastrado na sua conta\n3. Acesse sua caixa de entrada e clique no link recebido\n4. Defina uma nova senha segura\n\nO link de redefinição expira em **1 hora**.\n\nNão chegou o e-mail? Verifique a pasta de spam. Se persistir, fale conosco: **suporte@elevanthe.com.br**",
+    suggestions: ["Como criar minha conta?", "Falar com suporte", "Quais planos existem?"],
+  },
+
+  // ── API / Integrações ─────────────────────────────────────────────────────
+  {
+    exclusive: ["api", "webhook", "integracao com", "erp", "sistema externo", "conectar com outro"],
+    keywords:  ["api", "webhook", "integracao", "erp", "sistema externo"],
+    answer:
+      "O Elevanthe oferece conectividade para integrar com outros sistemas:\n\n- **API REST** documentada — integre com ERP, e-commerce e sistemas internos\n- **Webhooks** para eventos em tempo real: aprovação de orçamento, pagamento confirmado, OS concluída\n- Integrações nativas: **Pix** e **WhatsApp**\n- **NF-e (Nota Fiscal eletrônica)** em desenvolvimento\n\nDocumentação da API disponível em **developers.elevanthe.com.br**.\n\nAPI exclusiva do plano **Business**.",
+    suggestions: ["Quanto custa o Business?", "Tem WhatsApp integrado?", "Falar com suporte técnico"],
+  },
+
+  // ── Cancelamento ──────────────────────────────────────────────────────────
+  {
+    exclusive: ["cancelar", "cancelamento", "encerrar conta", "parar de usar", "desativar conta"],
+    keywords:  ["cancelar", "cancelamento", "encerrar", "desativar"],
+    answer:
+      "Você pode cancelar a qualquer momento, **sem multa e sem burocracia**:\n\n1. Acesse **Configurações > Minha Assinatura**\n2. Clique em **\"Cancelar plano\"**\n3. O acesso segue ativo até o fim do período já pago\n\nApós o cancelamento:\n- Seus dados ficam disponíveis por **30 dias** para exportação\n- Após esse prazo, são removidos permanentemente\n\nPrecisa de ajuda? **suporte@elevanthe.com.br**",
     suggestions: ["Posso pausar meu plano?", "Como exportar meus dados?", "Falar com suporte"],
   },
-  // API / Integracoes
+
+  // ── Funcionalidades gerais ─────────────────────────────────────────────────
   {
-    keywords: ["api", "webhook", "integracao", "integração", "erp", "sistema externo"],
+    exclusive: ["funcionalidades", "o que faz", "o que tem", "recursos", "features", "modulos", "para que serve"],
+    keywords:  ["funcionalidade", "recurso", "o que faz", "o que tem", "modulo", "features"],
     answer:
-      "O Elevanthe oferece conectividade para integrar com outros sistemas:\n\n- **API REST** documentada para integrar com ERP, e-commerce e sistemas internos\n- **Webhooks** para receber eventos em tempo real (aprovação de orçamento, pagamento confirmado, OS concluída)\n- Integração com **Pix** e **WhatsApp** já nativas\n- Integração com **nota fiscal eletrônica (NF-e)** em desenvolvimento\n\nAPI disponível exclusivamente no plano **Business**.",
-    suggestions: ["Quanto custa o Business?", "Tem WhatsApp integrado?", "Falar com suporte técnico"],
+      "O Elevanthe CRM é a plataforma completa para prestadores de serviço:\n\n**Gestão Comercial**\n- Clientes com histórico completo\n- Orçamentos com link público de aprovação\n- Ordens de Serviço do início ao fim\n\n**Financeiro**\n- Receitas, despesas e saldo\n- Cobranças via Pix integrado\n- Relatórios de inadimplência\n\n**Operações**\n- Catálogo de serviços e produtos\n- Controle de estoque\n- Notificações automáticas via WhatsApp\n\n**Avançado (Business)**\n- Assinatura digital\n- Multi-empresa\n- Personalização de marca\n- API + Webhooks",
+    suggestions: ["Quanto custa?", "Tem período grátis?", "Como criar minha conta?"],
+  },
+
+  // ── Suporte ───────────────────────────────────────────────────────────────
+  {
+    exclusive: ["suporte", "ajuda", "atendimento", "falar com alguem", "humano", "contato"],
+    keywords:  ["suporte", "ajuda", "atendimento", "falar", "humano", "contato", "problema", "bug"],
+    answer:
+      "Nosso suporte está disponível por múltiplos canais:\n\n- **Chat ao vivo** — dentro da plataforma após login (seg–sex, 8h–18h)\n- **E-mail** — suporte@elevanthe.com.br _(resposta em até 4h úteis)_\n- **WhatsApp** — disponível para planos Pro e Business\n- **Central de ajuda** — help.elevanthe.com.br com tutoriais em vídeo\n\nClientes do plano **Business** têm suporte prioritário com atendimento dedicado.",
+    suggestions: ["Falar com humano", "Quais planos existem?", "Como criar minha conta?"],
   },
 ]
 
 // ─── Fallback ─────────────────────────────────────────────────────────────────
 const FALLBACK = {
   answer:
-    "Não encontrei uma resposta exata para isso ainda, mas nossa equipe pode te ajudar!\n\nEntre em contato pelo e-mail **suporte@elevanthe.com.br** ou acesse nossa central de ajuda em **help.elevanthe.com.br**.\n\nOu escolha um dos tópicos abaixo:",
+    "Não encontrei uma resposta exata para essa pergunta, mas nossa equipe pode te ajudar!\n\nEntre em contato:\n- **E-mail:** suporte@elevanthe.com.br\n- **Central de ajuda:** help.elevanthe.com.br\n\nOu escolha um dos tópicos abaixo:",
   suggestions: ["Quanto custa?", "Quais funcionalidades tem?", "Como criar minha conta?", "Falar com suporte"],
 }
 
@@ -177,13 +271,31 @@ const QUICK_SUGGESTIONS = [
   "Tem app mobile?",
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getBotReply(msg: string): { answer: string; suggestions: string[] } {
-  const q = msg.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+// ─── Sistema de matching por score ────────────────────────────────────────────
+// Conta quantas keywords batem — retorna o FAQ com maior score.
+// Se o FAQ tem "exclusive", pelo menos uma deve aparecer para qualificá-lo.
+function getBotReply(input: string): { answer: string; suggestions: string[] } {
+  const q = norm(input)
+
+  let best: FAQEntry | null = null
+  let bestScore = 0
+
   for (const faq of FAQ) {
-    if (faq.keywords.some((kw) => q.includes(kw))) {
-      return { answer: faq.answer, suggestions: faq.suggestions }
+    // Se tem exclusive, verifica obrigatoriamente
+    if (faq.exclusive) {
+      const hasExclusive = faq.exclusive.some((ex) => q.includes(norm(ex)))
+      if (!hasExclusive) continue
     }
+    // Conta quantas keywords batem
+    const score = faq.keywords.filter((kw) => q.includes(norm(kw))).length
+    if (score > bestScore) {
+      bestScore = score
+      best = faq
+    }
+  }
+
+  if (best && bestScore > 0) {
+    return { answer: best.answer, suggestions: best.suggestions }
   }
   return FALLBACK
 }

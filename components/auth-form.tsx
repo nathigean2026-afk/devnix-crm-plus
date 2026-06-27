@@ -216,9 +216,8 @@ function ThemedLogo({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  if (!mounted) return <div className={cn("bg-muted/30 rounded animate-pulse", className)} style={{ height: 40, width: 200 }} />
+  if (!mounted) return <div className={cn("opacity-0", className)} style={{ height: 40, width: 200 }} />
 
-  const isDark = resolvedTheme === "dark"
   return (
     <Image
       src="/elevanthe-logo-transparent-dark.png"
