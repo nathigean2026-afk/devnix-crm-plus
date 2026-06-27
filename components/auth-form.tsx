@@ -155,15 +155,17 @@ function FeatureWallpaper({ isDark }: { isDark: boolean }) {
         const left = rand() * 88   // 0–88%
         // Pequenas variações de rotação para parecer orgânico
         const rotate = (rand() - 0.5) * 14 // -7° a +7°
-        // Opacidade levemente variada para não parecer uniforme
-        const opacity = 0.04 + rand() * 0.045
+        // Opacidade levemente variada — mais forte no light para compensar o fundo claro
+        const opacityDark = 0.04 + rand() * 0.045
+        const opacityLight = 0.10 + rand() * 0.08
+        const opacity = isDark ? opacityDark : opacityLight
 
         return (
           <div
             key={i}
             className={cn(
               "absolute flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium whitespace-nowrap",
-              isDark ? "border-white/25 text-white" : "border-slate-700/20 text-slate-700"
+              isDark ? "border-white/25 text-white" : "border-primary/30 text-primary/80 bg-primary/5"
             )}
             style={{
               top: `${top}%`,
@@ -278,28 +280,22 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   }
 
   return (
-    <div className={cn("min-h-screen flex", isDark ? "bg-[#0a0a10]" : "bg-slate-50")}>
+    <div className={cn("min-h-screen flex", isDark ? "bg-[#0a0a10]" : "bg-[#eef2fa]")}>
 
       {/* ─── Painel esquerdo — branding (desktop only) ─── */}
       <aside className={cn(
         "hidden lg:flex lg:w-[520px] xl:w-[560px] flex-col justify-between px-10 py-8 relative overflow-hidden flex-shrink-0 border-r",
-        isDark ? "bg-[#07070d] border-white/[0.05]" : "bg-white border-slate-200"
+        isDark ? "bg-[#07070d] border-white/[0.05]" : "bg-[#0f1729] border-[#1a2845]"
       )}>
 
         {/* Marca d'agua do elefante neon — watermark sutil */}
-        <div className="absolute -bottom-16 -right-16 opacity-[0.03] pointer-events-none select-none">
+        <div className="absolute -bottom-16 -right-16 opacity-[0.04] pointer-events-none select-none">
           <Image src="/elevanthe-logo-neon.png" alt="" width={420} height={420} className="object-contain" />
         </div>
 
         {/* Glow de fundo */}
-        <div className={cn(
-          "absolute top-0 left-0 w-full h-64 pointer-events-none",
-          isDark ? "bg-gradient-to-b from-primary/8 to-transparent" : "bg-gradient-to-b from-primary/5 to-transparent"
-        )} />
-        <div className={cn(
-          "absolute -bottom-32 -left-32 size-[400px] rounded-full blur-[100px] pointer-events-none",
-          isDark ? "bg-blue-600/8" : "bg-primary/5"
-        )} />
+        <div className="absolute top-0 left-0 w-full h-64 pointer-events-none bg-gradient-to-b from-primary/10 to-transparent" />
+        <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full blur-[100px] pointer-events-none bg-blue-600/10" />
 
         {/* Logo */}
         <div className="relative z-10">
@@ -316,13 +312,10 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               <div className="size-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-xs font-semibold text-primary tracking-wide">Plataforma completa de gestão</span>
             </div>
-            <h2 className={cn(
-              "text-2xl xl:text-3xl font-black leading-[1.2] tracking-tight text-balance",
-              isDark ? "text-white" : "text-slate-900"
-            )}>
+            <h2 className="text-2xl xl:text-3xl font-black leading-[1.2] tracking-tight text-balance text-white">
               Gerencie seu negócio com clareza e velocidade
             </h2>
-            <p className={cn("text-sm leading-relaxed", isDark ? "text-white/35" : "text-slate-500")}>
+            <p className={cn("text-sm leading-relaxed", isDark ? "text-white/35" : "text-white/50")}>
               Do primeiro contato ao pagamento — tudo em um só lugar. Sem planilhas, sem confusão.
             </p>
           </div>
@@ -332,23 +325,23 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
         {/* Rodape */}
         <div className="relative z-10 flex items-center justify-between">
-          <p className={cn("text-[11px]", isDark ? "text-white/15" : "text-slate-400")}>
+          <p className="text-[11px] text-white/20">
             &copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.
           </p>
-          <p className={cn("text-[11px]", isDark ? "text-white/15" : "text-slate-400")}>Pix · Cartão · Boleto</p>
+          <p className="text-[11px] text-white/20">Pix · Cartão · Boleto</p>
         </div>
       </aside>
 
       {/* ─── Painel direito — formulário ─── */}
-      <div className={cn("flex-1 flex flex-col min-h-screen relative overflow-hidden", isDark ? "bg-[#0a0a10]" : "bg-slate-50")}>
+      <div className={cn("flex-1 flex flex-col min-h-screen relative overflow-hidden", isDark ? "bg-[#0a0a10]" : "bg-[#eef2fa]")}>
 
         {/* Wallpaper de funcionalidades — marca d'água repetida */}
         <FeatureWallpaper isDark={isDark} />
 
-        {/* Orbs de glow */}
-        <div className={cn("absolute -top-40 -right-40 size-[500px] rounded-full blur-[130px] pointer-events-none", isDark ? "bg-primary/12" : "bg-primary/8")} />
-        <div className={cn("absolute -bottom-32 -left-32 size-[400px] rounded-full blur-[110px] pointer-events-none", isDark ? "bg-violet-600/8" : "bg-violet-500/6")} />
-        <div className={cn("absolute top-1/3 left-1/2 -translate-x-1/2 size-[350px] rounded-full blur-[100px] pointer-events-none", isDark ? "bg-cyan-500/4" : "bg-sky-500/4")} />
+        {/* Orbs de glow — mais intensos no light para compensar o fundo claro */}
+        <div className={cn("absolute -top-40 -right-40 size-[600px] rounded-full blur-[130px] pointer-events-none", isDark ? "bg-primary/12" : "bg-primary/20")} />
+        <div className={cn("absolute -bottom-32 -left-32 size-[500px] rounded-full blur-[110px] pointer-events-none", isDark ? "bg-violet-600/8" : "bg-violet-500/15")} />
+        <div className={cn("absolute top-1/3 left-1/2 -translate-x-1/2 size-[400px] rounded-full blur-[100px] pointer-events-none", isDark ? "bg-cyan-500/4" : "bg-sky-400/10")} />
 
         {/* Top bar */}
         <div className={cn("relative z-10 flex items-center justify-between px-6 py-4 border-b", isDark ? "border-white/[0.05]" : "border-slate-200/80")}>
@@ -380,7 +373,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             "w-full max-w-[420px] rounded-2xl border shadow-2xl px-8 py-9 relative",
             isDark
               ? "border-white/[0.08] bg-white/[0.025] backdrop-blur-md shadow-black/70"
-              : "border-slate-200 bg-white/80 backdrop-blur-md shadow-slate-200/80"
+              : "border-white/60 bg-white/90 backdrop-blur-md shadow-blue-200/60"
           )}>
             {/* Linha de brilho no topo do card */}
             <div className={cn(
