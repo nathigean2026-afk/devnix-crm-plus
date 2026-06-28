@@ -82,7 +82,7 @@ export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
           transform: "translate(-50%, -50%)",
           width: "100%",
           height: "100%",
-          objectFit: "contain",
+          objectFit: "cover",
         }}
         playsInline
         preload="auto"
