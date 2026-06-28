@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 
 interface IntroVideoOverlayProps {
@@ -10,44 +11,62 @@ interface IntroVideoOverlayProps {
 export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     const video = videoRef.current
     if (!video) return
 
-    // Tenta dar play com som; se o browser bloquear, toca sem som
+    // Trava scroll do body enquanto o intro toca
+    document.body.style.overflow = "hidden"
+
+    // Tenta dar play com som; se o browser bloquear, toca mudo
     video.play().catch(() => {
       video.muted = true
       video.play()
     })
 
     function handleEnd() {
-      if (onEnd) {
-        onEnd()
-      } else {
-        router.push("/demo")
-      }
+      document.body.style.overflow = ""
+      if (onEnd) onEnd()
+      else router.push("/demo")
     }
 
     video.addEventListener("ended", handleEnd)
-    return () => video.removeEventListener("ended", handleEnd)
-  }, [onEnd, router])
+    return () => {
+      video.removeEventListener("ended", handleEnd)
+      document.body.style.overflow = ""
+    }
+  }, [mounted, onEnd, router])
 
   function handleSkip() {
-    if (onEnd) {
-      onEnd()
-    } else {
-      router.push("/demo")
-    }
+    document.body.style.overflow = ""
+    if (onEnd) onEnd()
+    else router.push("/demo")
   }
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
-      style={{ animation: "fadeIn 0.3s ease" }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        backgroundColor: "#000",
+        width: "100vw",
+        height: "100vh",
+        overflow: "hidden",
+        animation: "introFadeIn 0.3s ease",
+      }}
     >
       <style>{`
-        @keyframes fadeIn {
+        @keyframes introFadeIn {
           from { opacity: 0; }
           to   { opacity: 1; }
         }
@@ -56,16 +75,37 @@ export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
       <video
         ref={videoRef}
         src="/intro-elevanthe.mp4"
-        className="w-full h-full object-cover"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        }}
         playsInline
         preload="auto"
-        // sem controls, sem loop
       />
 
       {/* Botão pular — canto inferior direito */}
       <button
         onClick={handleSkip}
-        className="absolute bottom-8 right-8 text-white/50 hover:text-white/90 text-sm transition-colors flex items-center gap-1.5 select-none"
+        style={{
+          position: "absolute",
+          bottom: "2rem",
+          right: "1.5rem",
+          color: "rgba(255,255,255,0.5)",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "0.875rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.375rem",
+          transition: "color 0.2s",
+          zIndex: 1,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.9)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
       >
         Pular intro
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -73,6 +113,7 @@ export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
           <line x1="19" y1="5" x2="19" y2="19" />
         </svg>
       </button>
-    </div>
+    </div>,
+    document.body
   )
 }
