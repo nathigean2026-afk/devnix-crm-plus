@@ -5,9 +5,15 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 // ─── Fonte de verdade — espelha lib/products.ts ───────────────────────────────
-// Start:      R$ 7,00   / 7 dias
-// Business:   R$ 24,00  / 30 dias
-// Enterprise: R$ 260,00 / 1 ano
+// Start:      R$ 7,00   / 7 dias   (id: "7d")
+// Business:   R$ 24,00  / 30 dias  (id: "30d")
+// Enterprise: R$ 260,00 / 1 ano    (id: "1y")
+//
+// Guards de plano confirmados no código:
+//   canCustomizeBrand   → business | enterprise
+//   canCustomizeColor   → business | enterprise
+//   notificações orç.   → business | enterprise
+//   funcionário auxiliar → enterprise (canClients/canServices/canQuotes/canOrders/canFinanceiro/canRelatorios)
 
 type Feature = { text: string; locked?: boolean; since?: "business" | "enterprise" }
 
@@ -19,22 +25,25 @@ const plans = [
     price: "R$ 7",
     cents: ",00",
     period: "acesso por 7 dias",
-    desc: "Teste a plataforma completa antes de assinar.",
+    desc: "Experimente todas as funcionalidades principais por 7 dias completos.",
     icon: Zap,
     iconColor: "text-sky-400",
     highlight: false,
     badge: null as string | null,
     accentClass: "border-slate-200 dark:border-white/10",
     features: [
-      { text: "Clientes ilimitados" },
+      { text: "Cadastro de clientes ilimitado" },
+      { text: "Catálogo de serviços" },
       { text: "Ordens de Serviço ilimitadas" },
-      { text: "Orçamentos ilimitados" },
-      { text: "Financeiro (receitas e despesas)" },
+      { text: "Orçamentos ilimitados com link público" },
+      { text: "Financeiro: receitas e despesas" },
+      { text: "Relatórios e gráficos" },
+      { text: "Tickets de suporte" },
       { text: "Pagamento via Pix" },
-      { text: "Suporte por e-mail" },
+      { text: "Código promocional" },
       { text: "Personalização de marca (logo, CNPJ, cor)", locked: true, since: "business" as const },
       { text: "Notificações de resposta de orçamento", locked: true, since: "business" as const },
-      { text: "Funcionário auxiliar + permissões", locked: true, since: "enterprise" as const },
+      { text: "Funcionário auxiliar com permissões", locked: true, since: "enterprise" as const },
     ] as Feature[],
   },
   {
@@ -44,24 +53,21 @@ const plans = [
     price: "R$ 24",
     cents: ",00",
     period: "por mês",
-    desc: "Para profissionais que precisam da marca própria e controle total.",
+    desc: "Para profissionais que querem marca própria e notificações de orçamento.",
     icon: CalendarDays,
     iconColor: "text-primary",
     highlight: true,
     badge: "Mais popular",
     accentClass: "border-primary/40",
     features: [
-      { text: "Clientes ilimitados" },
-      { text: "Ordens de Serviço ilimitadas" },
-      { text: "Orçamentos ilimitados" },
-      { text: "Financeiro completo + relatórios" },
-      { text: "Pagamento via Pix" },
-      { text: "Personalização completa da marca" },
-      { text: "Logo, nome e CNPJ nos documentos" },
+      { text: "Tudo do plano Start" },
+      { text: "Marca própria nos documentos" },
+      { text: "Logo e nome da empresa nos PDFs" },
+      { text: "CNPJ e dados no cabeçalho" },
       { text: "Cor de destaque personalizada" },
-      { text: "Notificações de resposta de orçamento" },
+      { text: "Notificações quando orçamento é respondido" },
       { text: "Suporte prioritário" },
-      { text: "Funcionário auxiliar + permissões", locked: true, since: "enterprise" as const },
+      { text: "Funcionário auxiliar com permissões", locked: true, since: "enterprise" as const },
     ] as Feature[],
   },
   {
@@ -71,18 +77,20 @@ const plans = [
     price: "R$ 260",
     cents: ",00",
     period: "por ano",
-    desc: "Melhor custo-benefício com funcionário auxiliar incluso.",
+    desc: "Melhor custo-benefício — 12 meses com funcionário auxiliar incluso.",
     icon: CalendarRange,
     iconColor: "text-amber-400",
     highlight: false,
     badge: "Melhor valor",
     accentClass: "border-amber-500/30",
     features: [
-      { text: "Tudo do Business" },
+      { text: "Tudo do plano Business" },
       { text: "1 funcionário auxiliar incluso" },
-      { text: "Painel de permissões do funcionário" },
-      { text: "Acesso por 12 meses completos" },
-      { text: "Economia de R$ 28 vs mensalidade" },
+      { text: "Permissões granulares: clientes, serviços" },
+      { text: "Permissões: orçamentos, OS, financeiro" },
+      { text: "Permissão de acesso a relatórios" },
+      { text: "12 meses de acesso completo" },
+      { text: "Equivale a R$ 21,67/mês (economia de R$ 28)" },
       { text: "Suporte VIP" },
     ] as Feature[],
   },
@@ -248,7 +256,7 @@ export function PricingCards({ isDark }: PricingCardsProps) {
 
       {/* Rodapé */}
       <p className={cn("text-center text-[10px] mt-5", isDark ? "text-white/20" : "text-slate-400")}>
-        Pagamento via Pix, cartão de crédito ou boleto · Processado pelo Mercado Pago
+        Pagamento via Pix · Ativação instantânea · Sem assinatura automática
       </p>
     </div>
   )
