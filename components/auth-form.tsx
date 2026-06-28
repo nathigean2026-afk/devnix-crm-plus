@@ -222,14 +222,26 @@ function ThemedLogo({ className }: { className?: string }) {
   const isDark = resolvedTheme === "dark"
 
   return (
-    <Image
-      src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
-      alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
-      width={260}
-      height={65}
-      className={cn("object-contain", className)}
-      priority
-    />
+    <>
+      {/* Desktop: sempre logo com texto claro (dark), independente do tema */}
+      <Image
+        src="/elevanthe-logo-transparent-dark.png"
+        alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
+        width={260}
+        height={65}
+        className={cn("object-contain hidden md:block", className)}
+        priority
+      />
+      {/* Mobile: alterna com o tema */}
+      <Image
+        src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
+        alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
+        width={260}
+        height={65}
+        className={cn("object-contain block md:hidden", className)}
+        priority
+      />
+    </>
   )
 }
 
