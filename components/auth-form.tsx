@@ -2,7 +2,6 @@
 
 import { WhatsAppButton } from "@/components/support/whatsapp-button"
 import { IntroVideoOverlay } from "@/components/intro-video-overlay"
-import { PricingCards } from "@/components/pricing-cards"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -542,7 +541,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               )}
             </p>
 
-            <div className="mt-5 text-center">
+            <div className="mt-5 text-center flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowIntro(true)}
@@ -554,14 +553,20 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                 Ver demonstração sem cadastro
                 <ArrowRight className="size-3" />
               </button>
+              <Link
+                href="/planos/publico"
+                className={cn(
+                  "text-xs transition-colors inline-flex items-center gap-1.5 font-medium",
+                  isDark ? "text-primary/60 hover:text-primary" : "text-primary/70 hover:text-primary"
+                )}
+              >
+                Ver planos e preços
+                <ArrowRight className="size-3" />
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Cards de planos — visíveis abaixo do formulário */}
-        <div className="relative z-10 w-full">
-          <PricingCards isDark={isDark} />
-        </div>
       </div>
 
       <WhatsAppButton />

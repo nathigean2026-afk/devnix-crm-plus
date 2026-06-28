@@ -21,15 +21,15 @@ export const LICENSE_PLANS: LicensePlan[] = [
     id: "30d",
     name: "Elevanthe CRM — Business",
     description: "Acesso completo por 30 dias",
-    priceInCents: 2400, // R$ 24,00
+    priceInCents: 3000, // R$ 30,00
     durationDays: 30,
   },
   {
     id: "1y",
     name: "Elevanthe CRM — Enterprise",
-    description: "Acesso completo por 12 meses",
-    priceInCents: 26000, // R$ 260,00
-    durationDays: 365,
+    description: "Acesso completo por 360 dias",
+    priceInCents: 28000, // R$ 280,00
+    durationDays: 360,
   },
 ]
 

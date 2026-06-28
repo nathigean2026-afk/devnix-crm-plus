@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils"
 
 // ─── Fonte de verdade — espelha lib/products.ts ───────────────────────────────
 // Start:      R$ 7,00   / 7 dias   (id: "7d")
-// Business:   R$ 24,00  / 30 dias  (id: "30d")
-// Enterprise: R$ 260,00 / 1 ano    (id: "1y")
+// Business:   R$ 30,00  / 30 dias  (id: "30d")
+// Enterprise: R$ 280,00 / 360 dias (id: "1y")
 //
 // Guards de plano confirmados no código:
 //   canCustomizeBrand   → business | enterprise
@@ -50,7 +50,7 @@ const plans = [
     id: "business",
     name: "Business",
     duration: "30 dias",
-    price: "R$ 24",
+    price: "R$ 30",
     cents: ",00",
     period: "por mês",
     desc: "Para profissionais que querem marca própria e notificações de orçamento.",
@@ -73,11 +73,11 @@ const plans = [
   {
     id: "enterprise",
     name: "Enterprise",
-    duration: "1 ano",
-    price: "R$ 260",
+    duration: "360 dias",
+    price: "R$ 280",
     cents: ",00",
     period: "por ano",
-    desc: "Melhor custo-benefício — 12 meses com funcionário auxiliar incluso.",
+    desc: "Melhor custo-benefício — 360 dias com funcionário auxiliar incluso.",
     icon: CalendarRange,
     iconColor: "text-amber-400",
     highlight: false,
@@ -89,8 +89,8 @@ const plans = [
       { text: "Permissões granulares: clientes, serviços" },
       { text: "Permissões: orçamentos, OS, financeiro" },
       { text: "Permissão de acesso a relatórios" },
-      { text: "12 meses de acesso completo" },
-      { text: "Equivale a R$ 21,67/mês (economia de R$ 28)" },
+      { text: "360 dias de acesso completo" },
+      { text: "Equivale a R$ 23,33/mês (economia de R$ 80)" },
       { text: "Suporte VIP" },
     ] as Feature[],
   },
