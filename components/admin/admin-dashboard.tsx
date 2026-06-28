@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions"
 import { AdminTickets } from "@/components/admin/admin-tickets"
 import { toast } from "sonner"
+import Image from "next/image"
 import {
   Users, ShieldCheck, Tag, BarChart3, LogOut, Plus, Trash2,
   CheckCircle2, XCircle, Clock, RefreshCw, LifeBuoy, Wifi, WifiOff,
@@ -119,25 +120,27 @@ function parseIp(ip: string | null) {
   return clean
 }
 
-function StatCard({ icon: Icon, label, value, sub, color, onClick, active }: {
-  icon: React.ElementType; label: string; value: number | string; sub?: string; color: string; onClick?: () => void; active?: boolean
+function StatCard({ icon: Icon, label, value, sub, color, onClick, active, darkMode = true }: {
+  icon: React.ElementType; label: string; value: number | string; sub?: string; color: string; onClick?: () => void; active?: boolean; darkMode?: boolean
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
         "rounded-xl border p-4 flex items-center gap-4 text-left transition-all",
-        onClick ? "cursor-pointer hover:border-white/20" : "cursor-default",
-        active ? "border-white/30 bg-white/8" : "border-white/8 bg-white/4",
+        onClick ? "cursor-pointer" : "cursor-default",
+        darkMode
+          ? active ? "border-white/30 bg-white/8 hover:border-white/25" : "border-white/8 bg-white/4 hover:border-white/16"
+          : active ? "border-primary/40 bg-primary/5 shadow-sm" : "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow",
       )}
     >
       <div className={cn("size-11 rounded-xl flex items-center justify-center shrink-0", color)}>
         <Icon className="size-5 text-white" />
       </div>
       <div className="min-w-0">
-        <p className="text-2xl font-bold text-white leading-none">{value}</p>
-        <p className="text-xs text-white/50 mt-1 leading-snug">{label}</p>
-        {sub && <p className="text-[10px] text-white/30 mt-0.5">{sub}</p>}
+        <p className={cn("text-2xl font-bold leading-none", darkMode ? "text-white" : "text-slate-800")}>{value}</p>
+        <p className={cn("text-xs mt-1 leading-snug", darkMode ? "text-white/50" : "text-slate-500")}>{label}</p>
+        {sub && <p className={cn("text-[10px] mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>{sub}</p>}
       </div>
     </button>
   )
@@ -364,17 +367,21 @@ export default function AdminDashboard({
   ]
 
   return (
-    <div className={cn("min-h-screen text-white", darkMode ? "dark bg-[#0a0a0f]" : "bg-slate-100")}>
-      <div className={cn("min-h-screen", darkMode ? "bg-[#0a0a0f] text-white" : "bg-slate-100 text-slate-900")}>
+    <div className={cn("min-h-screen text-white", darkMode ? "dark bg-[#0a0a0f]" : "bg-slate-50")}>
+      <div className={cn("min-h-screen", darkMode ? "bg-[#0a0a0f] text-white" : "bg-slate-50 text-slate-900")}>
         {/* Header */}
         <header className={cn(
           "border-b px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-30 backdrop-blur",
           darkMode ? "border-white/8 bg-[#0a0a0f]/90" : "border-slate-200 bg-white/90"
         )}>
           <div className="flex items-center gap-3">
-            <div className={cn("size-8 rounded-lg flex items-center justify-center", darkMode ? "bg-primary/20 border border-primary/30" : "bg-primary/10 border border-primary/20")}>
-              <ShieldCheck className="size-4 text-primary" />
-            </div>
+            <Image
+              src="/elevanthe-icon.png"
+              alt="Elevanthe"
+              width={32}
+              height={32}
+              className={cn("rounded-lg object-contain", darkMode ? "opacity-90" : "opacity-100")}
+            />
             <div>
               <h1 className={cn("font-bold text-sm leading-none", darkMode ? "text-white" : "text-slate-900")}>Elevanthe CRM</h1>
               <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-500")}>Painel de Controle</p>
@@ -407,13 +414,13 @@ export default function AdminDashboard({
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <StatCard icon={Users} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
-            <StatCard icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
-            <StatCard icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
-            <StatCard icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
-            <StatCard icon={LifeBuoy} label="Tickets abertos" value={stats.openTickets} color="bg-amber-500/80" onClick={() => handleTabChange("suporte")} active={tab === "suporte"} />
-            <StatCard icon={DollarSign} label="Receita total" value={`R$ ${(stats.revenueStats.totalCents / 100).toFixed(2)}`} sub={`${stats.revenueStats.totalCount} pagamentos aprovados`} color="bg-emerald-600/80" onClick={() => handleTabChange("pagamentos")} active={tab === "pagamentos"} />
-            <StatCard icon={Tag} label="Códigos usados" value={`${stats.usedCodes}/${stats.totalCodes}`} color="bg-purple-500/80" />
+            <StatCard darkMode={darkMode} icon={Users} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
+            <StatCard darkMode={darkMode} icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
+            <StatCard darkMode={darkMode} icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
+            <StatCard darkMode={darkMode} icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
+            <StatCard darkMode={darkMode} icon={LifeBuoy} label="Tickets abertos" value={stats.openTickets} color="bg-amber-500/80" onClick={() => handleTabChange("suporte")} active={tab === "suporte"} />
+            <StatCard darkMode={darkMode} icon={DollarSign} label="Receita total" value={`R$ ${(stats.revenueStats.totalCents / 100).toFixed(2)}`} sub={`${stats.revenueStats.totalCount} pagamentos aprovados`} color="bg-emerald-600/80" onClick={() => handleTabChange("pagamentos")} active={tab === "pagamentos"} />
+            <StatCard darkMode={darkMode} icon={Tag} label="Códigos usados" value={`${stats.usedCodes}/${stats.totalCodes}`} color="bg-purple-500/80" />
           </div>
 
           {/* Tabs */}
@@ -804,9 +811,7 @@ export default function AdminDashboard({
 
           {/* ── Tab: Suporte ── */}
           {tab === "suporte" && (
-            <div className="dark">
-              <AdminTickets initialTickets={tickets} />
-            </div>
+            <AdminTickets initialTickets={tickets} darkMode={darkMode} />
           )}
 
           {/* ── Tab: Métricas ── */}

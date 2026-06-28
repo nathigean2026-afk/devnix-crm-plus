@@ -1,7 +1,8 @@
 "use client"
 
-import { LoginChatWidget } from "@/components/support/login-chat-widget"
+import { WhatsAppButton } from "@/components/support/whatsapp-button"
 import { IntroVideoOverlay } from "@/components/intro-video-overlay"
+import { PricingCards } from "@/components/pricing-cards"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -556,9 +557,14 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             </div>
           </div>
         </div>
+
+        {/* Cards de planos — visíveis abaixo do formulário */}
+        <div className="relative z-10 w-full">
+          <PricingCards isDark={isDark} />
+        </div>
       </div>
 
-      <LoginChatWidget />
+      <WhatsAppButton />
 
       {showIntro && (
         <IntroVideoOverlay
