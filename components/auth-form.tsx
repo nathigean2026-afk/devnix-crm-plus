@@ -1,6 +1,7 @@
 "use client"
 
 import { LoginChatWidget } from "@/components/support/login-chat-widget"
+import { IntroVideoOverlay } from "@/components/intro-video-overlay"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -240,6 +241,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
+  const [showIntro, setShowIntro] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -540,22 +542,32 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             </p>
 
             <div className="mt-5 text-center">
-              <Link
-                href="/demo"
+              <button
+                type="button"
+                onClick={() => setShowIntro(true)}
                 className={cn(
-                  "text-xs transition-colors inline-flex items-center gap-1.5",
+                  "text-xs transition-colors inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer",
                   isDark ? "text-white/20 hover:text-white/40" : "text-slate-400 hover:text-slate-600"
                 )}
               >
                 Ver demonstração sem cadastro
                 <ArrowRight className="size-3" />
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       <LoginChatWidget />
+
+      {showIntro && (
+        <IntroVideoOverlay
+          onEnd={() => {
+            setShowIntro(false)
+            router.push("/demo")
+          }}
+        />
+      )}
     </div>
   )
 }
