@@ -11,7 +11,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 
-const PLANOS_URL = "/planos"
+const PLANOS_URL = "https://crm.elevanthe.com/planos/publico"
 const SIGNUP_URL = "/sign-up"
 const SIGNIN_URL = "/sign-in"
 
@@ -109,8 +109,65 @@ const socialProof = [
   { name: "Pedro S.", role: "Freelancer", text: "O tour interativo me convenceu em 5 minutos. Comecei pelo plano Start e renovei no mesmo dia." },
 ]
 
+function PlanModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="size-9 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center">
+              <Zap className="size-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground leading-tight">Escolher um plano</p>
+              <p className="text-xs text-muted-foreground leading-tight">Ativacao rapida via Pix</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <ArrowRight className="size-4 rotate-180" />
+          </button>
+        </div>
+
+        <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+          Para assinar um plano voce precisa ter uma conta no Elevanthe CRM.
+          Crie sua conta gratuitamente e, apos o login, escolha o plano desejado.
+        </p>
+
+        <div className="flex flex-col gap-2.5">
+          <Link
+            href={SIGNUP_URL}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background text-sm font-bold hover:opacity-85 transition-opacity"
+          >
+            Criar conta e escolher plano
+            <ArrowRight className="size-4" />
+          </Link>
+          <Link
+            href={SIGNIN_URL}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-border text-muted-foreground text-sm font-medium hover:text-foreground hover:bg-muted/40 transition-all"
+          >
+            Ja tenho conta — fazer login
+          </Link>
+          <a
+            href={PLANOS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
+          >
+            Ver planos e precos primeiro
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DemoPage() {
   const [active, setActive] = useState(0)
+  const [showPlanModal, setShowPlanModal] = useState(false)
   const mod = modules[active]
 
   const prev = () => setActive((a) => (a === 0 ? modules.length - 1 : a - 1))
@@ -118,6 +175,7 @@ export default function DemoPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {showPlanModal && <PlanModal onClose={() => setShowPlanModal(false)} />}
 
       {/* HEADER */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
@@ -143,13 +201,15 @@ export default function DemoPage() {
             >
               Entrar
             </Link>
-            <Link
+            <a
               href={PLANOS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-foreground text-background text-[11px] font-bold tracking-wide uppercase hover:opacity-85 transition-opacity"
             >
               Ver planos
               <ArrowRight className="size-3" />
-            </Link>
+            </a>
           </div>
         </div>
       </header>
@@ -282,13 +342,14 @@ export default function DemoPage() {
 
                   {/* CTAs */}
                   <div className="pt-2 flex gap-2">
-                    <Link
-                      href={PLANOS_URL}
+                    <button
+                      type="button"
+                      onClick={() => setShowPlanModal(true)}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-foreground text-background text-[11px] font-bold tracking-wide uppercase hover:opacity-85 transition-opacity"
                     >
                       <Zap className="size-3" />
                       Assinar agora
-                    </Link>
+                    </button>
                     <Link
                       href={SIGNUP_URL}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border text-muted-foreground text-[11px] font-bold tracking-wide uppercase hover:text-foreground hover:bg-muted/50 transition-all"
@@ -412,13 +473,15 @@ export default function DemoPage() {
               Comece por R$&nbsp;7 e tenha acesso completo por 7 dias. Sem compromisso, sem mensalidade automatica.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
+              <a
                 href={PLANOS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background text-[11px] font-bold tracking-widest uppercase hover:opacity-85 transition-opacity shadow-lg"
               >
                 Ver planos e precos
                 <ArrowRight className="size-3.5" />
-              </Link>
+              </a>
               <Link
                 href={SIGNUP_URL}
                 className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-border text-muted-foreground text-[11px] font-bold tracking-widest uppercase hover:text-foreground hover:bg-muted/50 transition-all"
