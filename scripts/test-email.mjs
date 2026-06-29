@@ -14,7 +14,7 @@ const BRL = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v))
 
 // Dados de teste — simula compra do plano Business
-const to = "contato@elevanthe.com"
+const to = "nathigean2026@gmail.com"
 const userName = "Gabriel Nathigean"
 const planLabel = "Business"
 const planId = "30d"
