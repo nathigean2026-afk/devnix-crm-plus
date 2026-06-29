@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { user, payments } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { LICENSE_PLANS } from "@/lib/products"
+import { sendPurchaseConfirmationEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 
@@ -76,6 +77,31 @@ async function activateLicense(payment: Awaited<ReturnType<Payment["get"]>>) {
     .where(eq(payments.mpPaymentId, paymentId))
 
   console.log(`[MP Webhook] Licenca ativada para ${userId} ate ${newExpiry.toISOString()} via ${paymentMethod}`)
+
+  // Envia email de confirmacao de compra
+  try {
+    const [userData] = await db
+      .select({ email: user.email, name: user.name })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1)
+
+    if (userData?.email) {
+      await sendPurchaseConfirmationEmail({
+        to: userData.email,
+        userName: userData.name ?? "Cliente",
+        planName: plan?.name ?? planId,
+        planId,
+        amountCents,
+        durationDays,
+        purchasedAt: new Date(),
+        expiresAt: newExpiry,
+      })
+    }
+  } catch (emailErr) {
+    // Nao quebra o fluxo de ativacao se o email falhar
+    console.error("[MP Webhook] Falha ao enviar email de confirmacao:", emailErr)
+  }
 }
 
 export async function POST(req: NextRequest) {
