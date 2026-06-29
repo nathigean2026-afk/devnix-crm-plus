@@ -212,34 +212,35 @@ export async function sendPurchaseConfirmationEmail(
       <td align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%;">
 
-          <!-- LOGO HEADER -->
-          <tr>
-            <td align="center" style="padding:0 0 28px 0;">
-              <img
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-LjNhveleTE8nzPLasW7Zn3YdJgCoKF.png"
-                alt="Elevanthe CRM"
-                width="220"
-                style="display:block; max-width:220px; height:auto;"
-              />
-            </td>
-          </tr>
-
           <!-- CARD PRINCIPAL -->
           <tr>
             <td style="background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 2px 16px rgba(15,23,42,0.08);">
 
-              <!-- BANNER TOPO AZUL -->
+              <!-- BANNER TOPO AZUL com logo + titulo -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background:#1e40af; padding:36px 40px; text-align:center;">
-                    <!-- Icone circulo branco -->
-                    <div style="width:64px; height:64px; background:rgba(255,255,255,0.15); border-radius:50%; margin:0 auto 16px; line-height:64px; text-align:center;">
-                      <span style="font-size:30px; line-height:64px; display:block;">&#10003;</span>
+                  <td style="background:#1e3a8a; padding:36px 40px 32px; text-align:center;">
+
+                    <!-- Logo da Elevanthe sobre fundo azul escuro — texto branco visivel -->
+                    <img
+                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-LjNhveleTE8nzPLasW7Zn3YdJgCoKF.png"
+                      alt="Elevanthe CRM"
+                      width="200"
+                      style="display:block; max-width:200px; height:auto; margin:0 auto 28px;"
+                    />
+
+                    <!-- Linha divisoria sutil -->
+                    <div style="width:48px; height:2px; background:rgba(255,255,255,0.25); margin:0 auto 24px;"></div>
+
+                    <!-- Icone de sucesso -->
+                    <div style="width:60px; height:60px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); border-radius:50%; margin:0 auto 16px; text-align:center; line-height:58px;">
+                      <span style="font-size:26px; color:#ffffff; display:block; line-height:56px;">&#10003;</span>
                     </div>
+
                     <h1 style="margin:0 0 8px; font-size:26px; font-weight:800; color:#ffffff; letter-spacing:-0.5px; line-height:1.2;">
                       Licenca ativada!
                     </h1>
-                    <p style="margin:0; font-size:15px; color:rgba(255,255,255,0.8); line-height:1.5;">
+                    <p style="margin:0; font-size:15px; color:rgba(255,255,255,0.75); line-height:1.5;">
                       Seu acesso ao plano <strong style="color:#93c5fd;">${planLabel}</strong> esta liberado
                     </p>
                   </td>
