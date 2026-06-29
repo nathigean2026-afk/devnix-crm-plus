@@ -212,29 +212,61 @@ export async function sendPurchaseConfirmationEmail(
       <td align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%;">
 
+          <!-- LOGO HEADER — fundo branco, texto azul, sempre visivel -->
+          <tr>
+            <td align="center" style="padding:32px 0 24px;">
+              <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="vertical-align:middle; padding-right:10px;">
+                    <!-- Elefante SVG inline — azul vibrante, sempre renderiza -->
+                    <img
+                      src="https://crm.elevanthe.com/elephant-icon.png"
+                      alt=""
+                      width="42"
+                      height="42"
+                      style="display:block; width:42px; height:42px;"
+                    />
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                      <tr>
+                        <td>
+                          <span style="font-size:22px; font-weight:900; color:#1e3a8a; letter-spacing:4px; text-transform:uppercase; font-family:Arial,sans-serif;">ELEVANTHE</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-top:1px;">
+                          <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                            <tr>
+                              <td style="padding-right:8px;">
+                                <span style="font-size:13px; font-weight:800; color:#2563eb; letter-spacing:3px; text-transform:uppercase; font-family:Arial,sans-serif;">CRM</span>
+                              </td>
+                              <td style="border-left:1px solid #cbd5e1; padding-left:8px;">
+                                <span style="font-size:8px; color:#94a3b8; letter-spacing:1px; text-transform:uppercase; font-family:Arial,sans-serif; line-height:1.3; display:block;">GESTAO DE RELACIONAMENTO<br/>QUE ELEVA RESULTADOS</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
           <!-- CARD PRINCIPAL -->
           <tr>
             <td style="background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 2px 16px rgba(15,23,42,0.08);">
 
-              <!-- BANNER TOPO AZUL com logo + titulo -->
+              <!-- BANNER TOPO AZUL -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="background:#1e3a8a; padding:36px 40px 32px; text-align:center;">
 
-                    <!-- Logo da Elevanthe sobre fundo azul escuro — texto branco visivel -->
-                    <img
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-LjNhveleTE8nzPLasW7Zn3YdJgCoKF.png"
-                      alt="Elevanthe CRM"
-                      width="200"
-                      style="display:block; max-width:200px; height:auto; margin:0 auto 28px;"
-                    />
-
-                    <!-- Linha divisoria sutil -->
-                    <div style="width:48px; height:2px; background:rgba(255,255,255,0.25); margin:0 auto 24px;"></div>
-
                     <!-- Icone de sucesso -->
-                    <div style="width:60px; height:60px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); border-radius:50%; margin:0 auto 16px; text-align:center; line-height:58px;">
-                      <span style="font-size:26px; color:#ffffff; display:block; line-height:56px;">&#10003;</span>
+                    <div style="width:60px; height:60px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); border-radius:50%; margin:0 auto 16px; text-align:center; line-height:56px;">
+                      <span style="font-size:28px; color:#ffffff; display:block; line-height:56px;">&#10003;</span>
                     </div>
 
                     <h1 style="margin:0 0 8px; font-size:26px; font-weight:800; color:#ffffff; letter-spacing:-0.5px; line-height:1.2;">
