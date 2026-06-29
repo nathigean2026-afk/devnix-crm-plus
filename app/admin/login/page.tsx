@@ -81,20 +81,7 @@ export default function AdminLoginPage() {
             Gerencie usuários, licenças, tickets de suporte e métricas da plataforma em um único lugar.
           </p>
 
-          {/* Mini stats */}
-          <div className="grid grid-cols-2 gap-3 max-w-xs">
-            {[
-              { label: "Usuários ativos", icon: "👤" },
-              { label: "Tickets abertos", icon: "🎫" },
-              { label: "Pagamentos", icon: "💳" },
-              { label: "Online agora", icon: "🟢" },
-            ].map(item => (
-              <div key={item.label} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                <p className="text-lg">{item.icon}</p>
-                <p className="text-xs text-white/40 mt-1">{item.label}</p>
-              </div>
-            ))}
-          </div>
+
         </div>
 
         {/* Footer */}
