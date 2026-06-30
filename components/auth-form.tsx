@@ -4,22 +4,16 @@ import { WhatsAppButton } from "@/components/support/whatsapp-button"
 import { IntroVideoOverlay } from "@/components/intro-video-overlay"
 import { useTurnstile } from "@/hooks/use-turnstile"
 import { authClient } from "@/lib/auth-client"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ScreenshotCarousel } from "@/components/screenshot-carousel"
+import Image from "next/image"
+import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
-import dynamic from "next/dynamic"
-
-// Carregado de forma lazy — o script da Cloudflare só é baixado após a hydration,
-// sem bloquear o FCP/LCP da página de login
-const TurnstileWidget = dynamic(
-  () => import("@/components/turnstile-widget").then((m) => ({ default: m.TurnstileWidget })),
-  { ssr: false, loading: () => <div className="h-[65px]" aria-hidden /> }
-)
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Image from "next/image"
-import Link from "next/link"
 import {
   Eye, EyeOff, ArrowRight, Lock, Mail, User,
   Sun, Moon,
@@ -28,6 +22,12 @@ import {
   TrendingUp, ShieldCheck, Globe, Send, Layers, Star,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Turnstile carregado de forma lazy — o script Cloudflare não bloqueia FCP/LCP
+const TurnstileWidget = dynamic(
+  () => import("@/components/turnstile-widget").then((m) => ({ default: m.TurnstileWidget })),
+  { ssr: false, loading: () => <div className="h-[65px]" aria-hidden /> }
+)
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up"
@@ -56,54 +56,10 @@ const crmFeatures = [
   { icon: Globe,        label: "Assinatura Digital" },
 ]
 
-// ─── Carrossel — extraído para screenshot-carousel.tsx ────────────────────────
-// Carregado via dynamic() com ssr:false para não bloquear o FCP.
-// O placeholder "loading" exibe a primeira imagem estática via <img> nativo
-// com fetchpriority="high" enquanto o JS do carrossel é baixado.
-const AuthLeftPanel = dynamic(
-  () => import("@/components/screenshot-carousel").then((m) => ({ default: m.ScreenshotCarousel })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex flex-col gap-3">
-        <div className="rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/70 bg-[#0d0d14]">
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
-            <div className="flex gap-1.5">
-              <div className="size-2.5 rounded-full bg-red-500/40" />
-              <div className="size-2.5 rounded-full bg-yellow-500/40" />
-              <div className="size-2.5 rounded-full bg-green-500/40" />
-            </div>
-            <div className="flex-1 mx-2 h-5 rounded-md bg-white/[0.04] border border-white/[0.06] flex items-center px-2">
-              <span className="text-[10px] text-white/20 truncate">app.elevanthe.com.br/dashboard</span>
-            </div>
-          </div>
-          {/* img nativo com fetchpriority — renderizado antes do JS do carrossel */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75"
-            alt="Dashboard — Elevanthe CRM"
-            width={520}
-            height={325}
-            fetchPriority="high"
-            decoding="sync"
-            className="w-full h-auto object-cover object-top"
-          />
-        </div>
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <p className="text-xs font-semibold text-white/60">Dashboard</p>
-            <p className="text-[11px] text-white/25">Visão geral do seu negócio em tempo real</p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className={i === 0 ? "w-4 h-1.5 rounded-full bg-primary" : "w-1.5 h-1.5 rounded-full bg-white/20"} />
-            ))}
-          </div>
-        </div>
-      </div>
-    ),
-  }
-)
+// ScreenshotCarousel importado diretamente (ssr:true por padrão).
+// O Next.js renderiza o componente no servidor, emitindo o <img> com
+// fetchpriority="high" no HTML inicial — o browser inicia o download
+// da imagem LCP antes de executar qualquer JS.
 
 // ─── Wallpaper de funcionalidades — posicionamento pseudo-aleatório estável ────
 // Usa um gerador linear congruencial seeded para que o layout seja idêntico
@@ -341,7 +297,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             </p>
           </div>
 
-          <AuthLeftPanel />
+          <ScreenshotCarousel />
         </div>
 
         {/* Rodape */}
