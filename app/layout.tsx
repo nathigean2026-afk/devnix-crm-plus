@@ -70,22 +70,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
-        {/*
-          Preload da imagem LCP — primeiro slide do carrossel (desktop only).
-          O carrossel é hidden em mobile (<lg), portanto o preload só é necessário
-          para viewports >= 1024px. Usamos w=960 que cobre até 1440px de viewport
-          com uma imagem de 520px de largura renderizada.
-        */}
+        {/* Preload da imagem LCP — carrossel desktop (hidden em mobile) */}
         <link
           rel="preload"
           as="image"
           href="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75"
-          // @ts-expect-error — imageSrcSet/imageSizes são atributos válidos do HTML para <link rel="preload" as="image">
-          imageSrcSet="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=640&q=75 640w, /_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75 960w"
-          imageSizes="(max-width: 1280px) 460px, 520px"
           media="(min-width: 1024px)"
         />
-        {/* DNS prefetch para Turnstile — reduz latência do script de segurança */}
+        {/* DNS prefetch para Cloudflare Turnstile — reduz latência do script */}
         <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
         <link rel="preconnect" href="https://challenges.cloudflare.com" crossOrigin="anonymous" />
       </head>
