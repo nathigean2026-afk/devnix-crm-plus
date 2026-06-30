@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { Shield, User, Lock, Eye, EyeOff, ArrowRight, Activity } from "lucide-react"
+import { TurnstileWidget } from "@/components/turnstile-widget"
+import { useTurnstile } from "@/hooks/use-turnstile"
 import Image from "next/image"
 
 export default function AdminLoginPage() {
@@ -11,9 +13,21 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const {
+    isVerified: turnstileVerified,
+    isVerifying: turnstileVerifying,
+    error: turnstileError,
+    handleSuccess: onTurnstileSuccess,
+    handleExpire: onTurnstileExpire,
+    handleError: onTurnstileError,
+    verifyToken,
+  } = useTurnstile()
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    const tokenValid = await verifyToken()
+    if (!tokenValid) return
     setLoading(true)
     try {
       const res = await fetch("/api/admin/login", {
@@ -161,17 +175,24 @@ export default function AdminLoginPage() {
                 </div>
               </div>
 
-              {/* Erro */}
-              {error && (
+              {/* Cloudflare Turnstile */}
+              <TurnstileWidget
+                onSuccess={onTurnstileSuccess}
+                onExpire={onTurnstileExpire}
+                onError={onTurnstileError}
+              />
+
+              {/* Erros */}
+              {(error || turnstileError) && (
                 <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/8 border border-red-500/15 rounded-xl px-3.5 py-2.5">
                   <Shield className="size-4 shrink-0" />
-                  <span>{error}</span>
+                  <span>{error || turnstileError}</span>
                 </div>
               )}
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || turnstileVerifying || !turnstileVerified}
                 className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all text-sm shadow-lg shadow-primary/25"
               >
                 {loading ? (

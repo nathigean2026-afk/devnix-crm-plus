@@ -2,6 +2,8 @@
 
 import { WhatsAppButton } from "@/components/support/whatsapp-button"
 import { IntroVideoOverlay } from "@/components/intro-video-overlay"
+import { TurnstileWidget } from "@/components/turnstile-widget"
+import { useTurnstile } from "@/hooks/use-turnstile"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -255,6 +257,16 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   const [form, setForm] = useState({ name: "", email: "", password: "" })
   const [showIntro, setShowIntro] = useState(false)
 
+  const {
+    isVerified: turnstileVerified,
+    isVerifying: turnstileVerifying,
+    error: turnstileError,
+    handleSuccess: onTurnstileSuccess,
+    handleExpire: onTurnstileExpire,
+    handleError: onTurnstileError,
+    verifyToken,
+  } = useTurnstile()
+
   useEffect(() => { setMounted(true) }, [])
 
   const isSignIn = mode === "sign-in"
@@ -262,6 +274,11 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Verificação server-side do token Turnstile
+    const tokenValid = await verifyToken()
+    if (!tokenValid) return
+
     setLoading(true)
     try {
       if (!isSignIn) {
@@ -513,9 +530,19 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                 </div>
               </div>
 
+              {/* Cloudflare Turnstile — verificação de segurança */}
+              <TurnstileWidget
+                onSuccess={onTurnstileSuccess}
+                onExpire={onTurnstileExpire}
+                onError={onTurnstileError}
+              />
+              {turnstileError && (
+                <p className="text-xs text-red-400 text-center -mt-1">{turnstileError}</p>
+              )}
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || turnstileVerifying || !turnstileVerified}
                 className="w-full h-11 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2 bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
               >
                 {loading ? (

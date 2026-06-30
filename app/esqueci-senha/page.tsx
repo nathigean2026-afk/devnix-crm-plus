@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { TurnstileWidget } from "@/components/turnstile-widget"
+import { useTurnstile } from "@/hooks/use-turnstile"
 import Image from "next/image"
 import { ArrowLeft, CheckCircle } from "lucide-react"
 import Link from "next/link"
@@ -14,8 +16,20 @@ export default function EsqueciSenhaPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
 
+  const {
+    isVerified: turnstileVerified,
+    isVerifying: turnstileVerifying,
+    error: turnstileError,
+    handleSuccess: onTurnstileSuccess,
+    handleExpire: onTurnstileExpire,
+    handleError: onTurnstileError,
+    verifyToken,
+  } = useTurnstile()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const tokenValid = await verifyToken()
+    if (!tokenValid) return
     setLoading(true)
     // Simula envio — integrar com Better Auth resetPassword quando configurar e-mail
     await new Promise((r) => setTimeout(r, 1200))
@@ -85,9 +99,18 @@ export default function EsqueciSenhaPage() {
                   />
                 </div>
 
+                <TurnstileWidget
+                  onSuccess={onTurnstileSuccess}
+                  onExpire={onTurnstileExpire}
+                  onError={onTurnstileError}
+                />
+                {turnstileError && (
+                  <p className="text-xs text-red-500 text-center">{turnstileError}</p>
+                )}
+
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || turnstileVerifying || !turnstileVerified}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 >
                   {loading ? "Enviando..." : "Enviar link de recuperação"}
