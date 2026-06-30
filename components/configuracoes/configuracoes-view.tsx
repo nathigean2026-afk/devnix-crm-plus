@@ -389,8 +389,24 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
 
-      {/* Banner informativo para plano Start */}
-      {isStart && (
+      {/* Banner para funcionários — acesso somente leitura nas configurações da empresa */}
+      {isEmployee && (
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 flex items-start gap-3">
+          <Lock className="size-4 text-blue-500 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+              Acesso somente leitura
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-500 mt-0.5">
+              Você está acessando como funcionário. Os dados da empresa e configurações avancadas
+              só podem ser editados pelo administrador da conta.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner informativo para plano Start — não exibir para funcionários */}
+      {isStart && !isEmployee && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
           <Lock className="size-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="flex-1">
@@ -419,7 +435,7 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           {/* Logo */}
-          {isStart ? (
+          {isStart && !isEmployee ? (
             <PlanGate
               locked={isStart}
               featureName="Logotipo"
@@ -443,38 +459,41 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
                     <Building2 className="size-8 text-muted-foreground" />
                   )}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleLogoChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="size-4" />
-                    {logoPreview ? "Trocar logo" : "Carregar logo"}
-                  </Button>
-                  {logoPreview && (
+                {/* Funcionários não podem trocar o logo */}
+                {!isEmployee && (
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="gap-2 text-destructive hover:text-destructive"
-                      onClick={() => { setLogoPreview(""); setForm(f => ({ ...f, logo: "" })) }}
+                      className="gap-2"
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      <X className="size-4" />
-                      Remover
+                      <Upload className="size-4" />
+                      {logoPreview ? "Trocar logo" : "Carregar logo"}
                     </Button>
-                  )}
-                  <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx. 2 MB.</p>
-                </div>
+                    {logoPreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 text-destructive hover:text-destructive"
+                        onClick={() => { setLogoPreview(""); setForm(f => ({ ...f, logo: "" })) }}
+                      >
+                        <X className="size-4" />
+                        Remover
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx. 2 MB.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -482,7 +501,7 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Nome */}
             <PlanGate
-              locked={isStart}
+              locked={isStart && !isEmployee}
               featureName="Nome da empresa"
               featureBenefit="Seu nome comercial aparecerá no cabeçalho dos orçamentos e ordens de serviço."
             >
@@ -490,10 +509,10 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
                 <Label htmlFor="biz-name" className="text-foreground text-sm">Nome da empresa / negócio</Label>
                 <Input
                   id="biz-name"
-                  value={brandUnlocked ? form.name : "Elevanthe CRM"}
+                  value={brandUnlocked || isEmployee ? form.name : "Elevanthe CRM"}
                   onChange={e => handleChange("name", e.target.value)}
                   placeholder="Elevanthe Soluções Web"
-                  disabled={!brandUnlocked}
+                  disabled={isEmployee || !brandUnlocked}
                   className="bg-input border-border"
                 />
               </div>
@@ -501,7 +520,7 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
 
             {/* CPF/CNPJ */}
             <PlanGate
-              locked={isStart}
+              locked={isStart && !isEmployee}
               featureName="CPF / CNPJ"
               featureBenefit="Identifique sua empresa legalmente nos documentos gerados para seus clientes."
             >
@@ -509,10 +528,10 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
                 <Label htmlFor="biz-doc" className="text-foreground text-sm">CPF / CNPJ</Label>
                 <Input
                   id="biz-doc"
-                  value={brandUnlocked ? form.document : ""}
+                  value={brandUnlocked || isEmployee ? form.document : ""}
                   onChange={e => handleChange("document", e.target.value)}
                   placeholder="00.000.000/0001-00"
-                  disabled={!brandUnlocked}
+                  disabled={isEmployee || !brandUnlocked}
                   className="bg-input border-border"
                 />
               </div>
@@ -521,32 +540,32 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
             {/* Telefone */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-phone" className="text-foreground text-sm">Telefone / WhatsApp</Label>
-              <Input id="biz-phone" value={form.phone} onChange={e => handleChange("phone", e.target.value)} placeholder="(11) 99999-9999" className="bg-input border-border" />
+              <Input id="biz-phone" value={form.phone} onChange={e => handleChange("phone", e.target.value)} placeholder="(11) 99999-9999" disabled={isEmployee} className="bg-input border-border" />
             </div>
 
             {/* Email comercial */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-email" className="text-foreground text-sm">E-mail comercial</Label>
-              <Input id="biz-email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} placeholder="contato@empresa.com.br" className="bg-input border-border" />
+              <Input id="biz-email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} placeholder="contato@empresa.com.br" disabled={isEmployee} className="bg-input border-border" />
             </div>
 
             {/* Website */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-website" className="text-foreground text-sm">Website</Label>
-              <Input id="biz-website" value={form.website} onChange={e => handleChange("website", e.target.value)} placeholder="https://empresa.com.br" className="bg-input border-border" />
+              <Input id="biz-website" value={form.website} onChange={e => handleChange("website", e.target.value)} placeholder="https://empresa.com.br" disabled={isEmployee} className="bg-input border-border" />
             </div>
 
             <div className="flex flex-col gap-1.5 sm:col-span-2">
               <Label htmlFor="biz-address" className="text-foreground text-sm">Endereço</Label>
-              <Input id="biz-address" value={form.address} onChange={e => handleChange("address", e.target.value)} placeholder="Rua Exemplo, 123" className="bg-input border-border" />
+              <Input id="biz-address" value={form.address} onChange={e => handleChange("address", e.target.value)} placeholder="Rua Exemplo, 123" disabled={isEmployee} className="bg-input border-border" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-city" className="text-foreground text-sm">Cidade</Label>
-              <Input id="biz-city" value={form.city} onChange={e => handleChange("city", e.target.value)} placeholder="São Paulo" className="bg-input border-border" />
+              <Input id="biz-city" value={form.city} onChange={e => handleChange("city", e.target.value)} placeholder="São Paulo" disabled={isEmployee} className="bg-input border-border" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="biz-state" className="text-foreground text-sm">Estado</Label>
-              <Input id="biz-state" value={form.state} onChange={e => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} className="bg-input border-border uppercase" />
+              <Input id="biz-state" value={form.state} onChange={e => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} disabled={isEmployee} className="bg-input border-border uppercase" />
             </div>
           </div>
         </CardContent>
@@ -565,14 +584,14 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
         </CardHeader>
         <CardContent>
           <PlanGate
-            locked={isStart}
+            locked={isStart && !isEmployee}
             featureName="Chave Pix"
             featureBenefit="Gere QR Codes Pix automaticamente nas ordens de serviço para seus clientes pagarem na hora."
           >
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Tipo de chave</Label>
-                <Select value={form.pixType ?? "cpf"} onValueChange={v => handleChange("pixType", v)} disabled={isStart}>
+                <Select value={form.pixType ?? "cpf"} onValueChange={v => handleChange("pixType", v)} disabled={isStart || isEmployee}>
                   <SelectTrigger className="bg-input border-border">
                     <SelectValue />
                   </SelectTrigger>
@@ -589,7 +608,7 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
                   id="pix-key"
                   value={form.pixKey}
                   onChange={e => handleChange("pixKey", e.target.value)}
-                  disabled={isStart}
+                  disabled={isStart || isEmployee}
                   placeholder={
                     form.pixType === "cpf" ? "000.000.000-00" :
                     form.pixType === "email" ? "contato@empresa.com" :
@@ -779,15 +798,18 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
       {/* Licença */}
       {!isEmployee && <LicenseCard license={license} profile={profile} />}
 
-      <div className="flex justify-end pb-4">
-        <Button
-          onClick={handleSave}
-          disabled={isPending}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-40"
-        >
-          {isPending ? "Salvando..." : "Salvar configurações"}
-        </Button>
-      </div>
+      {/* Funcionários não podem salvar alterações nos dados da empresa */}
+      {!isEmployee && (
+        <div className="flex justify-end pb-4">
+          <Button
+            onClick={handleSave}
+            disabled={isPending}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-40"
+          >
+            {isPending ? "Salvando..." : "Salvar configurações"}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
