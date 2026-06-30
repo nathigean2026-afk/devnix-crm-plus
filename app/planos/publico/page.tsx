@@ -3,10 +3,13 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useTheme } from "next-themes"
+import { useEffect } from "react"
 import {
-  Check, X, ChevronDown, ChevronUp, Zap, CalendarDays, CalendarRange,
+  Check, X, ChevronDown, ChevronUp,
+  Zap, CalendarDays, CalendarRange,
   ShieldCheck, Clock, Sparkles, Lock, Users, FileText, BarChart3,
-  MessageSquare, Palette, UserPlus, ArrowRight, Star,
+  MessageSquare, Palette, UserPlus, ArrowRight, Star, Sun, Moon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -57,8 +60,6 @@ const plans = [
 ]
 
 // ── Tabela de features completa ───────────────────────────────────────────────
-type PlanAvailability = true | false | "business" | "enterprise"
-
 const featureGroups = [
   {
     label: "Base",
@@ -153,39 +154,90 @@ const faqs = [
 ]
 
 // ── Componentes auxiliares ────────────────────────────────────────────────────
-function CellIcon({ value }: { value: boolean | string }) {
+function ThemeToggleButton() {
+  const { setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return <div className="size-8" />
+  const isDark = resolvedTheme === "dark"
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className={cn(
+        "size-8 rounded-full flex items-center justify-center transition-all duration-200 border",
+        isDark
+          ? "border-white/10 bg-white/5 text-white/50 hover:text-white/80 hover:bg-white/10"
+          : "border-black/10 bg-black/5 text-black/40 hover:text-black/70 hover:bg-black/8"
+      )}
+      aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
+    >
+      {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+    </button>
+  )
+}
+
+function CellIcon({ value, isHighlight }: { value: boolean | string; isHighlight?: boolean }) {
   if (typeof value === "string") {
-    return <span className="text-xs font-semibold text-foreground">{value}</span>
+    return (
+      <span
+        className="text-xs font-bold"
+        style={{ color: isHighlight ? "#f2f2f2" : undefined }}
+      >
+        {value}
+      </span>
+    )
   }
   if (value) {
     return (
-      <div className="size-5 rounded-full bg-primary/15 flex items-center justify-center mx-auto">
-        <Check className="size-3 text-primary" strokeWidth={3} />
+      <div
+        className="size-5 rounded-full flex items-center justify-center mx-auto"
+        style={{
+          backgroundColor: isHighlight ? "rgba(242,242,242,0.15)" : "rgba(10,10,10,0.06)",
+        }}
+      >
+        <Check
+          className="size-3"
+          strokeWidth={3}
+          style={{ color: isHighlight ? "#f2f2f2" : "#0a0a0a" }}
+        />
       </div>
     )
   }
   return (
-    <div className="size-5 rounded-full bg-muted flex items-center justify-center mx-auto">
-      <X className="size-3 text-muted-foreground/40" strokeWidth={2.5} />
+    <div className="size-5 rounded-full bg-transparent flex items-center justify-center mx-auto">
+      <X className="size-3 text-current opacity-20" strokeWidth={2.5} />
     </div>
   )
 }
 
-function FaqItem({ q, a }: { q: string; a: string }) {
+function FaqItem({ q, a, isDark }: { q: string; a: string; isDark: boolean }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border-b border-border/60 last:border-0">
+    <div
+      className="border-b last:border-0"
+      style={{ borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)" }}
+    >
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-4 py-5 text-left group"
       >
-        <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{q}</span>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: isDark ? "#f2f2f2" : "#0a0a0a" }}
+        >
+          {q}
+        </span>
         {open
-          ? <ChevronUp className="size-4 text-muted-foreground shrink-0" />
-          : <ChevronDown className="size-4 text-muted-foreground shrink-0" />}
+          ? <ChevronUp className="size-4 shrink-0" style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(0,0,0,0.35)" }} />
+          : <ChevronDown className="size-4 shrink-0" style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(0,0,0,0.35)" }} />}
       </button>
       {open && (
-        <p className="text-sm text-muted-foreground leading-relaxed pb-5">{a}</p>
+        <p
+          className="text-sm leading-relaxed pb-5"
+          style={{ color: isDark ? "rgba(242,242,242,0.5)" : "rgba(10,10,10,0.5)" }}
+        >
+          {a}
+        </p>
       )}
     </div>
   )
@@ -193,32 +245,73 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function PlanosPublicoPage() {
-  return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+  const isDark = !mounted || resolvedTheme === "dark"
+
+  const bg = isDark ? "#080808" : "#f8f8f8"
+  const fg = isDark ? "#f2f2f2" : "#0a0a0a"
+  const fgMuted = isDark ? "rgba(242,242,242,0.45)" : "rgba(10,10,10,0.45)"
+  const cardBg = isDark ? "#111111" : "#ffffff"
+  const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+  const cardDark = isDark ? "#f2f2f2" : "#0a0a0a"
+  const cardDarkFg = isDark ? "#0a0a0a" : "#f2f2f2"
+
+  return (
+    <div className="min-h-screen font-sans" style={{ backgroundColor: bg, color: fg }}>
+      {/* Dots pattern global */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: isDark
+            ? "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)"
+            : "radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      />
+
+      {/* ── Header ── */}
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur-xl"
+        style={{
+          backgroundColor: isDark ? "rgba(8,8,8,0.85)" : "rgba(248,248,248,0.85)",
+          borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)",
+        }}
+      >
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
-          <Link href="/sign-in" className="flex items-center gap-2 shrink-0">
+          <Link href="/sign-in" className="flex items-center gap-2.5 shrink-0">
             <Image
               src="/elevanthe-icon.png"
               alt="Elevanthe CRM"
-              width={28}
-              height={28}
+              width={26}
+              height={26}
               className="object-contain"
             />
-            <span className="font-bold text-sm tracking-tight hidden sm:block">Elevanthe CRM</span>
+            <span
+              className="font-black text-sm tracking-tight hidden sm:block"
+              style={{ color: fg, fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)" }}
+            >
+              Elevanthe CRM
+            </span>
           </Link>
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2.5">
+            <ThemeToggleButton />
             <Link
               href="/sign-in"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted"
+              className="text-xs font-medium px-3 py-1.5 rounded-full border transition-all"
+              style={{
+                color: fgMuted,
+                borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+              }}
             >
               Entrar
             </Link>
             <Link
               href="/sign-up"
-              className="text-xs font-semibold bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              className="text-xs font-bold px-4 py-2 rounded-full transition-all"
+              style={{ backgroundColor: cardDark, color: cardDarkFg }}
             >
               Criar conta
             </Link>
@@ -226,99 +319,174 @@ export default function PlanosPublicoPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6">
 
-        {/* Hero */}
-        <div className="pt-16 pb-12 text-center">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-widest uppercase px-3 py-1 rounded-full border border-border bg-muted/40 text-muted-foreground mb-6">
-            <Sparkles className="size-3 text-primary" />
+        {/* ── Hero ── */}
+        <div className="pt-20 pb-14 text-center">
+          <div
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase px-3 py-1.5 rounded-full border mb-7"
+            style={{
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+              color: fgMuted,
+            }}
+          >
+            <Sparkles className="size-3" />
             Planos e preços
           </div>
-          <h1 className="text-4xl sm:text-[56px] font-black tracking-tighter leading-[1.04] text-foreground text-balance mb-5">
-            Simples, sem surpresas
+
+          <h1
+            className="text-[clamp(2.8rem,8vw,5rem)] font-black tracking-tighter leading-[1.02] text-balance mb-5"
+            style={{
+              color: fg,
+              fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+            }}
+          >
+            Simples,<br className="hidden sm:block" />
+            sem surpresas.
           </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed text-pretty mb-3">
+          <p className="text-base max-w-lg mx-auto leading-relaxed mb-4" style={{ color: fgMuted }}>
             Pague uma vez, use o tempo inteiro. Sem assinatura automática, sem renovação forçada.
           </p>
-          <p className="text-xs text-muted-foreground/60 flex items-center justify-center gap-1.5">
+          <p
+            className="text-xs flex items-center justify-center gap-1.5"
+            style={{ color: isDark ? "rgba(242,242,242,0.25)" : "rgba(10,10,10,0.3)" }}
+          >
             <Lock className="size-3" />
             Pagamento via Pix · Ativação instantânea
           </p>
         </div>
 
-        {/* Cards de planos */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16">
+        {/* ── Cards de planos ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-20">
           {plans.map((plan) => {
             const Icon = plan.icon
+            const isHighlight = plan.highlight
+
             return (
               <div
                 key={plan.id}
-                className={cn(
-                  "relative flex flex-col rounded-2xl border transition-all duration-200",
-                  plan.highlight
-                    ? "border-primary ring-2 ring-primary/20 bg-card shadow-xl shadow-primary/10"
-                    : "border-border bg-card hover:shadow-md"
-                )}
+                className="relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
+                style={{
+                  backgroundColor: isHighlight ? cardDark : cardBg,
+                  border: isHighlight
+                    ? `1px solid ${cardDark}`
+                    : `1px solid ${cardBorder}`,
+                  transform: isHighlight ? "scale(1.02)" : undefined,
+                }}
               >
+                {/* Dots pattern no card de destaque */}
+                {isHighlight && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backgroundImage: isDark
+                        ? "radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)"
+                        : "radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)",
+                      backgroundSize: "20px 20px",
+                    }}
+                  />
+                )}
+
+                {/* Badge */}
                 {plan.badge && (
-                  <div className={cn(
-                    "absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[11px] font-bold border",
-                    plan.highlight
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-amber-500 text-white border-amber-500"
-                  )}>
+                  <div
+                    className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[11px] font-bold"
+                    style={{
+                      backgroundColor: isHighlight ? (isDark ? "#f2f2f2" : "#0a0a0a") : (isDark ? "#1a1a1a" : "#f0f0f0"),
+                      color: isHighlight ? (isDark ? "#0a0a0a" : "#f2f2f2") : fgMuted,
+                      border: `1px solid ${isHighlight ? cardDark : cardBorder}`,
+                    }}
+                  >
                     {plan.badge}
                   </div>
                 )}
 
-                <div className="p-6 flex flex-col flex-1">
+                <div className="relative z-10 p-6 flex flex-col flex-1">
+                  {/* Cabeçalho */}
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h2 className="text-lg font-bold">{plan.name}</h2>
-                      <p className="text-xs text-muted-foreground mt-0.5">{plan.duration}</p>
+                      <h2
+                        className="text-lg font-black tracking-tight"
+                        style={{
+                          color: isHighlight ? cardDarkFg : fg,
+                          fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+                        }}
+                      >
+                        {plan.name}
+                      </h2>
+                      <p className="text-xs mt-0.5" style={{ color: isHighlight ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}>
+                        {plan.duration}
+                      </p>
                     </div>
-                    <div className={cn(
-                      "size-9 rounded-xl flex items-center justify-center shrink-0",
-                      plan.highlight ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                    )}>
-                      <Icon className="size-4" />
+                    <div
+                      className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: isHighlight
+                          ? (isDark ? "rgba(10,10,10,0.15)" : "rgba(242,242,242,0.15)")
+                          : (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"),
+                      }}
+                    >
+                      <Icon
+                        className="size-4"
+                        style={{ color: isHighlight ? cardDarkFg : fgMuted }}
+                      />
                     </div>
                   </div>
 
+                  {/* Preço */}
                   <div className="mb-1">
                     <div className="flex items-baseline gap-0.5">
-                      <span className="text-sm font-medium text-muted-foreground mr-1">R$</span>
-                      <span className={cn(
-                        "text-5xl font-black tracking-tighter leading-none",
-                        plan.highlight ? "text-primary" : "text-foreground"
-                      )}>
+                      <span
+                        className="text-sm font-medium mr-0.5"
+                        style={{ color: isHighlight ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}
+                      >
+                        R$
+                      </span>
+                      <span
+                        className="text-5xl font-black tracking-tighter leading-none"
+                        style={{
+                          color: isHighlight ? cardDarkFg : fg,
+                          fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+                        }}
+                      >
                         {plan.price}
                       </span>
-                      <span className="text-sm text-muted-foreground ml-1">,00</span>
+                      <span className="text-sm ml-0.5" style={{ color: isHighlight ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}>
+                        ,00
+                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.priceNote}</p>
+                    <p
+                      className="text-xs mt-1"
+                      style={{ color: isHighlight ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}
+                    >
+                      {plan.priceNote}
+                    </p>
                     {plan.id === "enterprise" && (
-                      <p className="text-xs font-semibold text-emerald-500 mt-0.5">
+                      <p className="text-xs font-semibold mt-0.5" style={{ color: isHighlight ? (isDark ? "rgba(10,10,10,0.6)" : "#16a34a") : "#16a34a" }}>
                         Equivale a R$ 23,33/mês · Economia de R$ 80
                       </p>
                     )}
                   </div>
 
-                  <div className="my-4 h-px bg-border" />
+                  <div
+                    className="my-4 h-px"
+                    style={{ backgroundColor: isHighlight ? (isDark ? "rgba(10,10,10,0.15)" : "rgba(242,242,242,0.2)") : cardBorder }}
+                  />
 
-                  <p className="text-sm text-muted-foreground leading-relaxed text-pretty mb-6 flex-1">
+                  <p
+                    className="text-sm leading-relaxed mb-6 flex-1"
+                    style={{ color: isHighlight ? (isDark ? "rgba(10,10,10,0.55)" : "rgba(242,242,242,0.65)") : fgMuted }}
+                  >
                     {plan.desc}
                   </p>
 
                   <Link
                     href={plan.ctaHref}
-                    className={cn(
-                      "w-full h-11 rounded-xl text-sm font-semibold transition-all duration-150",
-                      "flex items-center justify-center gap-2",
-                      plan.highlight
-                        ? "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25"
-                        : "bg-foreground text-background hover:opacity-90"
-                    )}
+                    className="w-full h-11 rounded-full text-sm font-bold transition-all duration-150 flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: isHighlight ? cardDarkFg : cardDark,
+                      color: isHighlight ? cardDark : cardDarkFg,
+                    }}
                   >
                     {plan.cta}
                     <ArrowRight className="size-3.5" />
@@ -329,27 +497,64 @@ export default function PlanosPublicoPage() {
           })}
         </div>
 
-        {/* Tabela comparativa completa */}
-        <section className="mb-20">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mb-2">
-              Comparação completa
+        {/* ── Tabela comparativa completa ── */}
+        <section className="mb-24">
+          <div className="text-center mb-12">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+            >
+              Comparativo
+            </p>
+            <h2
+              className="text-[clamp(2rem,5vw,3rem)] font-black tracking-tighter leading-tight"
+              style={{
+                color: fg,
+                fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+              }}
+            >
+              O que cada plano inclui.
             </h2>
-            <p className="text-sm text-muted-foreground">Veja exatamente o que cada plano inclui</p>
           </div>
 
-          <div className="rounded-2xl border border-border overflow-hidden">
-
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ border: `1px solid ${cardBorder}` }}
+          >
             {/* Header da tabela */}
-            <div className="grid grid-cols-4 bg-muted/40 border-b border-border">
-              <div className="p-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Funcionalidade</div>
+            <div
+              className="grid grid-cols-4"
+              style={{ backgroundColor: isDark ? "#0f0f0f" : "#f3f3f3", borderBottom: `1px solid ${cardBorder}` }}
+            >
+              <div
+                className="p-5 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+              >
+                Funcionalidade
+              </div>
               {plans.map((p) => (
-                <div key={p.id} className={cn(
-                  "p-4 text-center",
-                  p.highlight && "bg-primary/5 border-x border-primary/20"
-                )}>
-                  <p className={cn("text-sm font-bold", p.highlight ? "text-primary" : "text-foreground")}>{p.name}</p>
-                  <p className="text-xs text-muted-foreground">R$ {p.price}</p>
+                <div
+                  key={p.id}
+                  className="p-5 text-center relative"
+                  style={{
+                    backgroundColor: p.highlight ? cardDark : undefined,
+                  }}
+                >
+                  <p
+                    className="text-sm font-black tracking-tight"
+                    style={{
+                      color: p.highlight ? cardDarkFg : fg,
+                      fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+                    }}
+                  >
+                    {p.name}
+                  </p>
+                  <p
+                    className="text-xs mt-0.5"
+                    style={{ color: p.highlight ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}
+                  >
+                    R$ {p.price}
+                  </p>
                 </div>
               ))}
             </div>
@@ -359,44 +564,95 @@ export default function PlanosPublicoPage() {
               return (
                 <div key={group.label}>
                   {/* Separador de categoria */}
-                  <div className="grid grid-cols-4 bg-muted/20 border-b border-border/50 px-4 py-2.5">
+                  <div
+                    className="grid grid-cols-4 px-5 py-3"
+                    style={{
+                      backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+                      borderBottom: `1px solid ${cardBorder}`,
+                    }}
+                  >
                     <div className="col-span-4 flex items-center gap-2">
-                      <GroupIcon className="size-3.5 text-muted-foreground" />
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{group.label}</span>
+                      <GroupIcon className="size-3.5" style={{ color: fgMuted }} />
+                      <span
+                        className="text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: fgMuted }}
+                      >
+                        {group.label}
+                      </span>
                     </div>
                   </div>
 
                   {group.rows.map((row, i) => (
                     <div
                       key={row.name}
-                      className={cn(
-                        "grid grid-cols-4 border-b border-border/40 last:border-0",
-                        i % 2 === 0 ? "bg-background" : "bg-muted/10"
-                      )}
+                      className="grid grid-cols-4"
+                      style={{
+                        backgroundColor: i % 2 === 0
+                          ? (isDark ? "transparent" : "transparent")
+                          : (isDark ? "rgba(255,255,255,0.015)" : "rgba(0,0,0,0.015)"),
+                        borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`,
+                      }}
                     >
-                      <div className="px-4 py-3 text-sm text-foreground/80 flex items-center">{row.name}</div>
-                      {(["start", "business", "enterprise"] as const).map((planId, idx) => (
-                        <div
-                          key={planId}
-                          className={cn(
-                            "px-4 py-3 flex items-center justify-center",
-                            idx === 1 && "bg-primary/5 border-x border-primary/20"
-                          )}
-                        >
-                          <CellIcon value={row[planId] as boolean | string} />
-                        </div>
-                      ))}
+                      <div
+                        className="px-5 py-3.5 text-sm flex items-center"
+                        style={{ color: isDark ? "rgba(242,242,242,0.7)" : "rgba(10,10,10,0.7)" }}
+                      >
+                        {row.name}
+                      </div>
+                      {(["start", "business", "enterprise"] as const).map((planId, idx) => {
+                        const plan = plans[idx]
+                        return (
+                          <div
+                            key={planId}
+                            className="px-5 py-3.5 flex items-center justify-center"
+                            style={{
+                              backgroundColor: idx === 1 ? cardDark : undefined,
+                            }}
+                          >
+                            <CellIcon
+                              value={row[planId] as boolean | string}
+                              isHighlight={idx === 1}
+                            />
+                          </div>
+                        )
+                      })}
                     </div>
                   ))}
                 </div>
               )
             })}
+
+            {/* Rodapé da tabela com CTAs */}
+            <div
+              className="grid grid-cols-4"
+              style={{ backgroundColor: isDark ? "#0f0f0f" : "#f3f3f3", borderTop: `1px solid ${cardBorder}` }}
+            >
+              <div className="p-5" />
+              {plans.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className="p-4 flex items-center justify-center"
+                  style={{ backgroundColor: p.highlight ? cardDark : undefined }}
+                >
+                  <Link
+                    href={p.ctaHref}
+                    className="text-xs font-bold px-5 py-2.5 rounded-full transition-all"
+                    style={{
+                      backgroundColor: p.highlight ? cardDarkFg : cardDark,
+                      color: p.highlight ? cardDark : cardDarkFg,
+                    }}
+                  >
+                    {p.cta}
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* Garantias */}
+        {/* ── Garantias ── */}
         <section className="mb-20">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               {
                 icon: ShieldCheck,
@@ -416,73 +672,152 @@ export default function PlanosPublicoPage() {
             ].map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="flex items-start gap-4 p-5 rounded-xl border border-border bg-card"
+                className="flex items-start gap-4 p-5 rounded-2xl border transition-all"
+                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
               >
-                <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Icon className="size-4 text-primary" />
+                <div
+                  className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }}
+                >
+                  <Icon className="size-4" style={{ color: fg }} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground mb-1">{title}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                  <p className="text-sm font-bold mb-1" style={{ color: fg }}>{title}</p>
+                  <p className="text-xs leading-relaxed" style={{ color: fgMuted }}>{desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* FAQ */}
+        {/* ── FAQ ── */}
         <section className="mb-24">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mb-2">
-              Perguntas frequentes
+          <div className="text-center mb-12">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+            >
+              FAQ
+            </p>
+            <h2
+              className="text-[clamp(1.8rem,4vw,2.8rem)] font-black tracking-tighter"
+              style={{
+                color: fg,
+                fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+              }}
+            >
+              Perguntas frequentes.
             </h2>
-            <p className="text-sm text-muted-foreground">Tire suas dúvidas antes de contratar</p>
           </div>
 
-          <div className="max-w-2xl mx-auto rounded-2xl border border-border bg-card px-6">
+          <div
+            className="max-w-2xl mx-auto rounded-2xl border px-6"
+            style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+          >
             {faqs.map((faq) => (
-              <FaqItem key={faq.q} q={faq.q} a={faq.a} />
+              <FaqItem key={faq.q} q={faq.q} a={faq.a} isDark={isDark} />
             ))}
           </div>
         </section>
 
-        {/* CTA final */}
+        {/* ── CTA final ── */}
         <section className="mb-24 text-center">
-          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-10">
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mb-3 text-balance">
-              Pronto para começar?
-            </h2>
-            <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto">
-              Crie sua conta gratuitamente e escolha o plano dentro do sistema.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                href="/sign-up"
-                className="h-11 px-8 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-primary/25"
+          <div
+            className="relative rounded-2xl overflow-hidden p-12"
+            style={{ backgroundColor: cardDark }}
+          >
+            {/* Dots pattern no CTA */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage: isDark
+                  ? "radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)"
+                  : "radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)",
+                backgroundSize: "20px 20px",
+              }}
+            />
+            <div className="relative z-10">
+              <h2
+                className="text-[clamp(2rem,5vw,3.2rem)] font-black tracking-tighter leading-tight text-balance mb-4"
+                style={{
+                  color: cardDarkFg,
+                  fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+                }}
               >
-                Criar conta grátis
-                <ArrowRight className="size-3.5" />
-              </Link>
-              <Link
-                href="/sign-in"
-                className="h-11 px-8 rounded-xl border border-border bg-card text-sm font-medium text-foreground flex items-center gap-2 hover:bg-muted/50 transition-colors"
+                Pronto para começar?
+              </h2>
+              <p
+                className="text-sm mb-8 max-w-sm mx-auto leading-relaxed"
+                style={{ color: isDark ? "rgba(10,10,10,0.55)" : "rgba(242,242,242,0.6)" }}
               >
-                Já tenho conta
-              </Link>
+                Crie sua conta gratuitamente e escolha o plano dentro do sistema.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href="/sign-up"
+                  className="h-12 px-8 rounded-full text-sm font-bold flex items-center gap-2 transition-all hover:opacity-85"
+                  style={{ backgroundColor: cardDarkFg, color: cardDark }}
+                >
+                  Criar conta grátis
+                  <ArrowRight className="size-4" />
+                </Link>
+                <Link
+                  href="/sign-in"
+                  className="h-12 px-8 rounded-full border text-sm font-medium flex items-center gap-2 transition-all hover:opacity-70"
+                  style={{
+                    borderColor: isDark ? "rgba(10,10,10,0.3)" : "rgba(242,242,242,0.3)",
+                    color: isDark ? "rgba(10,10,10,0.6)" : "rgba(242,242,242,0.7)",
+                  }}
+                >
+                  Já tenho conta
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
       </main>
 
-      <footer className="border-t border-border/50 py-6">
-        <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Elevanthe CRM — Todos os direitos reservados
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Pagamento seguro via Pix
-          </p>
+      {/* ── Footer ── */}
+      <footer
+        className="border-t py-8 relative z-10"
+        style={{ borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)" }}
+      >
+        <div
+          className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-2">
+            <Image src="/elevanthe-icon.png" alt="" width={20} height={20} className="object-contain opacity-60" />
+            <span
+              className="text-xs font-semibold"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+            >
+              &copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/sign-in"
+              className="text-xs transition-colors"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+            >
+              Entrar
+            </Link>
+            <Link
+              href="/sign-up"
+              className="text-xs transition-colors"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+            >
+              Criar conta
+            </Link>
+            <Link
+              href="/demo"
+              className="text-xs transition-colors"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)" }}
+            >
+              Demo
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
