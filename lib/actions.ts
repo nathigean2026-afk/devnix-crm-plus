@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import {
+  activityLog,
   businessProfile,
   clients,
   employeeInvites,
@@ -67,6 +68,9 @@ export async function getMyPermissions(): Promise<{
   canOrders: boolean
   canFinanceiro: boolean
   canRelatorios: boolean
+  canDashboard: boolean
+  canDelete: boolean
+  canSendQuotes: boolean
 } | null> {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) throw new Error("Não autorizado")
@@ -89,7 +93,60 @@ export async function getMyPermissions(): Promise<{
     canOrders: perm.canOrders,
     canFinanceiro: perm.canFinanceiro,
     canRelatorios: perm.canRelatorios,
+    canDashboard: perm.canDashboard ?? true,
+    canDelete: perm.canDelete ?? false,
+    canSendQuotes: perm.canSendQuotes ?? false,
   }
+}
+
+/**
+ * Registra uma ação do funcionário no log de auditoria.
+ * Falha silenciosamente para não interromper fluxos principais.
+ */
+async function logActivity({
+  ownerId,
+  employeeId,
+  employeeName,
+  action,
+  module,
+  description,
+  recordId,
+}: {
+  ownerId: string
+  employeeId: string
+  employeeName?: string | null
+  action: string
+  module: string
+  description: string
+  recordId?: string
+}) {
+  try {
+    await db.insert(activityLog).values({
+      id: crypto.randomUUID(),
+      ownerId,
+      employeeId,
+      employeeName: employeeName ?? null,
+      action,
+      module,
+      description,
+      recordId: recordId ?? null,
+    })
+  } catch {
+    // Falha silenciosamente — log não deve quebrar a ação principal
+  }
+}
+
+/**
+ * Retorna o log de atividades do funcionário para o dono da empresa.
+ */
+export async function getActivityLog(limit = 100) {
+  const userId = await getUserId()
+  return db
+    .select()
+    .from(activityLog)
+    .where(eq(activityLog.ownerId, userId))
+    .orderBy(desc(activityLog.createdAt))
+    .limit(limit)
 }
 
 // ── Licenca ───────────────────────────────────────────────────────────────────
@@ -143,12 +200,15 @@ export async function createClient(data: {
   state?: string
   notes?: string
 }) {
-  const { effectiveId } = await getEffectiveUserId()
-  await db.insert(clients).values({
-    id: crypto.randomUUID(),
-    userId: effectiveId,
-    ...data,
-  })
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const id = crypto.randomUUID()
+  await db.insert(clients).values({ id, userId: effectiveId, ...data })
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "create", module: "clientes", description: `Cadastrou o cliente "${data.name}"`, recordId: id })
+  }
   revalidatePath("/dashboard/clientes")
 }
 
@@ -176,10 +236,17 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: string) {
-  const { effectiveId } = await getEffectiveUserId()
-  await db
-    .delete(clients)
-    .where(and(eq(clients.id, id), eq(clients.userId, effectiveId)))
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const perms = await getMyPermissions()
+  if (isEmployee && !perms?.canDelete) throw new Error("Sem permissão para excluir registros.")
+  const [target] = await db.select({ name: clients.name }).from(clients).where(and(eq(clients.id, id), eq(clients.userId, effectiveId))).limit(1)
+  await db.delete(clients).where(and(eq(clients.id, id), eq(clients.userId, effectiveId)))
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "delete", module: "clientes", description: `Excluiu o cliente "${target?.name ?? id}"`, recordId: id })
+  }
   revalidatePath("/dashboard/clientes")
 }
 
@@ -229,10 +296,17 @@ export async function updateService(
 }
 
 export async function deleteService(id: string) {
-  const { effectiveId } = await getEffectiveUserId()
-  await db
-    .delete(services)
-    .where(and(eq(services.id, id), eq(services.userId, effectiveId)))
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const perms = await getMyPermissions()
+  if (isEmployee && !perms?.canDelete) throw new Error("Sem permissão para excluir registros.")
+  const [target] = await db.select({ name: services.name }).from(services).where(and(eq(services.id, id), eq(services.userId, effectiveId))).limit(1)
+  await db.delete(services).where(and(eq(services.id, id), eq(services.userId, effectiveId)))
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "delete", module: "servicos", description: `Excluiu o serviço "${target?.name ?? id}"`, recordId: id })
+  }
   revalidatePath("/dashboard/servicos")
 }
 
@@ -332,7 +406,13 @@ export async function updateQuote(
     }[]
   },
 ) {
-  const { effectiveId } = await getEffectiveUserId()
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const perms = await getMyPermissions()
+  // Ao editar, o orçamento é enviado ao cliente — verificar permissão canSendQuotes
+  if (isEmployee && !perms?.canSendQuotes) throw new Error("Sem permissão para enviar orçamentos.")
 
   // Garante que o orçamento pertence ao prestador
   const [existing] = await db
@@ -377,6 +457,9 @@ export async function updateQuote(
     )
   }
 
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "send", module: "orcamentos", description: `Enviou o orçamento "${data.title}"`, recordId: id })
+  }
   revalidatePath("/dashboard/orcamentos")
   revalidatePath(`/orcamento/${id}`)
 }
@@ -505,13 +588,18 @@ export async function respondQuote(
 }
 
 export async function deleteQuote(id: string) {
-  const { effectiveId } = await getEffectiveUserId()
-  await db
-    .delete(quoteItems)
-    .where(eq(quoteItems.quoteId, id))
-  await db
-    .delete(quotes)
-    .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const perms = await getMyPermissions()
+  if (isEmployee && !perms?.canDelete) throw new Error("Sem permissão para excluir registros.")
+  const [target] = await db.select({ title: quotes.title }).from(quotes).where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId))).limit(1)
+  await db.delete(quoteItems).where(eq(quoteItems.quoteId, id))
+  await db.delete(quotes).where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "delete", module: "orcamentos", description: `Excluiu o orçamento "${target?.title ?? id}"`, recordId: id })
+  }
   revalidatePath("/dashboard/orcamentos")
 }
 
@@ -532,7 +620,7 @@ export async function getQuoteWithItems(id: string) {
   return { ...quote[0], items }
 }
 
-// ── Transactions ─────────��────────────────────────────────────────────────────
+// ── Transactions ─────────���────────────────────────────────────────────────────
 export async function getTransactions() {
   const { effectiveId } = await getEffectiveUserId()
   return db
@@ -588,10 +676,17 @@ export async function updateTransaction(
 }
 
 export async function deleteTransaction(id: string) {
-  const { effectiveId } = await getEffectiveUserId()
-  await db
-    .delete(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, effectiveId)))
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const perms = await getMyPermissions()
+  if (isEmployee && !perms?.canDelete) throw new Error("Sem permissão para excluir registros.")
+  const [target] = await db.select({ description: transactions.description }).from(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, effectiveId))).limit(1)
+  await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, effectiveId)))
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "delete", module: "financeiro", description: `Excluiu a transação "${target?.description ?? id}"`, recordId: id })
+  }
   revalidatePath("/dashboard/financeiro")
 }
 
@@ -1335,9 +1430,18 @@ export async function getServiceOrderForReceipt(id: string) {
 }
 
 export async function deleteServiceOrder(id: string) {
-  const { effectiveId } = await getEffectiveUserId()
+  const hdrs = await headers()
+  const sess = await auth.api.getSession({ headers: hdrs })
+  if (!sess?.user) throw new Error("Não autorizado")
+  const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
+  const perms = await getMyPermissions()
+  if (isEmployee && !perms?.canDelete) throw new Error("Sem permissão para excluir registros.")
+  const [target] = await db.select({ title: serviceOrders.title }).from(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId))).limit(1)
   await db.delete(serviceOrderItems).where(eq(serviceOrderItems.serviceOrderId, id))
   await db.delete(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
+  if (isEmployee && ownerId) {
+    logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "delete", module: "ordens", description: `Excluiu a ordem de serviço "${target?.title ?? id}"`, recordId: id })
+  }
   revalidatePath("/dashboard/ordens-servico")
 }
 
@@ -1496,6 +1600,9 @@ export async function getEmployeeData() {
       canOrders: employeePermissions.canOrders,
       canFinanceiro: employeePermissions.canFinanceiro,
       canRelatorios: employeePermissions.canRelatorios,
+      canDashboard: employeePermissions.canDashboard,
+      canDelete: employeePermissions.canDelete,
+      canSendQuotes: employeePermissions.canSendQuotes,
     })
     .from(employeePermissions)
     .leftJoin(user, eq(user.id, employeePermissions.employeeId))
@@ -1597,6 +1704,9 @@ export async function updateEmployeePermissions(permId: string, perms: {
   canOrders: boolean
   canFinanceiro: boolean
   canRelatorios: boolean
+  canDashboard: boolean
+  canDelete: boolean
+  canSendQuotes: boolean
 }) {
   const userId = await getUserId()
   await db
