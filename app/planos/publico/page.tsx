@@ -498,7 +498,7 @@ export default function PlanosPublicoPage() {
         </div>
 
         {/* ── Tabela comparativa completa ── */}
-        <section className="mb-24">
+        <section id="comparativo" className="mb-24">
           <div className="text-center mb-12">
             <p
               className="text-[11px] font-semibold uppercase tracking-widest mb-3"
