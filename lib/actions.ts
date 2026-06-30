@@ -532,7 +532,7 @@ export async function getQuoteWithItems(id: string) {
   return { ...quote[0], items }
 }
 
-// ── Transactions ──────────────────────────────────────────────────────────────
+// ── Transactions ─────────��────────────────────────────────────────────────────
 export async function getTransactions() {
   const { effectiveId } = await getEffectiveUserId()
   return db
@@ -618,7 +618,8 @@ export async function upsertBusinessProfile(data: {
   notifQuoteEnabled?: boolean
   docAccentColor?: string
 }) {
-  const { effectiveId } = await getEffectiveUserId()
+  const { effectiveId, isEmployee } = await getEffectiveUserId()
+  if (isEmployee) throw new Error("Funcionários não podem editar os dados da empresa.")
   const existing = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, effectiveId)).limit(1)
   if (existing[0]) {
     await db.update(businessProfile).set({ ...data, updatedAt: new Date() }).where(eq(businessProfile.userId, effectiveId))
@@ -1350,7 +1351,7 @@ export async function getServiceOrderWithItems(id: string) {
   return { ...order[0], items, client: client[0] ?? null, profile: profile[0] ?? null }
 }
 
-// ── Reports ────────────────────────────────────────���──────────────────────────
+// ── Reports ───────────────────────────��────────────���──────────────────────────
 export async function getReportData() {
   const { effectiveId } = await getEffectiveUserId()
 
