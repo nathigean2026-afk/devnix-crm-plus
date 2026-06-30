@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Users, FileText, DollarSign, TrendingUp, Clock, CheckCircle } from "lucide-react"
+import { UsersRound, FileText, DollarSign, TrendingUp, Clock, CheckCircle } from "lucide-react"
 
 interface StatsCardsProps {
   stats: {
@@ -26,7 +26,7 @@ const cardData = (stats: StatsCardsProps["stats"]) => [
     title: "Clientes Ativos",
     value: stats.activeClients.toString(),
     sub: `${stats.totalClients} no total`,
-    icon: Users,
+    icon: UsersRound,
     color: "text-blue-400",
     bg: "bg-blue-500/10",
   },

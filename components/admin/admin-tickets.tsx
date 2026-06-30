@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import {
   ChevronLeft, Search, Send, Paperclip, Loader2,
   FileText, Image as ImageIcon, X, Clock, CheckCircle2,
-  PauseCircle, XCircle, AlertCircle, Users, AlertTriangle,
+  PauseCircle, XCircle, AlertCircle, UsersRound, AlertTriangle,
   MapPin, Wifi, Globe,
 } from "lucide-react"
 import { toast } from "sonner"

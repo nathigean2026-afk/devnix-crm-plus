@@ -34,7 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import {
-  Plus, MoreHorizontal, Pencil, Trash2, Search, Users,
+  Plus, MoreHorizontal, Pencil, Trash2, Search, UsersRound,
   Phone, Mail, Building2, MapPin, History, ClipboardList,
   FileText, DollarSign, TrendingUp, TrendingDown, Loader2
 } from "lucide-react"
@@ -315,7 +315,7 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Users className="size-10 text-muted-foreground/40" />
+              <UsersRound className="size-10 text-muted-foreground/40" />
               <p className="text-muted-foreground text-sm">Nenhum cliente encontrado</p>
               <Button variant="outline" size="sm" onClick={openNew} className="border-border text-foreground hover:bg-muted">
                 Cadastrar cliente

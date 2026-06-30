@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { acceptEmployeeInvite } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
-import { UserCheck, Loader2, Users } from "lucide-react"
+import { UserCheck, Loader2, UsersRound } from "lucide-react"
 
 interface AcceptInviteClientProps {
   token: string
@@ -37,7 +37,7 @@ export function AcceptInviteClient({ token, userName }: AcceptInviteClientProps)
           {done ? (
             <UserCheck className="size-8 text-primary" />
           ) : (
-            <Users className="size-8 text-primary" />
+            <UsersRound className="size-8 text-primary" />
           )}
         </div>
 

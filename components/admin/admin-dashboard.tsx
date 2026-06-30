@@ -13,7 +13,7 @@ import { AdminTickets } from "@/components/admin/admin-tickets"
 import { toast } from "sonner"
 import Image from "next/image"
 import {
-  Users, ShieldCheck, Tag, BarChart3, LogOut, Plus, Trash2,
+  UsersRound, ShieldCheck, Tag, BarChart3, LogOut, Plus, Trash2,
   CheckCircle2, XCircle, Clock, RefreshCw, LifeBuoy, Wifi, WifiOff,
   Sun, Moon, TrendingUp, Database, Zap, AlertTriangle, Eye, Edit2,
   KeyRound, Ban, PlusCircle, ChevronDown, ChevronUp, Activity,
@@ -359,7 +359,7 @@ export default function AdminDashboard({
   const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "visao", label: "Visão Geral", icon: BarChart3 },
     { key: "licencas", label: "Licenças", icon: ShieldCheck },
-    { key: "usuarios", label: "Usuários", icon: Users },
+    { key: "usuarios", label: "Usuários", icon: UsersRound },
     { key: "codigos", label: "Códigos", icon: Tag },
     { key: "suporte", label: `Suporte (${tickets.filter(t => t.status === "aberto" || t.status === "em_andamento").length})`, icon: LifeBuoy },
     { key: "metricas", label: "Métricas", icon: Activity },
@@ -414,7 +414,7 @@ export default function AdminDashboard({
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <StatCard darkMode={darkMode} icon={Users} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
+            <StatCard darkMode={darkMode} icon={UsersRound} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
             <StatCard darkMode={darkMode} icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
             <StatCard darkMode={darkMode} icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
             <StatCard darkMode={darkMode} icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
@@ -877,7 +877,7 @@ export default function AdminDashboard({
                 </div>
                 <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Users className="size-4 text-cyan-400" />
+                    <UsersRound className="size-4 text-cyan-400" />
                     <span className={cn("text-xs font-medium", darkMode ? "text-white/60" : "text-slate-500")}>Sessões online (15 min)</span>
                   </div>
                   <p className={cn("text-2xl font-bold", darkMode ? "text-white" : "text-slate-800")}>{stats.onlineSessions.length}</p>
