@@ -43,11 +43,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.ico", type: "image/x-icon" },
     ],
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    shortcut: "/favicon-32.png",
+    apple: "/apple-icon.png",
   },
 }
 
@@ -69,6 +69,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Preload da imagem LCP (primeiro slide do carrossel na página de login) */}
+        <link
+          rel="preload"
+          as="image"
+          href="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=640&q=75"
+          imageSrcSet="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=640&q=75 640w, /_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75 960w"
+          imageSizes="(max-width: 1280px) 460px, 520px"
+        />
+      </head>
       <body className="font-sans antialiased bg-background">
         <ThemeProvider
           attribute="class"
