@@ -176,36 +176,45 @@ function ThemeToggleButton() {
   )
 }
 
-function CellIcon({ value, isHighlight }: { value: boolean | string; isHighlight?: boolean }) {
+function CellIcon({ value, isHighlight, isDark }: { value: boolean | string; isHighlight?: boolean; isDark?: boolean }) {
   if (typeof value === "string") {
     return (
       <span
         className="text-xs font-bold"
-        style={{ color: isHighlight ? "#f2f2f2" : undefined }}
+        style={{
+          color: isHighlight
+            ? "#f2f2f2"
+            : isDark ? "rgba(242,242,242,0.8)" : "#0a0a0a",
+        }}
       >
         {value}
       </span>
     )
   }
   if (value) {
+    // Check — verde sutil no plano destacado, cor do tema nos demais
+    const checkBg = isHighlight
+      ? "rgba(242,242,242,0.15)"
+      : isDark ? "rgba(255,255,255,0.1)" : "rgba(10,10,10,0.06)"
+    const checkColor = isHighlight
+      ? "#f2f2f2"
+      : isDark ? "rgba(242,242,242,0.85)" : "#0a0a0a"
     return (
       <div
         className="size-5 rounded-full flex items-center justify-center mx-auto"
-        style={{
-          backgroundColor: isHighlight ? "rgba(242,242,242,0.15)" : "rgba(10,10,10,0.06)",
-        }}
+        style={{ backgroundColor: checkBg }}
       >
-        <Check
-          className="size-3"
-          strokeWidth={3}
-          style={{ color: isHighlight ? "#f2f2f2" : "#0a0a0a" }}
-        />
+        <Check className="size-3" strokeWidth={3} style={{ color: checkColor }} />
       </div>
     )
   }
+  // X — mais visivel em ambos os temas
+  const xColor = isHighlight
+    ? "rgba(242,242,242,0.25)"
+    : isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.2)"
   return (
-    <div className="size-5 rounded-full bg-transparent flex items-center justify-center mx-auto">
-      <X className="size-3 text-current opacity-20" strokeWidth={2.5} />
+    <div className="size-5 flex items-center justify-center mx-auto">
+      <X className="size-3" strokeWidth={2.5} style={{ color: xColor }} />
     </div>
   )
 }
@@ -612,6 +621,7 @@ export default function PlanosPublicoPage() {
                             <CellIcon
                               value={row[planId] as boolean | string}
                               isHighlight={idx === 1}
+                              isDark={isDark}
                             />
                           </div>
                         )
