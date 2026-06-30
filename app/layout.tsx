@@ -70,14 +70,16 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Preload da imagem LCP (primeiro slide do carrossel na página de login) */}
+        {/* Preload da imagem LCP — carrossel desktop (hidden em mobile) */}
         <link
           rel="preload"
           as="image"
-          href="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=640&q=75"
-          imageSrcSet="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=640&q=75 640w, /_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75 960w"
-          imageSizes="(max-width: 1280px) 460px, 520px"
+          href="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75"
+          media="(min-width: 1024px)"
         />
+        {/* DNS prefetch para Cloudflare Turnstile — reduz latência do script */}
+        <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
+        <link rel="preconnect" href="https://challenges.cloudflare.com" crossOrigin="anonymous" />
       </head>
       <body className="font-sans antialiased bg-background">
         <ThemeProvider

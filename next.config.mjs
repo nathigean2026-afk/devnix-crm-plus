@@ -7,6 +7,9 @@ const nextConfig = {
     // Ativa otimização de imagens: WebP/AVIF automático, lazy loading, resize
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 dias
+    // Tamanhos que o Next.js vai gerar — evita saltar direto para 3840
+    deviceSizes: [375, 640, 750, 828, 960, 1080, 1280, 1440],
+    imageSizes: [16, 32, 64, 128, 200, 260, 420, 520, 640, 960],
     remotePatterns: [
       {
         protocol: "https",
