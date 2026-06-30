@@ -2,13 +2,20 @@
 
 import { WhatsAppButton } from "@/components/support/whatsapp-button"
 import { IntroVideoOverlay } from "@/components/intro-video-overlay"
-import { TurnstileWidget } from "@/components/turnstile-widget"
 import { useTurnstile } from "@/hooks/use-turnstile"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
+import dynamic from "next/dynamic"
+
+// Carregado de forma lazy — o script da Cloudflare só é baixado após a hydration,
+// sem bloquear o FCP/LCP da página de login
+const TurnstileWidget = dynamic(
+  () => import("@/components/turnstile-widget").then((m) => ({ default: m.TurnstileWidget })),
+  { ssr: false, loading: () => <div className="h-[65px]" aria-hidden /> }
+)
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
@@ -102,12 +109,13 @@ function ScreenshotCarousel() {
               key={slide.src}
               src={slide.src}
               alt={`${slide.label} — Elevanthe CRM`}
-              width={480}
-              height={300}
+              width={520}
+              height={325}
               className={cn("w-full h-auto object-cover object-top", i === active ? "block" : "hidden")}
               priority={i === 0}
+              fetchPriority={i === 0 ? "high" : "low"}
               loading={i === 0 ? "eager" : "lazy"}
-              sizes="(max-width: 1024px) 0px, (max-width: 1280px) 460px, 520px"
+              sizes="(max-width: 1023px) 1px, (max-width: 1280px) 460px, 520px"
             />
           ))}
         </div>
@@ -230,7 +238,7 @@ function ThemedLogo({ className }: { className?: string }) {
 
   return (
     <>
-      {/* Desktop: sempre logo com texto claro (dark), independente do tema */}
+      {/* Desktop: logo sempre dark — preloadada com priority+fetchPriority high */}
       <Image
         src="/elevanthe-logo-transparent-dark.png"
         alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
@@ -238,17 +246,19 @@ function ThemedLogo({ className }: { className?: string }) {
         height={65}
         className={cn("object-contain hidden md:block", className)}
         priority
-        sizes="260px"
+        fetchPriority="high"
+        sizes="(max-width: 767px) 1px, 260px"
       />
-      {/* Mobile: alterna com o tema — lazy pois o form panel é o LCP no mobile */}
+      {/* Mobile: alterna com o tema — lazy, não é LCP no mobile */}
       <Image
         src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
         alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
-        width={260}
-        height={65}
+        width={200}
+        height={50}
         className={cn("object-contain block md:hidden", className)}
         loading="lazy"
-        sizes="(max-width: 768px) 200px, 260px"
+        fetchPriority="low"
+        sizes="(min-width: 768px) 1px, 200px"
       />
     </>
   )
@@ -327,7 +337,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         isDark ? "bg-[#07070d] border-white/[0.05]" : "bg-[#0f1729] border-[#1a2845]"
       )}>
 
-        {/* Marca d'agua do elefante neon — watermark sutil */}
+        {/* Marca d'agua do elefante neon — watermark sutil, carregada por último */}
         <div className="absolute -bottom-16 -right-16 opacity-[0.04] pointer-events-none select-none">
           <Image
             src="/elevanthe-logo-neon.png"
@@ -336,7 +346,9 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             height={420}
             className="object-contain"
             loading="lazy"
+            fetchPriority="low"
             sizes="420px"
+            decoding="async"
           />
         </div>
 
