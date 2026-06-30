@@ -16,7 +16,7 @@ import {
 } from "recharts"
 import {
   DollarSign,
-  Users,
+  UsersRound,
   FileText,
   TrendingUp,
   CheckCircle,
@@ -103,7 +103,7 @@ export function ReportsView({ data }: ReportsViewProps) {
     { label: "Despesas Pagas", value: formatCurrencyFull(data.totalDespesa), icon: DollarSign, color: "text-red-500", bg: "bg-red-500/10" },
     { label: "Lucro Líquido", value: formatCurrencyFull(lucro), icon: DollarSign, color: lucro >= 0 ? "text-emerald-500" : "text-red-500", bg: lucro >= 0 ? "bg-emerald-500/10" : "bg-red-500/10" },
     { label: "A Receber", value: formatCurrencyFull(data.totalPendente), icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { label: "Clientes", value: String(data.totalClients), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Clientes", value: String(data.totalClients), icon: UsersRound, color: "text-blue-500", bg: "bg-blue-500/10" },
     { label: "Taxa de Conversão", value: `${data.taxaConversao}%`, icon: CheckCircle, color: "text-violet-500", bg: "bg-violet-500/10" },
     { label: "Orçamentos", value: String(data.totalQuotes), icon: FileText, color: "text-indigo-500", bg: "bg-indigo-500/10" },
     { label: "Aprovados", value: String(data.totalAprovados), icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10" },

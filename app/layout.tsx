@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -16,7 +16,14 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
-  preload: false, // Mono só é usado em campos de código — não precisa de preload
+  preload: false,
+})
+// Inter é usada nas páginas públicas para alinhar com o visual do elevanthe.com
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -68,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         {/* DNS prefetch para Cloudflare Turnstile — reduz latência do script */}
         <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
@@ -80,6 +87,7 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
+          scriptProps={{ "data-cfasync": "false" }}
         >
           <TooltipProvider>
             {children}

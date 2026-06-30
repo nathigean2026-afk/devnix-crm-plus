@@ -4,10 +4,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Dots pattern — fundo de grade de pontos usado nas páginas públicas ──── */
+.dots-bg {
+  background-image: radial-gradient(circle, var(--dots-color, #d4d4d4) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.dark .dots-bg,
+.dots-bg-dark {
+  background-image: radial-gradient(circle, var(--dots-color-dark, rgba(255,255,255,0.07)) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-geist-sans), 'Geist Fallback';
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
+  --font-inter: var(--font-inter, 'Inter'), 'Inter Fallback', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -51,6 +63,17 @@
 /* Elevanthe CRM — light theme (padrão) */
 :root {
   color-scheme: light;
+  /* Páginas públicas — padrão visual elevanthe.com */
+  --pub-bg: #f8f8f8;
+  --pub-fg: #0a0a0a;
+  --pub-fg-muted: #6b6b6b;
+  --pub-card: #ffffff;
+  --pub-card-border: #e5e5e5;
+  --pub-card-dark: #0a0a0a;
+  --pub-card-dark-fg: #ffffff;
+  --pub-dots: #d4d4d4;
+  --pub-pill-bg: #0a0a0a;
+  --pub-pill-fg: #ffffff;
   --background: oklch(0.97 0.005 240);
   --foreground: oklch(0.18 0.02 250);
   --card: oklch(1 0 0);
@@ -88,6 +111,17 @@
 /* Elevanthe CRM — dark navy theme */
 .dark {
   color-scheme: dark;
+  /* Páginas públicas — dark */
+  --pub-bg: #080808;
+  --pub-fg: #f2f2f2;
+  --pub-fg-muted: #888888;
+  --pub-card: #111111;
+  --pub-card-border: #222222;
+  --pub-card-dark: #f2f2f2;
+  --pub-card-dark-fg: #0a0a0a;
+  --pub-dots: rgba(255,255,255,0.07);
+  --pub-pill-bg: #f2f2f2;
+  --pub-pill-fg: #0a0a0a;
   --background: oklch(0.12 0.02 250);
   --foreground: oklch(0.9 0.01 240);
   --card: oklch(0.16 0.025 250);

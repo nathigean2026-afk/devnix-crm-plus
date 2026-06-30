@@ -2,7 +2,7 @@
 
 import {
   LayoutDashboard,
-  Users,
+  UsersRound, // equipe / clientes
   Wrench,
   FileText,
   DollarSign,
@@ -40,7 +40,7 @@ const navItems = [
     group: "Principal",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/dashboard/clientes", label: "Clientes", icon: Users },
+      { href: "/dashboard/clientes", label: "Clientes", icon: UsersRound },
     ],
   },
   {

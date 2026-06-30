@@ -15,11 +15,14 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import {
-  Eye, EyeOff, ArrowRight, Lock, Mail, User,
-  Sun, Moon,
-  Users, FileText, BarChart2, DollarSign, ClipboardList,
-  Settings, Wrench, Bell, QrCode, Package, Zap,
-  TrendingUp, ShieldCheck, Globe, Send, Layers, Star,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Lock,
+  Mail,
+  User,
+  Sun,
+  Moon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -34,92 +37,9 @@ interface AuthFormProps {
   kicked?: boolean
 }
 
-// ─── Funcionalidades do CRM para marca d'água ─────────────────────────────────
-const crmFeatures = [
-  { icon: Users,        label: "Gestão de Clientes" },
-  { icon: FileText,     label: "Orçamentos" },
-  { icon: ClipboardList,label: "Ordens de Serviço" },
-  { icon: DollarSign,   label: "Financeiro" },
-  { icon: BarChart2,    label: "Relatórios" },
-  { icon: Wrench,       label: "Catálogo de Serviços" },
-  { icon: QrCode,       label: "Pagamento via Pix" },
-  { icon: Send,         label: "Envio por WhatsApp" },
-  { icon: Bell,         label: "Notificações" },
-  { icon: Package,      label: "Controle de Estoque" },
-  { icon: TrendingUp,   label: "Métricas de Receita" },
-  { icon: ShieldCheck,  label: "Acesso por Funcionário" },
-  { icon: Globe,        label: "Link de Orçamento Público" },
-  { icon: Layers,       label: "Multi-empresa" },
-  { icon: Zap,          label: "Dashboard em Tempo Real" },
-  { icon: Star,         label: "Histórico do Cliente" },
-  { icon: Settings,     label: "Personalização de Tema" },
-  { icon: Globe,        label: "Assinatura Digital" },
-]
-
-// ScreenshotCarousel importado diretamente (ssr:true por padrão).
-// O Next.js renderiza o componente no servidor, emitindo o <img> com
-// fetchpriority="high" no HTML inicial — o browser inicia o download
-// da imagem LCP antes de executar qualquer JS.
-
-// ─── Wallpaper de funcionalidades — posicionamento pseudo-aleatório estável ────
-// Usa um gerador linear congruencial seeded para que o layout seja idêntico
-// no server e no client (sem Math.random() no render).
-function seededRand(seed: number) {
-  let s = seed
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    return (s >>> 0) / 0xffffffff
-  }
-}
-
-function FeatureWallpaper({ isDark }: { isDark: boolean }) {
-  // Repete as features para cobrir toda a tela (54 pills)
-  const items = [
-    ...crmFeatures, ...crmFeatures, ...crmFeatures,
-  ]
-
-  const rand = seededRand(42)
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden>
-      {items.map((feat, i) => {
-        const Icon = feat.icon
-        // Distribui de forma pseudo-aleatória por toda a área visível
-        const top  = rand() * 92   // 0–92%
-        const left = rand() * 88   // 0–88%
-        // Pequenas variações de rotação para parecer orgânico
-        const rotate = (rand() - 0.5) * 14 // -7° a +7°
-        // Opacidade levemente variada — mais forte no light para compensar o fundo claro
-        const opacityDark = 0.04 + rand() * 0.045
-        const opacityLight = 0.10 + rand() * 0.08
-        const opacity = isDark ? opacityDark : opacityLight
-
-        return (
-          <div
-            key={i}
-            className={cn(
-              "absolute flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium whitespace-nowrap",
-              isDark ? "border-white/25 text-white" : "border-primary/30 text-primary/80 bg-primary/5"
-            )}
-            style={{
-              top: `${top}%`,
-              left: `${left}%`,
-              transform: `rotate(${rotate}deg)`,
-              opacity,
-            }}
-          >
-            <Icon className="size-3 shrink-0" />
-            <span>{feat.label}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 // ─── Botão de alternância de tema ─────────────────────────────────────────────
 function ThemeToggleButton() {
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
@@ -131,15 +51,15 @@ function ThemeToggleButton() {
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={cn(
-        "size-8 rounded-lg flex items-center justify-center transition-all duration-200",
+        "size-8 rounded-full flex items-center justify-center transition-all duration-200",
         "border hover:scale-105",
         isDark
-          ? "border-white/[0.08] bg-white/[0.04] text-white/50 hover:text-white/80 hover:bg-white/[0.08]"
-          : "border-black/[0.08] bg-black/[0.03] text-black/40 hover:text-black/70 hover:bg-black/[0.06]"
+          ? "border-white/10 bg-white/5 text-white/50 hover:text-white/80 hover:bg-white/10"
+          : "border-black/10 bg-black/5 text-black/40 hover:text-black/70 hover:bg-black/8"
       )}
       aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
     >
-      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
     </button>
   )
 }
@@ -156,27 +76,27 @@ function ThemedLogo({ className }: { className?: string }) {
 
   return (
     <>
-      {/* Desktop: logo sempre dark — preloadada com priority+fetchPriority high */}
+      {/* Desktop: logo sempre dark (aside sempre escuro) */}
       <Image
         src="/elevanthe-logo-transparent-dark.png"
         alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
-        width={260}
-        height={65}
+        width={220}
+        height={55}
         className={cn("object-contain hidden md:block", className)}
         priority
         fetchPriority="high"
-        sizes="(max-width: 767px) 1px, 260px"
+        sizes="(max-width: 767px) 1px, 220px"
       />
-      {/* Mobile: alterna com o tema — lazy, não é LCP no mobile */}
+      {/* Mobile: alterna com o tema */}
       <Image
         src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
         alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
-        width={200}
-        height={50}
+        width={180}
+        height={45}
         className={cn("object-contain block md:hidden", className)}
         loading="lazy"
         fetchPriority="low"
-        sizes="(min-width: 768px) 1px, 200px"
+        sizes="(min-width: 768px) 1px, 180px"
       />
     </>
   )
@@ -210,7 +130,6 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Verificação server-side do token Turnstile
     const tokenValid = await verifyToken()
     if (!tokenValid) return
 
@@ -247,52 +166,66 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   }
 
   return (
-    <div className={cn("min-h-screen flex", isDark ? "bg-[#0a0a10]" : "bg-[#eef2fa]")}>
+    <div
+      className="min-h-screen flex"
+      style={{ backgroundColor: isDark ? "#080808" : "#f8f8f8" }}
+    >
 
       {/* ─── Painel esquerdo — branding (desktop only) ─── */}
-      <aside className={cn(
-        "hidden lg:flex lg:w-[520px] xl:w-[560px] flex-col justify-between px-10 py-8 relative overflow-hidden flex-shrink-0 border-r",
-        isDark ? "bg-[#07070d] border-white/[0.05]" : "bg-[#0f1729] border-[#1a2845]"
-      )}>
+      <aside
+        className="hidden lg:flex lg:w-[500px] xl:w-[540px] flex-col justify-between px-12 py-10 relative overflow-hidden flex-shrink-0"
+        style={{ backgroundColor: isDark ? "#0a0a0a" : "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {/* Dots pattern de fundo */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
 
-        {/* Marca d'agua do elefante neon — watermark sutil, carregada por último */}
-        <div className="absolute -bottom-16 -right-16 opacity-[0.04] pointer-events-none select-none">
+        {/* Marca d'agua elefante — watermark sutil */}
+        <div className="absolute -bottom-20 -right-20 opacity-[0.03] pointer-events-none select-none">
           <Image
             src="/elevanthe-logo-neon.png"
             alt=""
-            width={420}
-            height={420}
+            width={480}
+            height={480}
             className="object-contain"
             loading="lazy"
             fetchPriority="low"
-            sizes="420px"
+            sizes="480px"
             decoding="async"
           />
         </div>
 
-        {/* Glow de fundo */}
-        <div className="absolute top-0 left-0 w-full h-64 pointer-events-none bg-gradient-to-b from-primary/10 to-transparent" />
-        <div className="absolute -bottom-32 -left-32 size-[400px] rounded-full blur-[100px] pointer-events-none bg-blue-600/10" />
-
         {/* Logo */}
         <div className="relative z-10">
-          <ThemedLogo className="h-11 w-auto" />
+          <ThemedLogo className="h-10 w-auto" />
         </div>
 
-        {/* Conteudo central */}
-        <div className="relative z-10 flex flex-col gap-8">
-          <div className="space-y-3">
-            <div className={cn(
-              "inline-flex items-center gap-2 rounded-full px-3 py-1 border",
-              isDark ? "bg-primary/10 border-primary/20" : "bg-primary/8 border-primary/15"
-            )}>
-              <div className="size-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-semibold text-primary tracking-wide">Plataforma completa de gestão</span>
+        {/* Conteudo central — tipografia massiva estilo elevanthe.com */}
+        <div className="relative z-10 flex flex-col gap-10">
+          <div className="space-y-4">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 bg-white/5">
+              <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
+              <span className="text-[11px] font-semibold text-white/50 tracking-widest uppercase">
+                Plataforma completa de gestão
+              </span>
             </div>
-            <h2 className="text-2xl xl:text-3xl font-black leading-[1.2] tracking-tight text-balance text-white">
-              Gerencie seu negócio com clareza e velocidade
+
+            {/* Headline massiva — estilo elevanthe.com */}
+            <h2
+              className="text-[2.6rem] xl:text-[3.2rem] font-black leading-[1.04] tracking-tighter text-balance text-white"
+              style={{ fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)" }}
+            >
+              Gerencie seu<br />
+              negócio com<br />
+              <span className="text-white/40">clareza.</span>
             </h2>
-            <p className={cn("text-sm leading-relaxed", isDark ? "text-white/35" : "text-white/50")}>
+            <p className="text-sm leading-relaxed text-white/35 max-w-xs">
               Do primeiro contato ao pagamento — tudo em um só lugar. Sem planilhas, sem confusão.
             </p>
           </div>
@@ -300,43 +233,61 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
           <ScreenshotCarousel />
         </div>
 
-        {/* Rodape */}
+        {/* Rodapé */}
         <div className="relative z-10 flex items-center justify-between">
-          <p className="text-[11px] text-white/20">
+          <p className="text-[11px] text-white/15">
             &copy; {new Date().getFullYear()} Elevanthe. Todos os direitos reservados.
           </p>
-          <p className="text-[11px] text-white/20">Pix · Cartão · Boleto</p>
+          <p className="text-[11px] text-white/15">Pix · Cartão · Boleto</p>
         </div>
       </aside>
 
       {/* ─── Painel direito — formulário ─── */}
-      <div className={cn("flex-1 flex flex-col min-h-screen relative overflow-hidden", isDark ? "bg-[#0a0a10]" : "bg-[#eef2fa]")}>
+      <div
+        className="flex-1 flex flex-col min-h-screen relative overflow-hidden"
+        style={{ backgroundColor: isDark ? "#080808" : "#f8f8f8" }}
+      >
+        {/* Dots pattern de fundo */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: isDark
+              ? "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)"
+              : "radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
 
-        {/* Wallpaper de funcionalidades — marca d'água repetida */}
-        <FeatureWallpaper isDark={isDark} />
-
-        {/* Orbs de glow — mais intensos no light para compensar o fundo claro */}
-        <div className={cn("absolute -top-40 -right-40 size-[600px] rounded-full blur-[130px] pointer-events-none", isDark ? "bg-primary/12" : "bg-primary/20")} />
-        <div className={cn("absolute -bottom-32 -left-32 size-[500px] rounded-full blur-[110px] pointer-events-none", isDark ? "bg-violet-600/8" : "bg-violet-500/15")} />
-        <div className={cn("absolute top-1/3 left-1/2 -translate-x-1/2 size-[400px] rounded-full blur-[100px] pointer-events-none", isDark ? "bg-cyan-500/4" : "bg-sky-400/10")} />
+        {/* Gradiente overlay suave — fade nos cantos */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: isDark
+              ? "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, #080808 100%)"
+              : "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, #f8f8f8 100%)",
+          }}
+        />
 
         {/* Top bar */}
-        <div className={cn("relative z-10 flex items-center justify-between px-6 py-4 border-b", isDark ? "border-white/[0.05]" : "border-slate-200/80")}>
+        <div
+          className="relative z-10 flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)" }}
+        >
           {/* Logo mobile */}
           <div className="lg:hidden">
             <ThemedLogo className="h-8 w-auto" />
           </div>
           <div className="hidden lg:block" />
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <ThemeToggleButton />
             <Link
               href={isSignIn ? "/sign-up" : "/sign-in"}
               className={cn(
-                "text-xs transition-colors border rounded-lg px-3 py-1.5",
+                "text-xs transition-colors border rounded-full px-4 py-1.5 font-medium",
                 isDark
-                  ? "text-white/40 hover:text-white/70 border-white/[0.08] hover:border-white/20"
-                  : "text-slate-500 hover:text-slate-800 border-slate-200 hover:border-slate-300"
+                  ? "text-white/50 hover:text-white border-white/10 hover:border-white/25 hover:bg-white/5"
+                  : "text-black/50 hover:text-black border-black/10 hover:border-black/25 hover:bg-black/5"
               )}
             >
               {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
@@ -346,31 +297,46 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
         {/* Form centralizado */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10">
-          <div className={cn(
-            "w-full max-w-[420px] rounded-2xl border shadow-2xl px-8 py-9 relative",
-            isDark
-              ? "border-white/[0.08] bg-white/[0.025] backdrop-blur-md shadow-black/70"
-              : "border-white/60 bg-white/90 backdrop-blur-md shadow-blue-200/60"
-          )}>
+          <div
+            className="w-full max-w-[400px] rounded-2xl border shadow-xl px-8 py-9 relative"
+            style={{
+              backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#ffffff",
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
             {/* Linha de brilho no topo do card */}
-            <div className={cn(
-              "absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent to-transparent",
-              isDark ? "via-primary/40" : "via-primary/30"
-            )} />
+            <div
+              className="absolute top-0 left-8 right-8 h-px"
+              style={{
+                background: isDark
+                  ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)"
+                  : "linear-gradient(90deg, transparent, rgba(0,0,0,0.08), transparent)",
+              }}
+            />
 
             {/* Header do form */}
             <div className="mb-8">
-              <h1 className={cn("text-[1.75rem] font-black tracking-tight leading-tight", isDark ? "text-white" : "text-slate-900")}>
+              <h1
+                className="text-[1.85rem] font-black tracking-tight leading-tight"
+                style={{
+                  color: isDark ? "#f2f2f2" : "#0a0a0a",
+                  fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+                }}
+              >
                 {isSignIn ? "Entrar na conta" : "Criar conta grátis"}
               </h1>
-              <p className={cn("text-sm mt-2 leading-relaxed", isDark ? "text-white/35" : "text-slate-500")}>
+              <p
+                className="text-sm mt-2 leading-relaxed"
+                style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.45)" }}
+              >
                 {isSignIn
                   ? "Acesse seu CRM e continue de onde parou."
                   : "Comece grátis, sem cartão. Escolha o plano depois."}
               </p>
             </div>
 
-            {/* Banner sessao encerrada */}
+            {/* Banner sessão encerrada */}
             {kicked && (
               <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3.5">
                 <Lock className="size-4 text-amber-400 mt-0.5 shrink-0" />
@@ -386,11 +352,18 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isSignIn && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="name" className={cn("text-sm font-medium", isDark ? "text-white/60" : "text-slate-600")}>
+                  <Label
+                    htmlFor="name"
+                    className="text-xs font-semibold tracking-wide uppercase"
+                    style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
+                  >
                     Nome completo
                   </Label>
                   <div className="relative">
-                    <User className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 size-4", isDark ? "text-white/25" : "text-slate-400")} />
+                    <User
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5"
+                      style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)" }}
+                    />
                     <Input
                       id="name"
                       type="text"
@@ -399,10 +372,10 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       required
                       className={cn(
-                        "pl-10 h-11 rounded-xl",
+                        "pl-10 h-11 rounded-xl text-sm",
                         isDark
-                          ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-primary/60 focus-visible:border-primary/40"
-                          : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                          ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-white/20 focus-visible:border-white/25"
+                          : "bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20"
                       )}
                     />
                   </div>
@@ -410,11 +383,18 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="email" className={cn("text-sm font-medium", isDark ? "text-white/60" : "text-slate-600")}>
+                <Label
+                  htmlFor="email"
+                  className="text-xs font-semibold tracking-wide uppercase"
+                  style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
+                >
                   E-mail
                 </Label>
                 <div className="relative">
-                  <Mail className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 size-4", isDark ? "text-white/25" : "text-slate-400")} />
+                  <Mail
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5"
+                    style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)" }}
+                  />
                   <Input
                     id="email"
                     type="email"
@@ -423,10 +403,10 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     required
                     className={cn(
-                      "pl-10 h-11 rounded-xl",
+                      "pl-10 h-11 rounded-xl text-sm",
                       isDark
-                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-primary/60 focus-visible:border-primary/40"
-                        : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-white/20 focus-visible:border-white/25"
+                        : "bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20"
                     )}
                   />
                 </div>
@@ -434,17 +414,28 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className={cn("text-sm font-medium", isDark ? "text-white/60" : "text-slate-600")}>
+                  <Label
+                    htmlFor="password"
+                    className="text-xs font-semibold tracking-wide uppercase"
+                    style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
+                  >
                     Senha
                   </Label>
                   {isSignIn && (
-                    <Link href="/esqueci-senha" className="text-xs text-primary/70 hover:text-primary transition-colors">
+                    <Link
+                      href="/esqueci-senha"
+                      className="text-xs transition-colors"
+                      style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
+                    >
                       Esqueci a senha
                     </Link>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className={cn("absolute left-3.5 top-1/2 -translate-y-1/2 size-4", isDark ? "text-white/25" : "text-slate-400")} />
+                  <Lock
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5"
+                    style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)" }}
+                  />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -454,19 +445,17 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                     required
                     minLength={8}
                     className={cn(
-                      "pl-10 pr-11 h-11 rounded-xl",
+                      "pl-10 pr-11 h-11 rounded-xl text-sm",
                       isDark
-                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-primary/60 focus-visible:border-primary/40"
-                        : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-white/20 focus-visible:border-white/25"
+                        : "bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20"
                     )}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={cn(
-                      "absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors",
-                      isDark ? "text-white/25 hover:text-white/60" : "text-slate-400 hover:text-slate-600"
-                    )}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.3)" }}
                     tabIndex={-1}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
@@ -475,7 +464,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                 </div>
               </div>
 
-              {/* Cloudflare Turnstile — verificação de segurança */}
+              {/* Cloudflare Turnstile */}
               <TurnstileWidget
                 onSuccess={onTurnstileSuccess}
                 onExpire={onTurnstileExpire}
@@ -485,10 +474,15 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
                 <p className="text-xs text-red-400 text-center -mt-1">{turnstileError}</p>
               )}
 
+              {/* Botão de submit — estilo pill preto elevanthe.com */}
               <button
                 type="submit"
                 disabled={loading || turnstileVerifying || !turnstileVerified}
-                className="w-full h-11 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2 bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
+                className="w-full h-11 rounded-full text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: isDark ? "#f2f2f2" : "#0a0a0a",
+                  color: isDark ? "#0a0a0a" : "#f2f2f2",
+                }}
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -507,18 +501,29 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               </button>
             </form>
 
-            <p className={cn("mt-6 text-center text-sm", isDark ? "text-white/30" : "text-slate-500")}>
+            <p
+              className="mt-6 text-center text-sm"
+              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.4)" }}
+            >
               {isSignIn ? (
                 <>
                   Não tem conta?{" "}
-                  <Link href="/sign-up" className="text-primary/80 hover:text-primary transition-colors font-semibold">
+                  <Link
+                    href="/sign-up"
+                    className="font-semibold hover:underline transition-colors"
+                    style={{ color: isDark ? "#f2f2f2" : "#0a0a0a" }}
+                  >
                     Criar conta grátis
                   </Link>
                 </>
               ) : (
                 <>
                   Já tem conta?{" "}
-                  <Link href="/sign-in" className="text-primary/80 hover:text-primary transition-colors font-semibold">
+                  <Link
+                    href="/sign-in"
+                    className="font-semibold hover:underline transition-colors"
+                    style={{ color: isDark ? "#f2f2f2" : "#0a0a0a" }}
+                  >
                     Entrar
                   </Link>
                 </>
@@ -529,20 +534,16 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               <button
                 type="button"
                 onClick={() => setShowIntro(true)}
-                className={cn(
-                  "text-xs transition-colors inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer",
-                  isDark ? "text-white/20 hover:text-white/40" : "text-slate-400 hover:text-slate-600"
-                )}
+                className="text-xs transition-colors inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer"
+                style={{ color: isDark ? "rgba(242,242,242,0.22)" : "rgba(10,10,10,0.3)" }}
               >
                 Ver demonstração sem cadastro
                 <ArrowRight className="size-3" />
               </button>
               <Link
                 href="/planos/publico"
-                className={cn(
-                  "text-xs transition-colors inline-flex items-center gap-1.5 font-medium",
-                  isDark ? "text-primary/60 hover:text-primary" : "text-primary/70 hover:text-primary"
-                )}
+                className="text-xs transition-colors inline-flex items-center gap-1.5 font-semibold hover:underline"
+                style={{ color: isDark ? "rgba(242,242,242,0.45)" : "rgba(10,10,10,0.5)" }}
               >
                 Ver planos e preços
                 <ArrowRight className="size-3" />

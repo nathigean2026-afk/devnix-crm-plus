@@ -1352,7 +1352,7 @@ export async function getReportData() {
   }
 }
 
-// ── Dashboard Stats ────────────────────────────────────���──────────��───────────
+// ── Dashboard Stats ────────────────────────────────────���──────────��──────��────
 export async function getDashboardStats() {
   const userId = await getUserId()
 
@@ -1457,9 +1457,12 @@ export async function getEmployeeData() {
 export async function inviteEmployee(email: string) {
   const userId = await getUserId()
 
-  // Verifica plano Enterprise
+  // Verifica plano Enterprise e busca dados da empresa + licença
   const [profile] = await db
-    .select({ licensePlan: businessProfile.licensePlan })
+    .select({
+      licensePlan: businessProfile.licensePlan,
+      companyName: businessProfile.name,
+    })
     .from(businessProfile)
     .where(eq(businessProfile.userId, userId))
     .limit(1)
@@ -1492,6 +1495,25 @@ export async function inviteEmployee(email: string) {
     token,
     expiresAt,
   })
+
+  // Busca data de expiração da licença Enterprise do dono
+  const [payment] = await db
+    .select({ expiresLicenseAt: payments.expiresLicenseAt })
+    .from(payments)
+    .where(and(eq(payments.userId, userId), eq(payments.status, "approved")))
+    .orderBy(desc(payments.expiresLicenseAt))
+    .limit(1)
+
+  // Dispara e-mail de convite (falha silenciosamente para não bloquear a action)
+  const inviteLink = `https://crm.elevanthe.com/aceitar-convite?token=${token}`
+  const { sendEmployeeInviteEmail } = await import("@/lib/email")
+  sendEmployeeInviteEmail({
+    to: email.toLowerCase().trim(),
+    companyName: profile?.companyName ?? "Empresa",
+    inviteLink,
+    expiresAt,
+    licenseExpiresAt: payment?.expiresLicenseAt ?? null,
+  }).catch(err => console.error("[inviteEmployee] Falha no envio do e-mail:", err))
 
   revalidatePath("/dashboard/configuracoes")
   return { token, expiresAt: expiresAt.toISOString() }

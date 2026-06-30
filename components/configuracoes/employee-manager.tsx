@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
-  Users,
+  UsersRound,
   UserPlus,
   Mail,
   Trash2,
@@ -198,7 +198,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
     <Card className="bg-card border-border">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
-          <Users className="size-5 text-primary" />
+          <UsersRound className="size-5 text-primary" />
           <CardTitle className="text-foreground text-lg">Funcionário</CardTitle>
           <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5 ml-auto">
             Enterprise
@@ -213,7 +213,7 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
         {!isEnterprise ? (
           /* Plano nao Enterprise */
           <div className="rounded-xl border border-dashed border-border bg-muted/20 flex flex-col items-center gap-3 py-10 px-6 text-center">
-            <Users className="size-8 text-muted-foreground" />
+            <UsersRound className="size-8 text-muted-foreground" />
             <div>
               <p className="text-sm font-medium text-foreground">Disponível no plano Enterprise</p>
               <p className="text-xs text-muted-foreground mt-1">
