@@ -87,6 +87,7 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
+          scriptProps={{ "data-cfasync": "false" }}
         >
           <TooltipProvider>
             {children}
