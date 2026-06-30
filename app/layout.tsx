@@ -70,13 +70,6 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Preload da imagem LCP — carrossel desktop (hidden em mobile) */}
-        <link
-          rel="preload"
-          as="image"
-          href="/_next/image?url=%2Fscreenshots%2Fdashboard.png&w=960&q=75"
-          media="(min-width: 1024px)"
-        />
         {/* DNS prefetch para Cloudflare Turnstile — reduz latência do script */}
         <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
         <link rel="preconnect" href="https://challenges.cloudflare.com" crossOrigin="anonymous" />

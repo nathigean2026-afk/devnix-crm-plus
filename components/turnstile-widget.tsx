@@ -28,7 +28,7 @@ export function TurnstileWidget({ onSuccess, onExpire, onError }: TurnstileWidge
         onError={onError}
         options={{
           theme: resolvedTheme === "dark" ? "dark" : "light",
-          language: "pt-BR",
+          language: "pt-br",
           size: "normal",
         }}
       />

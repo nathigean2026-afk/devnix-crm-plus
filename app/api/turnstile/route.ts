@@ -36,8 +36,25 @@ export async function POST(req: NextRequest) {
     const result = await response.json()
 
     if (!result.success) {
+      // Log detalhado dos error-codes da Cloudflare para diagnóstico
+      console.error("[Turnstile] Verificação falhou:", {
+        "error-codes": result["error-codes"],
+        hostname: result.hostname,
+        challenge_ts: result.challenge_ts,
+      })
+      const codes: string[] = result["error-codes"] ?? []
+      // Mensagens amigáveis por código de erro
+      let userMsg = "Verificação de segurança falhou. Tente novamente."
+      if (codes.includes("invalid-input-secret")) {
+        userMsg = "Configuração de segurança inválida. Contacte o suporte."
+        console.error("[Turnstile] ERRO CRÍTICO: TURNSTILE_SECRET_KEY inválida ou não pertence a este domínio.")
+      } else if (codes.includes("timeout-or-duplicate")) {
+        userMsg = "O desafio de segurança expirou. Por favor, complete-o novamente."
+      } else if (codes.includes("invalid-input-response")) {
+        userMsg = "Token de segurança inválido. Recarregue a página e tente novamente."
+      }
       return NextResponse.json(
-        { success: false, error: "Verificação de segurança falhou. Tente novamente." },
+        { success: false, error: userMsg, codes },
         { status: 422 }
       )
     }
