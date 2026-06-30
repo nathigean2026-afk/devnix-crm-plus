@@ -2,7 +2,7 @@
 
 import {
   LayoutDashboard,
-  UsersRound,
+  UsersRound, // equipe / clientes
   Wrench,
   FileText,
   DollarSign,

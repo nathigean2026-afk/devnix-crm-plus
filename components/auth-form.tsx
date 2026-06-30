@@ -15,8 +15,14 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import {
-  Eye, EyeOff, ArrowRight, Lock, Mail, User,
-  Sun, Moon,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Lock,
+  Mail,
+  User,
+  Sun,
+  Moon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
