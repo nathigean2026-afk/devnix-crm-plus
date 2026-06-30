@@ -33,6 +33,65 @@ async function getUserId() {
   return session.user.id
 }
 
+/**
+ * Retorna o userId efetivo para queries de dados:
+ * - Funcionário convidado → retorna o ownerId (prestador) para que veja os dados do prestador
+ * - Prestador/usuário normal → retorna o próprio id
+ */
+export async function getEffectiveUserId(): Promise<{ effectiveId: string; isEmployee: boolean; ownerId: string | null }> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) throw new Error("Não autorizado")
+  const myId = session.user.id
+
+  const [empLink] = await db
+    .select({ ownerId: employeePermissions.ownerId })
+    .from(employeePermissions)
+    .where(eq(employeePermissions.employeeId, myId))
+    .limit(1)
+
+  if (empLink) {
+    return { effectiveId: empLink.ownerId, isEmployee: true, ownerId: empLink.ownerId }
+  }
+  return { effectiveId: myId, isEmployee: false, ownerId: null }
+}
+
+/**
+ * Retorna as permissões do funcionário ou null (sem restrições) para prestador/admin.
+ */
+export async function getMyPermissions(): Promise<{
+  isEmployee: boolean
+  ownerId: string | null
+  canClients: boolean
+  canServices: boolean
+  canQuotes: boolean
+  canOrders: boolean
+  canFinanceiro: boolean
+  canRelatorios: boolean
+} | null> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) throw new Error("Não autorizado")
+  const myId = session.user.id
+
+  const [perm] = await db
+    .select()
+    .from(employeePermissions)
+    .where(eq(employeePermissions.employeeId, myId))
+    .limit(1)
+
+  if (!perm) return null // prestador — sem restrições
+
+  return {
+    isEmployee: true,
+    ownerId: perm.ownerId,
+    canClients: perm.canClients,
+    canServices: perm.canServices,
+    canQuotes: perm.canQuotes,
+    canOrders: perm.canOrders,
+    canFinanceiro: perm.canFinanceiro,
+    canRelatorios: perm.canRelatorios,
+  }
+}
+
 // ── Licenca ───────────────────────────────────────────────────────────────────
 
 export async function getUserLicense() {
@@ -65,11 +124,11 @@ export async function activateLicense(plan: "7d" | "30d" | "1y") {
 
 // ── Clients ──────────────────────────────────────────────────────────────────
 export async function getClients() {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   return db
     .select()
     .from(clients)
-    .where(eq(clients.userId, userId))
+    .where(eq(clients.userId, effectiveId))
     .orderBy(desc(clients.createdAt))
 }
 
@@ -84,10 +143,10 @@ export async function createClient(data: {
   state?: string
   notes?: string
 }) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db.insert(clients).values({
     id: crypto.randomUUID(),
-    userId,
+    userId: effectiveId,
     ...data,
   })
   revalidatePath("/dashboard/clientes")
@@ -108,29 +167,29 @@ export async function updateClient(
     status: string
   }>
 ) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .update(clients)
     .set({ ...data, updatedAt: new Date() })
-    .where(and(eq(clients.id, id), eq(clients.userId, userId)))
+    .where(and(eq(clients.id, id), eq(clients.userId, effectiveId)))
   revalidatePath("/dashboard/clientes")
 }
 
 export async function deleteClient(id: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .delete(clients)
-    .where(and(eq(clients.id, id), eq(clients.userId, userId)))
+    .where(and(eq(clients.id, id), eq(clients.userId, effectiveId)))
   revalidatePath("/dashboard/clientes")
 }
 
 // ── Services ─────────────────────────────────────────────────────────────────
 export async function getServices() {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   return db
     .select()
     .from(services)
-    .where(eq(services.userId, userId))
+    .where(eq(services.userId, effectiveId))
     .orderBy(desc(services.createdAt))
 }
 
@@ -141,10 +200,10 @@ export async function createService(data: {
   unit?: string
   category?: string
 }) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db.insert(services).values({
     id: crypto.randomUUID(),
-    userId,
+    userId: effectiveId,
     ...data,
   })
   revalidatePath("/dashboard/servicos")
@@ -161,29 +220,29 @@ export async function updateService(
     active: boolean
   }>
 ) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .update(services)
     .set({ ...data, updatedAt: new Date() })
-    .where(and(eq(services.id, id), eq(services.userId, userId)))
+    .where(and(eq(services.id, id), eq(services.userId, effectiveId)))
   revalidatePath("/dashboard/servicos")
 }
 
 export async function deleteService(id: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .delete(services)
-    .where(and(eq(services.id, id), eq(services.userId, userId)))
+    .where(and(eq(services.id, id), eq(services.userId, effectiveId)))
   revalidatePath("/dashboard/servicos")
 }
 
 // ── Quotes ───────────────────────────────────────────────────────────────────
 export async function getQuotes() {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   return db
     .select()
     .from(quotes)
-    .where(eq(quotes.userId, userId))
+    .where(eq(quotes.userId, effectiveId))
     .orderBy(desc(quotes.createdAt))
 }
 
@@ -215,13 +274,13 @@ export async function createQuote(data: {
     total: string
   }[]
 }) {
-  const userId = await getUserId()
-  const number = await getNextQuoteNumber(userId)
+  const { effectiveId } = await getEffectiveUserId()
+  const number = await getNextQuoteNumber(effectiveId)
   const quoteId = crypto.randomUUID()
 
   await db.insert(quotes).values({
     id: quoteId,
-    userId,
+    userId: effectiveId,
     clientId: data.clientId,
     number,
     title: data.title,
@@ -273,13 +332,13 @@ export async function updateQuote(
     }[]
   },
 ) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
 
   // Garante que o orçamento pertence ao prestador
   const [existing] = await db
     .select()
     .from(quotes)
-    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
     .limit(1)
   if (!existing) throw new Error("Orçamento não encontrado")
 
@@ -304,7 +363,7 @@ export async function updateQuote(
       respondedAt: null,
       updatedAt: new Date(),
     })
-    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
 
   // Substitui os itens
   await db.delete(quoteItems).where(eq(quoteItems.quoteId, id))
@@ -323,11 +382,11 @@ export async function updateQuote(
 }
 
 export async function updateQuoteStatus(id: string, status: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .update(quotes)
     .set({ status, updatedAt: new Date() })
-    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
   revalidatePath("/dashboard/orcamentos")
 }
 
@@ -446,22 +505,22 @@ export async function respondQuote(
 }
 
 export async function deleteQuote(id: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .delete(quoteItems)
     .where(eq(quoteItems.quoteId, id))
   await db
     .delete(quotes)
-    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
   revalidatePath("/dashboard/orcamentos")
 }
 
 export async function getQuoteWithItems(id: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   const quote = await db
     .select()
     .from(quotes)
-    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
     .limit(1)
   if (!quote[0]) return null
 
@@ -475,11 +534,11 @@ export async function getQuoteWithItems(id: string) {
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 export async function getTransactions() {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   return db
     .select()
     .from(transactions)
-    .where(eq(transactions.userId, userId))
+    .where(eq(transactions.userId, effectiveId))
     .orderBy(desc(transactions.createdAt))
 }
 
@@ -493,10 +552,10 @@ export async function createTransaction(data: {
   dueDate?: string
   status?: string
 }) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db.insert(transactions).values({
     id: crypto.randomUUID(),
-    userId,
+    userId: effectiveId,
     clientId: data.clientId || undefined,
     quoteId: data.quoteId || undefined,
     type: data.type,
@@ -520,26 +579,26 @@ export async function updateTransaction(
     status: string
   }>
 ) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .update(transactions)
     .set({ ...data, updatedAt: new Date() })
-    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, effectiveId)))
   revalidatePath("/dashboard/financeiro")
 }
 
 export async function deleteTransaction(id: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .delete(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, effectiveId)))
   revalidatePath("/dashboard/financeiro")
 }
 
 // ── Business Profile ──────────────────────────────────────────────────────────
 export async function getBusinessProfile() {
-  const userId = await getUserId()
-  const rows = await db.select().from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+  const { effectiveId } = await getEffectiveUserId()
+  const rows = await db.select().from(businessProfile).where(eq(businessProfile.userId, effectiveId)).limit(1)
   return rows[0] ?? null
 }
 
@@ -559,12 +618,12 @@ export async function upsertBusinessProfile(data: {
   notifQuoteEnabled?: boolean
   docAccentColor?: string
 }) {
-  const userId = await getUserId()
-  const existing = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+  const { effectiveId } = await getEffectiveUserId()
+  const existing = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, effectiveId)).limit(1)
   if (existing[0]) {
-    await db.update(businessProfile).set({ ...data, updatedAt: new Date() }).where(eq(businessProfile.userId, userId))
+    await db.update(businessProfile).set({ ...data, updatedAt: new Date() }).where(eq(businessProfile.userId, effectiveId))
   } else {
-    await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId, name: data.name ?? "", ...data })
+    await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId: effectiveId, name: data.name ?? "", ...data })
   }
   revalidatePath("/dashboard/configuracoes")
 }
@@ -1092,8 +1151,8 @@ export async function adminUpdateTicketStatus(
 
 // ── Service Orders ────────────────────────────────────────────────────────────
 export async function getServiceOrders() {
-  const userId = await getUserId()
-  return db.select().from(serviceOrders).where(eq(serviceOrders.userId, userId)).orderBy(desc(serviceOrders.createdAt))
+  const { effectiveId } = await getEffectiveUserId()
+  return db.select().from(serviceOrders).where(eq(serviceOrders.userId, effectiveId)).orderBy(desc(serviceOrders.createdAt))
 }
 
 export async function getNextServiceOrderNumber(userId: string) {
@@ -1119,13 +1178,13 @@ export async function createServiceOrder(data: {
   internalNotes?: string
   items: { serviceId?: string; description: string; quantity: string; unitPrice: string; total: string }[]
 }) {
-  const userId = await getUserId()
-  const number = await getNextServiceOrderNumber(userId)
+  const { effectiveId } = await getEffectiveUserId()
+  const number = await getNextServiceOrderNumber(effectiveId)
   const orderId = crypto.randomUUID()
 
   await db.insert(serviceOrders).values({
     id: orderId,
-    userId,
+    userId: effectiveId,
     clientId: data.clientId,
     quoteId: data.quoteId,
     number,
@@ -1158,7 +1217,7 @@ export async function updateServiceOrderStatus(
   paymentMethod?: "pix" | "cash" | "card" | "other",
   customAmount?: string
 ) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db
     .update(serviceOrders)
     .set({
@@ -1166,7 +1225,7 @@ export async function updateServiceOrderStatus(
       updatedAt: new Date(),
       ...(status === "concluido" ? { completedAt: new Date() } : {}),
     })
-    .where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, userId)))
+    .where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
 
   const [order] = await db.select().from(serviceOrders).where(eq(serviceOrders.id, id)).limit(1)
   if (!order) { revalidatePath("/dashboard/ordens-servico"); return }
@@ -1179,7 +1238,7 @@ export async function updateServiceOrderStatus(
       .delete(transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
+          eq(transactions.userId, effectiveId),
           like(transactions.description, `${orderPrefix}%`)
         )
       )
@@ -1197,7 +1256,7 @@ export async function updateServiceOrderStatus(
       .from(transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
+          eq(transactions.userId, effectiveId),
           like(transactions.description, `${orderPrefix}%`)
         )
       )
@@ -1222,7 +1281,7 @@ export async function updateServiceOrderStatus(
 
       await db.insert(transactions).values({
         id: crypto.randomUUID(),
-        userId,
+        userId: effectiveId,
         clientId: order.clientId,
         type: "receita",
         description: `${orderPrefix} ${order.title}${paymentLabel}`,
@@ -1241,21 +1300,21 @@ export async function updateServiceOrderStatus(
 }
 
 export async function getClientHistory(clientId: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   const orders = await db
     .select()
     .from(serviceOrders)
-    .where(and(eq(serviceOrders.userId, userId), eq(serviceOrders.clientId, clientId)))
+    .where(and(eq(serviceOrders.userId, effectiveId), eq(serviceOrders.clientId, clientId)))
     .orderBy(desc(serviceOrders.createdAt))
   const clientQuotes = await db
     .select()
     .from(quotes)
-    .where(and(eq(quotes.userId, userId), eq(quotes.clientId, clientId)))
+    .where(and(eq(quotes.userId, effectiveId), eq(quotes.clientId, clientId)))
     .orderBy(desc(quotes.createdAt))
   const txns = await db
     .select()
     .from(transactions)
-    .where(and(eq(transactions.userId, userId), eq(transactions.clientId, clientId)))
+    .where(and(eq(transactions.userId, effectiveId), eq(transactions.clientId, clientId)))
     .orderBy(desc(transactions.createdAt))
   return { orders, quotes: clientQuotes, transactions: txns }
 }
@@ -1275,9 +1334,9 @@ export async function getServiceOrderForReceipt(id: string) {
 }
 
 export async function deleteServiceOrder(id: string) {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
   await db.delete(serviceOrderItems).where(eq(serviceOrderItems.serviceOrderId, id))
-  await db.delete(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, userId)))
+  await db.delete(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
   revalidatePath("/dashboard/ordens-servico")
 }
 
@@ -1293,13 +1352,13 @@ export async function getServiceOrderWithItems(id: string) {
 
 // ── Reports ────────────────────────────────────────���──────────────────────────
 export async function getReportData() {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
 
   const [allTransactions, allQuotes, allClients, allServices] = await Promise.all([
-    db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(transactions.dueDate),
-    db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(desc(quotes.createdAt)),
-    db.select().from(clients).where(eq(clients.userId, userId)),
-    db.select().from(services).where(eq(services.userId, userId)),
+    db.select().from(transactions).where(eq(transactions.userId, effectiveId)).orderBy(transactions.dueDate),
+    db.select().from(quotes).where(eq(quotes.userId, effectiveId)).orderBy(desc(quotes.createdAt)),
+    db.select().from(clients).where(eq(clients.userId, effectiveId)),
+    db.select().from(services).where(eq(services.userId, effectiveId)),
   ])
 
   // Receita x Despesa por mês (últimos 6 meses)
@@ -1352,9 +1411,9 @@ export async function getReportData() {
   }
 }
 
-// ── Dashboard Stats ────────────────────────────────────���──────────��──────���────
+// ── Dashboard Stats ────────────────────────────────────���──────────��──────����────
 export async function getDashboardStats() {
-  const userId = await getUserId()
+  const { effectiveId } = await getEffectiveUserId()
 
   const [
     totalClientsResult,
@@ -1369,17 +1428,17 @@ export async function getDashboardStats() {
     recentQuotes,
     allTransactions,
   ] = await Promise.all([
-    db.select({ count: sql<number>`COUNT(*)` }).from(clients).where(eq(clients.userId, userId)),
-    db.select({ count: sql<number>`COUNT(*)` }).from(clients).where(and(eq(clients.userId, userId), eq(clients.status, "ativo"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(quotes).where(eq(quotes.userId, userId)),
-    db.select({ count: sql<number>`COUNT(*)` }).from(quotes).where(and(eq(quotes.userId, userId), eq(quotes.status, "enviado"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(quotes).where(and(eq(quotes.userId, userId), eq(quotes.status, "aprovado"))),
-    db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.type, "receita"), eq(transactions.status, "pago"))),
-    db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.type, "receita"), eq(transactions.status, "pendente"))),
-    db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.type, "despesa"), eq(transactions.status, "pago"))),
-    db.select().from(clients).where(eq(clients.userId, userId)).orderBy(desc(clients.createdAt)).limit(5),
-    db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(desc(quotes.createdAt)).limit(5),
-    db.select().from(transactions).where(eq(transactions.userId, userId)),
+    db.select({ count: sql<number>`COUNT(*)` }).from(clients).where(eq(clients.userId, effectiveId)),
+    db.select({ count: sql<number>`COUNT(*)` }).from(clients).where(and(eq(clients.userId, effectiveId), eq(clients.status, "ativo"))),
+    db.select({ count: sql<number>`COUNT(*)` }).from(quotes).where(eq(quotes.userId, effectiveId)),
+    db.select({ count: sql<number>`COUNT(*)` }).from(quotes).where(and(eq(quotes.userId, effectiveId), eq(quotes.status, "enviado"))),
+    db.select({ count: sql<number>`COUNT(*)` }).from(quotes).where(and(eq(quotes.userId, effectiveId), eq(quotes.status, "aprovado"))),
+    db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, effectiveId), eq(transactions.type, "receita"), eq(transactions.status, "pago"))),
+    db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, effectiveId), eq(transactions.type, "receita"), eq(transactions.status, "pendente"))),
+    db.select({ sum: sql<string>`COALESCE(SUM(amount), 0)` }).from(transactions).where(and(eq(transactions.userId, effectiveId), eq(transactions.type, "despesa"), eq(transactions.status, "pago"))),
+    db.select().from(clients).where(eq(clients.userId, effectiveId)).orderBy(desc(clients.createdAt)).limit(5),
+    db.select().from(quotes).where(eq(quotes.userId, effectiveId)).orderBy(desc(quotes.createdAt)).limit(5),
+    db.select().from(transactions).where(eq(transactions.userId, effectiveId)),
   ])
 
   // Gráfico mensal — últimos 6 meses

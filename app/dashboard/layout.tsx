@@ -28,18 +28,18 @@ export default async function DashboardLayout({
   const now = new Date()
 
   // Verifica se o usuário é um funcionário vinculado a um prestador
-  const [empLink] = await db
-    .select({ ownerId: employeePermissions.ownerId })
+  const [empPerms] = await db
+    .select()
     .from(employeePermissions)
     .where(eq(employeePermissions.employeeId, session.user.id))
     .limit(1)
 
-  if (empLink) {
+  if (empPerms) {
     // Funcionário: usa a licença do prestador (dono)
     const [owner] = await db
       .select({ accessExpiresAt: user.accessExpiresAt })
       .from(user)
-      .where(eq(user.id, empLink.ownerId))
+      .where(eq(user.id, empPerms.ownerId))
       .limit(1)
 
     const isOwnerLicenseActive = owner?.accessExpiresAt ? owner.accessExpiresAt > now : false
@@ -56,9 +56,21 @@ export default async function DashboardLayout({
     if (!isLicenseActive) redirect("/planos")
   }
 
+  // Monta o objeto de permissões para a sidebar (null = prestador, sem restrições)
+  const sidebarPermissions = empPerms
+    ? {
+        canClients: empPerms.canClients,
+        canServices: empPerms.canServices,
+        canQuotes: empPerms.canQuotes,
+        canOrders: empPerms.canOrders,
+        canFinanceiro: empPerms.canFinanceiro,
+        canRelatorios: empPerms.canRelatorios,
+      }
+    : null
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <AppSidebar user={{ name: session.user.name, email: session.user.email }} />
+      <AppSidebar user={{ name: session.user.name, email: session.user.email }} permissions={sidebarPermissions} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-card/50 px-4 md:px-6">
           {/* Espaço para o botão hamburger no mobile */}
