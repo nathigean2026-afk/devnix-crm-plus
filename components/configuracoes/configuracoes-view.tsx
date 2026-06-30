@@ -87,7 +87,7 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 }
 
 function PlanGate({ locked, planRequired = "Business", featureName, featureBenefit, children }: {
-  children: React.ReactNode
+  children?: React.ReactNode
   locked: boolean
   planRequired?: string
   featureName?: string

@@ -273,8 +273,26 @@ export const employeePermissions = pgTable("employee_permissions", {
   canOrders: boolean("canOrders").notNull().default(false),
   canFinanceiro: boolean("canFinanceiro").notNull().default(false),
   canRelatorios: boolean("canRelatorios").notNull().default(false),
+  // Novas permissões
+  canDashboard: boolean("canDashboard").notNull().default(true),   // dashboard aberto por padrão
+  canDelete: boolean("canDelete").notNull().default(false),        // excluir registros
+  canSendQuotes: boolean("canSendQuotes").notNull().default(false), // enviar orçamentos ao cliente
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+// ── Activity Log ──────────────────────────────────────────────────────────────
+// Registra todas as ações do funcionário para auditoria pelo dono da empresa.
+export const activityLog = pgTable("activity_log", {
+  id: text("id").primaryKey(),
+  ownerId: text("ownerId").notNull(),   // prestador (dono) dono dos dados
+  employeeId: text("employeeId").notNull(), // quem realizou a ação
+  employeeName: text("employeeName"),   // snapshot do nome no momento da ação
+  action: text("action").notNull(),     // "create" | "update" | "delete" | "send"
+  module: text("module").notNull(),     // "clientes" | "servicos" | "orcamentos" | "ordens" | "financeiro"
+  description: text("description").notNull(), // texto legível: "Criou o cliente João Silva"
+  recordId: text("recordId"),           // id do registro afetado (opcional)
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -292,3 +310,4 @@ export type SupportTicket = typeof supportTickets.$inferSelect
 export type SupportMessage = typeof supportMessages.$inferSelect
 export type EmployeeInvite = typeof employeeInvites.$inferSelect
 export type EmployeePermission = typeof employeePermissions.$inferSelect
+export type ActivityLog = typeof activityLog.$inferSelect

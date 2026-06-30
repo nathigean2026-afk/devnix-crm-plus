@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { toast } from "sonner"
 import {
   inviteEmployee,
   cancelEmployeeInvite,
   updateEmployeePermissions,
   removeEmployee,
+  getActivityLog,
 } from "@/lib/actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,8 +24,14 @@ import {
   ShieldCheck,
   Link2,
   Copy,
+  ClipboardList,
+  Plus,
+  Pencil,
+  Send,
+  LayoutDashboard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { ActivityLog } from "@/lib/db/schema"
 
 interface EmployeeData {
   employee: {
@@ -38,6 +45,9 @@ interface EmployeeData {
     canOrders: boolean
     canFinanceiro: boolean
     canRelatorios: boolean
+    canDashboard: boolean
+    canDelete: boolean
+    canSendQuotes: boolean
   } | null
   pendingInvite: {
     id: string
@@ -54,13 +64,14 @@ interface PermissionToggleProps {
   checked: boolean
   onChange: (v: boolean) => void
   disabled?: boolean
+  danger?: boolean
 }
 
-function PermissionToggle({ label, description, checked, onChange, disabled }: PermissionToggleProps) {
+function PermissionToggle({ label, description, checked, onChange, disabled, danger }: PermissionToggleProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 border-b border-border last:border-0">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className={cn("text-sm font-medium", danger ? "text-destructive" : "text-foreground")}>{label}</p>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
       </div>
       <button
@@ -72,7 +83,9 @@ function PermissionToggle({ label, description, checked, onChange, disabled }: P
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
           disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-          checked ? "bg-primary" : "bg-muted-foreground/30"
+          checked
+            ? danger ? "bg-destructive" : "bg-primary"
+            : "bg-muted-foreground/30"
         )}
       >
         <span
@@ -86,10 +99,40 @@ function PermissionToggle({ label, description, checked, onChange, disabled }: P
   )
 }
 
+// Ícone por tipo de ação no log
+function ActionIcon({ action }: { action: string }) {
+  if (action === "create") return <Plus className="size-3.5 text-green-500 shrink-0" />
+  if (action === "delete") return <Trash2 className="size-3.5 text-destructive shrink-0" />
+  if (action === "send")   return <Send className="size-3.5 text-blue-500 shrink-0" />
+  return <Pencil className="size-3.5 text-muted-foreground shrink-0" />
+}
+
+// Badge de módulo colorido
+function ModuleBadge({ module }: { module: string }) {
+  const map: Record<string, string> = {
+    clientes:   "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    servicos:   "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    orcamentos: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    ordens:     "bg-teal-500/10 text-teal-600 dark:text-teal-400",
+    financeiro: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  }
+  const label: Record<string, string> = {
+    clientes: "Clientes", servicos: "Serviços", orcamentos: "Orçamentos",
+    ordens: "OS", financeiro: "Financeiro",
+  }
+  return (
+    <span className={cn("inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium", map[module] ?? "bg-muted text-muted-foreground")}>
+      {label[module] ?? module}
+    </span>
+  )
+}
+
 interface EmployeeManagerProps {
   data: EmployeeData
   isEnterprise: boolean
 }
+
+type ActiveTab = "permissoes" | "log"
 
 export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeManagerProps) {
   const [data, setData] = useState<EmployeeData>(initialData)
@@ -97,18 +140,33 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
   const [isPending, startTransition] = useTransition()
   const [inviteResult, setInviteResult] = useState<{ token: string } | null>(null)
   const [savingPerms, setSavingPerms] = useState(false)
+  const [activeTab, setActiveTab] = useState<ActiveTab>("permissoes")
+  const [logs, setLogs] = useState<ActivityLog[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
 
   const { employee, pendingInvite } = data
 
-  // Permissões editáveis localmente antes de salvar
   const [perms, setPerms] = useState({
-    canClients: employee?.canClients ?? false,
-    canServices: employee?.canServices ?? false,
-    canQuotes: employee?.canQuotes ?? false,
-    canOrders: employee?.canOrders ?? false,
+    canClients:    employee?.canClients    ?? false,
+    canServices:   employee?.canServices   ?? false,
+    canQuotes:     employee?.canQuotes     ?? false,
+    canOrders:     employee?.canOrders     ?? false,
     canFinanceiro: employee?.canFinanceiro ?? false,
     canRelatorios: employee?.canRelatorios ?? false,
+    canDashboard:  employee?.canDashboard  ?? true,
+    canDelete:     employee?.canDelete     ?? false,
+    canSendQuotes: employee?.canSendQuotes ?? false,
   })
+
+  // Carrega log quando aba é selecionada
+  useEffect(() => {
+    if (activeTab !== "log" || !employee) return
+    setLoadingLogs(true)
+    getActivityLog(200)
+      .then(rows => setLogs(rows as ActivityLog[]))
+      .catch(() => toast.error("Erro ao carregar log."))
+      .finally(() => setLoadingLogs(false))
+  }, [activeTab, employee])
 
   function handlePermChange(key: keyof typeof perms, value: boolean) {
     setPerms(p => ({ ...p, [key]: value }))
@@ -185,13 +243,20 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
       ? `${window.location.origin}/aceitar-convite?token=${inviteResult?.token ?? pendingInvite?.token}`
       : null
 
-  const PERMS_CONFIG = [
-    { key: "canClients" as const,    label: "Clientes",         description: "Pode visualizar, criar e editar clientes." },
-    { key: "canServices" as const,   label: "Serviços",         description: "Pode visualizar, criar e editar serviços." },
-    { key: "canQuotes" as const,     label: "Orçamentos",       description: "Pode criar, editar e enviar orçamentos." },
-    { key: "canOrders" as const,     label: "Ordens de Serviço",description: "Pode criar e gerenciar ordens de serviço." },
-    { key: "canFinanceiro" as const, label: "Financeiro",       description: "Pode visualizar transações (somente leitura)." },
-    { key: "canRelatorios" as const, label: "Relatórios",       description: "Pode acessar relatórios e gráficos." },
+  // Grupos de permissões para melhor organização visual
+  const PERMS_MODULOS = [
+    { key: "canDashboard"  as const, label: "Dashboard",         description: "Pode visualizar o painel com métricas e resumo financeiro.", icon: <LayoutDashboard className="size-3.5" /> },
+    { key: "canClients"    as const, label: "Clientes",           description: "Pode visualizar, criar e editar clientes." },
+    { key: "canServices"   as const, label: "Serviços",           description: "Pode visualizar, criar e editar serviços." },
+    { key: "canQuotes"     as const, label: "Orçamentos",         description: "Pode criar e editar orçamentos (rascunho)." },
+    { key: "canOrders"     as const, label: "Ordens de Serviço",  description: "Pode criar e gerenciar ordens de serviço." },
+    { key: "canFinanceiro" as const, label: "Financeiro",         description: "Pode visualizar transações (somente leitura)." },
+    { key: "canRelatorios" as const, label: "Relatórios",         description: "Pode acessar relatórios e gráficos." },
+  ]
+
+  const PERMS_ACOES = [
+    { key: "canSendQuotes" as const, label: "Enviar orçamentos",    description: "Pode enviar orçamentos ao cliente para aprovação.", danger: false },
+    { key: "canDelete"     as const, label: "Excluir registros",    description: "Pode excluir clientes, serviços, orçamentos, OSs e transações.", danger: true },
   ]
 
   return (
@@ -211,7 +276,6 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
 
       <CardContent className="flex flex-col gap-5">
         {!isEnterprise ? (
-          /* Plano nao Enterprise */
           <div className="rounded-xl border border-dashed border-border bg-muted/20 flex flex-col items-center gap-3 py-10 px-6 text-center">
             <UsersRound className="size-8 text-muted-foreground" />
             <div>
@@ -228,8 +292,8 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
             </a>
           </div>
         ) : employee ? (
-          /* Funcionario ativo */
           <div className="flex flex-col gap-4">
+            {/* Card do funcionário ativo */}
             <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-green-500/5 border border-green-500/20">
               <div className="flex items-center gap-3">
                 <div className="size-10 rounded-full bg-green-500/15 flex items-center justify-center">
@@ -254,37 +318,133 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
               </Button>
             </div>
 
-            {/* Permissoes */}
-            <div className="rounded-xl border border-border bg-card">
-              <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-                <ShieldCheck className="size-4 text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">Permissões de acesso</p>
-              </div>
-              <div className="px-4 pb-2">
-                {PERMS_CONFIG.map(({ key, label, description }) => (
-                  <PermissionToggle
-                    key={key}
-                    label={label}
-                    description={description}
-                    checked={perms[key]}
-                    onChange={v => handlePermChange(key, v)}
-                  />
-                ))}
-              </div>
-              <div className="px-4 pb-4 pt-2 border-t border-border">
-                <Button
-                  onClick={handleSavePerms}
-                  disabled={savingPerms}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  size="sm"
+            {/* Abas: Permissões | Log */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              {/* Tab header */}
+              <div className="flex border-b border-border">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("permissoes")}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                    activeTab === "permissoes"
+                      ? "border-b-2 border-primary text-primary -mb-px"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  {savingPerms ? "Salvando..." : "Salvar permissões"}
-                </Button>
+                  <ShieldCheck className="size-4" />
+                  Permissões
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("log")}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                    activeTab === "log"
+                      ? "border-b-2 border-primary text-primary -mb-px"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <ClipboardList className="size-4" />
+                  Log de atividades
+                </button>
               </div>
+
+              {activeTab === "permissoes" && (
+                <div className="flex flex-col">
+                  {/* Módulos */}
+                  <div className="px-4 pt-3 pb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                      Acesso a módulos
+                    </p>
+                  </div>
+                  <div className="px-4">
+                    {PERMS_MODULOS.map(({ key, label, description }) => (
+                      <PermissionToggle
+                        key={key}
+                        label={label}
+                        description={description}
+                        checked={perms[key]}
+                        onChange={v => handlePermChange(key, v)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Ações especiais */}
+                  <div className="px-4 pt-3 pb-1 border-t border-border mt-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                      Ações especiais
+                    </p>
+                  </div>
+                  <div className="px-4">
+                    {PERMS_ACOES.map(({ key, label, description, danger }) => (
+                      <PermissionToggle
+                        key={key}
+                        label={label}
+                        description={description}
+                        checked={perms[key]}
+                        onChange={v => handlePermChange(key, v)}
+                        danger={danger}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="px-4 pb-4 pt-3 border-t border-border">
+                    <Button
+                      onClick={handleSavePerms}
+                      disabled={savingPerms}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      size="sm"
+                    >
+                      {savingPerms ? "Salvando..." : "Salvar permissões"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "log" && (
+                <div className="flex flex-col">
+                  {loadingLogs ? (
+                    <div className="py-10 flex items-center justify-center text-muted-foreground text-sm">
+                      Carregando...
+                    </div>
+                  ) : logs.length === 0 ? (
+                    <div className="py-10 flex flex-col items-center gap-2 text-center px-6">
+                      <ClipboardList className="size-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Nenhuma atividade registrada ainda.</p>
+                      <p className="text-xs text-muted-foreground">As ações do funcionário aparecerão aqui.</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border max-h-96 overflow-y-auto">
+                      {logs.map(log => (
+                        <li key={log.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                          <div className="mt-0.5">
+                            <ActionIcon action={log.action} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground leading-snug">{log.description}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <ModuleBadge module={log.module} />
+                              <span className="text-[11px] text-muted-foreground">
+                                {new Date(log.createdAt).toLocaleString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : pendingInvite ? (
-          /* Convite pendente */
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
               <div className="flex items-center gap-3">
@@ -340,7 +500,6 @@ export function EmployeeManager({ data: initialData, isEnterprise }: EmployeeMan
             )}
           </div>
         ) : (
-          /* Sem funcionario — formulario de convite */
           <form onSubmit={handleInvite} className="flex flex-col gap-4">
             <div className="rounded-xl border border-dashed border-border bg-muted/10 p-4 flex items-start gap-3">
               <UserPlus className="size-5 text-muted-foreground mt-0.5 shrink-0" />
