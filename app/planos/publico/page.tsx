@@ -213,42 +213,47 @@ function ThemeToggleButton({ isDark }: { isDark: boolean }) {
 }
 
 function CellIcon({ value, isHighlight, isDark }: { value: boolean | string; isHighlight?: boolean; isDark?: boolean }) {
+  // Card Business (isHighlight): fundo preto no light-mode, fundo branco no dark-mode
+  // → texto precisa ser o inverso do fundo do card, não do tema global
+  const highlightTextColor = isDark ? "#0a0a0a" : "#f2f2f2"
+  const normalTextColor = isDark ? "rgba(242,242,242,0.85)" : "rgba(10,10,10,0.85)"
+
   if (typeof value === "string") {
     return (
       <span
-        className="text-[11px] font-bold"
-        style={{
-          color: isHighlight
-            ? (isDark ? "rgba(10,10,10,0.85)" : "rgba(242,242,242,0.9)")
-            : (isDark ? "rgba(242,242,242,0.75)" : "rgba(10,10,10,0.75)"),
-        }}
+        className="text-[11px] font-bold tabular-nums"
+        style={{ color: isHighlight ? highlightTextColor : normalTextColor }}
       >
         {value}
       </span>
     )
   }
+
   if (value) {
-    const bg = isHighlight
-      ? (isDark ? "rgba(10,10,10,0.12)" : "rgba(242,242,242,0.15)")
-      : (isDark ? "rgba(255,255,255,0.08)" : "rgba(10,10,10,0.06)")
-    const color = isHighlight
-      ? (isDark ? "rgba(10,10,10,0.9)" : "rgba(242,242,242,0.9)")
-      : (isDark ? "rgba(242,242,242,0.8)" : "rgba(10,10,10,0.8)")
+    // Check verde vibrante — sempre legível em qualquer fundo
+    const checkBg = isHighlight
+      ? (isDark ? "rgba(10,10,10,0.15)" : "rgba(242,242,242,0.18)")
+      : (isDark ? "rgba(34,197,94,0.15)" : "rgba(22,163,74,0.1)")
+    const checkColor = isHighlight
+      ? highlightTextColor
+      : (isDark ? "#4ade80" : "#16a34a") // verde legível no tema
     return (
       <div
-        className="size-5 rounded-full flex items-center justify-center mx-auto"
-        style={{ backgroundColor: bg }}
+        className="size-6 rounded-full flex items-center justify-center mx-auto"
+        style={{ backgroundColor: checkBg }}
       >
-        <Check className="size-3" strokeWidth={3} style={{ color }} />
+        <Check className="size-3.5" strokeWidth={3} style={{ color: checkColor }} />
       </div>
     )
   }
+
+  // X — vermelho apagado, claramente indica "não incluso" sem chamar atenção demais
   const xColor = isHighlight
-    ? (isDark ? "rgba(10,10,10,0.2)" : "rgba(242,242,242,0.2)")
-    : (isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)")
+    ? (isDark ? "rgba(10,10,10,0.25)" : "rgba(242,242,242,0.3)")
+    : (isDark ? "rgba(248,113,113,0.45)" : "rgba(220,38,38,0.35)")
   return (
-    <div className="size-5 flex items-center justify-center mx-auto">
-      <X className="size-3.5" strokeWidth={2} style={{ color: xColor }} />
+    <div className="size-6 flex items-center justify-center mx-auto">
+      <X className="size-4" strokeWidth={2.5} style={{ color: xColor }} />
     </div>
   )
 }
@@ -540,14 +545,18 @@ export default function PlanosPublicoPage() {
                           className="size-4 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                           style={{
                             backgroundColor: isH
-                              ? (isDark ? "rgba(10,10,10,0.1)" : "rgba(242,242,242,0.14)")
-                              : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
+                              ? (isDark ? "rgba(10,10,10,0.12)" : "rgba(242,242,242,0.16)")
+                              : (isDark ? "rgba(34,197,94,0.15)" : "rgba(22,163,74,0.1)"),
                           }}
                         >
                           <Check
                             className="size-2.5"
-                            strokeWidth={3}
-                            style={{ color: isH ? (isDark ? "rgba(10,10,10,0.85)" : "rgba(242,242,242,0.9)") : fg }}
+                            strokeWidth={3.5}
+                            style={{
+                              color: isH
+                                ? (isDark ? "#0a0a0a" : "#f2f2f2")
+                                : (isDark ? "#4ade80" : "#16a34a"),
+                            }}
                           />
                         </span>
                         <span className="leading-relaxed">{f}</span>
@@ -587,6 +596,25 @@ export default function PlanosPublicoPage() {
             >
               O que cada plano inclui.
             </h2>
+          </div>
+
+          {/* Legenda de símbolos */}
+          <div className="flex items-center gap-5 mb-4 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="size-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: isDark ? "rgba(34,197,94,0.15)" : "rgba(22,163,74,0.1)" }}
+              >
+                <Check className="size-3" strokeWidth={3} style={{ color: isDark ? "#4ade80" : "#16a34a" }} />
+              </div>
+              <span className="text-xs" style={{ color: fgSub }}>Incluso no plano</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="size-5 flex items-center justify-center">
+                <X className="size-3.5" strokeWidth={2.5} style={{ color: isDark ? "rgba(248,113,113,0.45)" : "rgba(220,38,38,0.35)" }} />
+              </div>
+              <span className="text-xs" style={{ color: fgSub }}>Não incluso</span>
+            </div>
           </div>
 
           {/* Tabela responsiva */}
