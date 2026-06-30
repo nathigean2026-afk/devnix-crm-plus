@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
 import { db } from "@/lib/db"
-import { user } from "@/lib/db/schema"
+import { user, employeePermissions } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
 export default async function DashboardLayout({
@@ -25,16 +25,36 @@ export default async function DashboardLayout({
     redirect(hadSession ? "/sessao-encerrada" : "/sign-in")
   }
 
-  // Verifica licenca ativa
-  const [u] = await db
-    .select({ accessExpiresAt: user.accessExpiresAt })
-    .from(user)
-    .where(eq(user.id, session.user.id))
+  const now = new Date()
+
+  // Verifica se o usuário é um funcionário vinculado a um prestador
+  const [empLink] = await db
+    .select({ ownerId: employeePermissions.ownerId })
+    .from(employeePermissions)
+    .where(eq(employeePermissions.employeeId, session.user.id))
     .limit(1)
 
-  const now = new Date()
-  const isLicenseActive = u?.accessExpiresAt ? u.accessExpiresAt > now : false
-  if (!isLicenseActive) redirect("/planos")
+  if (empLink) {
+    // Funcionário: usa a licença do prestador (dono)
+    const [owner] = await db
+      .select({ accessExpiresAt: user.accessExpiresAt })
+      .from(user)
+      .where(eq(user.id, empLink.ownerId))
+      .limit(1)
+
+    const isOwnerLicenseActive = owner?.accessExpiresAt ? owner.accessExpiresAt > now : false
+    if (!isOwnerLicenseActive) redirect("/planos")
+  } else {
+    // Prestador: verifica sua própria licença
+    const [u] = await db
+      .select({ accessExpiresAt: user.accessExpiresAt })
+      .from(user)
+      .where(eq(user.id, session.user.id))
+      .limit(1)
+
+    const isLicenseActive = u?.accessExpiresAt ? u.accessExpiresAt > now : false
+    if (!isLicenseActive) redirect("/planos")
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

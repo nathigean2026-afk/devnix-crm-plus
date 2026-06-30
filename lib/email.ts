@@ -714,3 +714,241 @@ export async function sendPurchaseConfirmationEmail(
     return false
   }
 }
+
+// ── Notificação de convite aceito ─────────────────────────────────────────────
+
+type InviteAcceptedEmailParams = {
+  to: string           // email do prestador (dono)
+  ownerName: string    // nome do prestador
+  employeeName: string // nome do funcionário que aceitou
+  employeeEmail: string
+  acceptedAt: Date
+  dashboardUrl?: string
+}
+
+/**
+ * Notifica o prestador quando um funcionário aceita o convite.
+ */
+export async function sendInviteAcceptedEmail(params: InviteAcceptedEmailParams): Promise<boolean> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY não configurada — notificação de aceite não enviada.")
+    return false
+  }
+
+  const { to, ownerName, employeeName, employeeEmail, acceptedAt, dashboardUrl } = params
+  const dataAceite = dateFmt(acceptedAt)
+  const configUrl = dashboardUrl ?? "https://crm.elevanthe.com/dashboard/configuracoes"
+  const subject = `${employeeName} aceitou seu convite — Elevanthe CRM`
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0; padding:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f7; background-image:repeating-linear-gradient(0deg, transparent, transparent 39px, #e2e8f0 39px, #e2e8f0 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, #e2e8f0 39px, #e2e8f0 40px); padding:48px 0 56px;">
+    <tr>
+      <td align="center" style="padding:0 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%;">
+
+          <!-- LOGO -->
+          <tr>
+            <td align="center" style="padding:0 0 20px;">
+              <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; background:#0d1b3e; border-radius:12px; overflow:hidden;">
+                <tr>
+                  <td style="padding:16px 28px;">
+                    <img
+                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-lP6RanA7XI9rtrXDDhiUZnvYULkoEM.png"
+                      alt="Elevanthe CRM"
+                      width="200"
+                      height="54"
+                      style="display:block; max-width:200px; height:auto; border:0;"
+                    />
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CARD PRINCIPAL -->
+          <tr>
+            <td style="background:#ffffff; border-radius:20px; overflow:hidden; box-shadow:0 4px 24px rgba(15,23,42,0.10);">
+
+              <!-- BANNER VERDE -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#064e3b 0%,#059669 100%); padding:40px 48px 36px; text-align:center;">
+                    <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:0 auto 18px;">
+                      <tr>
+                        <td style="width:64px; height:64px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:60px; font-size:28px; color:#ffffff;">
+                          &#10003;
+                        </td>
+                      </tr>
+                    </table>
+                    <h1 style="margin:0 0 10px; font-size:26px; font-weight:800; color:#ffffff; letter-spacing:-0.5px; line-height:1.2;">
+                      Convite aceito!
+                    </h1>
+                    <p style="margin:0; font-size:15px; color:rgba(255,255,255,0.80); line-height:1.6;">
+                      <strong style="color:#a7f3d0;">${employeeName}</strong> aceitou o convite<br/>
+                      e já pode acessar o sistema.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- DETALHES -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:32px 48px 0;">
+                    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#334155;">
+                      Olá, <strong style="color:#0f172a;">${ownerName}</strong>! O funcionário que você convidou
+                      acabou de aceitar o convite e já está vinculado à sua conta.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CARD DE INFO -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:20px 48px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc; border-radius:14px; border:1px solid #e2e8f0; overflow:hidden;">
+                      <tr>
+                        <td style="padding:16px 20px; border-bottom:1px solid #e2e8f0;">
+                          <p style="margin:0 0 3px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#94a3b8;">Funcionário</p>
+                          <p style="margin:0; font-size:14px; font-weight:700; color:#0f172a;">${employeeName}</p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:16px 20px; border-bottom:1px solid #e2e8f0;">
+                          <p style="margin:0 0 3px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#94a3b8;">E-mail</p>
+                          <p style="margin:0; font-size:14px; color:#334155;">${employeeEmail}</p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:16px 20px;">
+                          <p style="margin:0 0 3px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#94a3b8;">Aceito em</p>
+                          <p style="margin:0; font-size:14px; color:#334155;">${dataAceite}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- AVISO DE PERMISSOES -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:20px 48px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb; border-radius:12px; border:1px solid #fde68a; padding:0; overflow:hidden;">
+                      <tr>
+                        <td style="padding:14px 18px;">
+                          <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; width:100%;">
+                            <tr>
+                              <td style="width:28px; vertical-align:top; padding-top:1px; font-size:16px;">&#9888;&#65039;</td>
+                              <td style="padding-left:10px; vertical-align:top;">
+                                <p style="margin:0 0 3px; font-size:13px; font-weight:700; color:#92400e;">Configure as permissões agora</p>
+                                <p style="margin:0; font-size:12px; color:#78350f; line-height:1.6;">
+                                  Por padrão, o funcionário não tem acesso a nenhum módulo.
+                                  Acesse <strong>Configurações &rarr; Funcionário</strong> para liberar os módulos desejados.
+                                </p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:32px 48px 40px; text-align:center;">
+                    <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:0 auto;">
+                      <tr>
+                        <td style="background:#0f172a; border-radius:12px;">
+                          <a
+                            href="${configUrl}"
+                            style="display:block; color:#ffffff; text-decoration:none; font-size:15px; font-weight:700; padding:16px 52px; letter-spacing:0.3px;"
+                          >
+                            Configurar permissoes &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:14px 0 0; font-size:12px; color:#94a3b8;">
+                      Acesse em <a href="https://crm.elevanthe.com" style="color:#2563eb; text-decoration:none; font-weight:600;">crm.elevanthe.com</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="padding:28px 0 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="padding:24px 28px; background:#0d1b3e; border-radius:14px;">
+                    <p style="margin:0 0 4px; font-size:13px; font-weight:700; color:#e2e8f0;">Equipe Elevanthe CRM</p>
+                    <p style="margin:0 0 10px; font-size:12px; color:#64748b; line-height:1.6;">
+                      Gestão de relacionamento que eleva resultados.<br/>
+                      Dúvidas? Acesse nosso suporte dentro do sistema.
+                    </p>
+                    <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                      <tr>
+                        <td style="padding-right:12px;">
+                          <a href="https://crm.elevanthe.com" style="font-size:11px; color:#3b82f6; text-decoration:none; font-weight:600;">crm.elevanthe.com</a>
+                        </td>
+                        <td style="color:#334155; font-size:11px; padding-right:12px;">|</td>
+                        <td>
+                          <a href="mailto:contato@elevanthe.com" style="font-size:11px; color:#3b82f6; text-decoration:none; font-weight:600;">contato@elevanthe.com</a>
+                        </td>
+                      </tr>
+                    </table>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-top:16px; border-top:1px solid #1e293b;">
+                      <tr>
+                        <td style="padding-top:14px; font-size:10px; color:#334155; line-height:1.6;">
+                          Este e-mail foi enviado automaticamente para <strong style="color:#475569;">${to}</strong>.
+                          Você recebeu este e-mail pois é o administrador de uma conta no Elevanthe CRM.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    })
+    if (error) {
+      console.error("[email] Erro ao notificar prestador de convite aceito:", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[email] Excecao ao notificar prestador de convite aceito:", e)
+    return false
+  }
+}

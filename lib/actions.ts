@@ -1352,7 +1352,7 @@ export async function getReportData() {
   }
 }
 
-// ── Dashboard Stats ────────────────────────────────────���──────────��──────��────
+// ── Dashboard Stats ────────────────────────────────────���──────────��──────���────
 export async function getDashboardStats() {
   const userId = await getUserId()
 
@@ -1570,7 +1570,7 @@ export async function acceptEmployeeInvite(token: string) {
 
   // Verifica se o email do convite bate com o usuario logado
   const [invitedUser] = await db
-    .select({ email: user.email })
+    .select({ email: user.email, name: user.name })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1)
@@ -1591,11 +1591,36 @@ export async function acceptEmployeeInvite(token: string) {
     canRelatorios: false,
   }).onConflictDoNothing()
 
+  const now = new Date()
+
   // Marca convite como aceito
   await db
     .update(employeeInvites)
-    .set({ status: "accepted", acceptedAt: new Date() })
+    .set({ status: "accepted", acceptedAt: now })
     .where(eq(employeeInvites.id, invite.id))
 
+  // Notifica o prestador (dono) por e-mail — falha silenciosamente
+  try {
+    const [owner] = await db
+      .select({ email: user.email, name: user.name })
+      .from(user)
+      .where(eq(user.id, invite.ownerId))
+      .limit(1)
+
+    if (owner) {
+      const { sendInviteAcceptedEmail } = await import("@/lib/email")
+      sendInviteAcceptedEmail({
+        to: owner.email,
+        ownerName: owner.name ?? "Administrador",
+        employeeName: invitedUser?.name ?? invitedUser?.email.split("@")[0] ?? "Funcionário",
+        employeeEmail: invite.email,
+        acceptedAt: now,
+      }).catch(err => console.error("[acceptEmployeeInvite] Falha ao notificar prestador:", err))
+    }
+  } catch (notifyErr) {
+    console.error("[acceptEmployeeInvite] Erro ao buscar dados do prestador para notificação:", notifyErr)
+  }
+
+  revalidatePath("/dashboard/configuracoes")
   return { ownerId: invite.ownerId }
 }
