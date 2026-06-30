@@ -97,14 +97,19 @@ function ScreenshotCarousel() {
           </div>
         </div>
         <div className={cn("transition-opacity duration-300", animating ? "opacity-0" : "opacity-100")}>
-          <Image
-            src={current.src}
-            alt={`${current.label} — Elevanthe CRM`}
-            width={480}
-            height={300}
-            className="w-full h-auto object-cover object-top"
-            priority
-          />
+          {slides.map((slide, i) => (
+            <Image
+              key={slide.src}
+              src={slide.src}
+              alt={`${slide.label} — Elevanthe CRM`}
+              width={480}
+              height={300}
+              className={cn("w-full h-auto object-cover object-top", i === active ? "block" : "hidden")}
+              priority={i === 0}
+              loading={i === 0 ? "eager" : "lazy"}
+              sizes="(max-width: 1024px) 0px, (max-width: 1280px) 460px, 520px"
+            />
+          ))}
         </div>
       </div>
       <div className="flex items-center justify-between px-1">
@@ -233,15 +238,17 @@ function ThemedLogo({ className }: { className?: string }) {
         height={65}
         className={cn("object-contain hidden md:block", className)}
         priority
+        sizes="260px"
       />
-      {/* Mobile: alterna com o tema */}
+      {/* Mobile: alterna com o tema — lazy pois o form panel é o LCP no mobile */}
       <Image
         src={isDark ? "/elevanthe-logo-transparent-dark.png" : "/elevanthe-logo-transparent-light.png"}
         alt="Elevanthe CRM — Gestão de relacionamento que eleva resultados"
         width={260}
         height={65}
         className={cn("object-contain block md:hidden", className)}
-        priority
+        loading="lazy"
+        sizes="(max-width: 768px) 200px, 260px"
       />
     </>
   )
@@ -322,7 +329,15 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
         {/* Marca d'agua do elefante neon — watermark sutil */}
         <div className="absolute -bottom-16 -right-16 opacity-[0.04] pointer-events-none select-none">
-          <Image src="/elevanthe-logo-neon.png" alt="" width={420} height={420} className="object-contain" />
+          <Image
+            src="/elevanthe-logo-neon.png"
+            alt=""
+            width={420}
+            height={420}
+            className="object-contain"
+            loading="lazy"
+            sizes="420px"
+          />
         </div>
 
         {/* Glow de fundo */}
