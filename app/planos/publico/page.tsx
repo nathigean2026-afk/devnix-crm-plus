@@ -8,7 +8,7 @@ import { useEffect } from "react"
 import {
   Check, X, ChevronDown, ChevronUp,
   Zap, CalendarDays, CalendarRange,
-  ShieldCheck, Clock, Sparkles, Lock, Users, FileText, BarChart3,
+  ShieldCheck, Clock, Sparkles, Lock, UsersRound, FileText, BarChart3,
   MessageSquare, Palette, UserPlus, ArrowRight, Star, Sun, Moon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"

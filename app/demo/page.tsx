@@ -6,7 +6,7 @@ import Image from "next/image"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  LayoutDashboard, Users, Wrench, FileText, DollarSign,
+  LayoutDashboard, UsersRound, Wrench, FileText, DollarSign,
   ArrowRight, Check, ChevronLeft, ChevronRight, Zap, Sun, Moon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -35,7 +35,7 @@ const modules = [
   },
   {
     id: "clientes",
-    icon: Users,
+    icon: UsersRound,
     label: "Clientes",
     path: "dashboard/clientes",
     tag: "Gestão de clientes",
