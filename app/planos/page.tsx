@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { PlanosView } from "@/components/planos/planos-view"
-import { getUserLicense } from "@/lib/actions"
+import { getUserLicense, getEffectiveUserId } from "@/lib/actions"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -17,6 +17,14 @@ export default async function PlanosPage({
 }) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect("/sign-in")
+
+  // Funcionários vinculados não podem comprar/ativar licença
+  try {
+    const { isEmployee } = await getEffectiveUserId()
+    if (isEmployee) redirect("/dashboard")
+  } catch {
+    // Segue normalmente se falhar
+  }
 
   const params = await searchParams
   const isRenovar = params.renovar === "1"

@@ -25,6 +25,8 @@ interface ConfiguracoesViewProps {
   user: { name: string; email: string; id: string }
   profile: BusinessProfile | null
   license: LicenseInfo
+  /** Quando true, oculta a seção de licença e planos (funcionários não podem gerenciar licença) */
+  isEmployee?: boolean
 }
 
 const pixTypeLabels: Record<string, string> = {
@@ -319,7 +321,7 @@ function LicenseCard({
   )
 }
 
-export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewProps) {
+export function ConfiguracoesView({ user, profile, license, isEmployee = false }: ConfiguracoesViewProps) {
   const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -775,7 +777,7 @@ export function ConfiguracoesView({ user, profile, license }: ConfiguracoesViewP
       </Card>
 
       {/* Licença */}
-      <LicenseCard license={license} profile={profile} />
+      {!isEmployee && <LicenseCard license={license} profile={profile} />}
 
       <div className="flex justify-end pb-4">
         <Button

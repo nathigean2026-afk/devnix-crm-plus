@@ -35,48 +35,76 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 
-const navItems = [
+type NavPermKey = "canClients" | "canServices" | "canQuotes" | "canOrders" | "canFinanceiro" | "canRelatorios"
+
+const allNavItems = [
   {
     group: "Principal",
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/dashboard/clientes", label: "Clientes", icon: UsersRound },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permKey: null },
+      { href: "/dashboard/clientes", label: "Clientes", icon: UsersRound, permKey: "canClients" as NavPermKey },
     ],
   },
   {
     group: "Comercial",
     items: [
-      { href: "/dashboard/servicos", label: "Serviços", icon: Wrench },
-      { href: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText },
-      { href: "/dashboard/ordens-servico", label: "Ordens de Serviço", icon: ClipboardList },
+      { href: "/dashboard/servicos", label: "Serviços", icon: Wrench, permKey: "canServices" as NavPermKey },
+      { href: "/dashboard/orcamentos", label: "Orçamentos", icon: FileText, permKey: "canQuotes" as NavPermKey },
+      { href: "/dashboard/ordens-servico", label: "Ordens de Serviço", icon: ClipboardList, permKey: "canOrders" as NavPermKey },
     ],
   },
   {
     group: "Financeiro",
     items: [
-      { href: "/dashboard/financeiro", label: "Financeiro", icon: DollarSign },
-      { href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart2 },
+      { href: "/dashboard/financeiro", label: "Financeiro", icon: DollarSign, permKey: "canFinanceiro" as NavPermKey },
+      { href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart2, permKey: "canRelatorios" as NavPermKey },
     ],
   },
   {
     group: "Ajuda",
     items: [
-      { href: "/dashboard/suporte", label: "Suporte", icon: LifeBuoy },
+      { href: "/dashboard/suporte", label: "Suporte", icon: LifeBuoy, permKey: null },
     ],
   },
 ]
 
+type EmployeePermissions = {
+  canClients: boolean
+  canServices: boolean
+  canQuotes: boolean
+  canOrders: boolean
+  canFinanceiro: boolean
+  canRelatorios: boolean
+} | null
+
+function buildNavItems(permissions: EmployeePermissions) {
+  // null = prestador (sem restrições) → mostra tudo
+  if (!permissions) return allNavItems
+
+  return allNavItems
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => item.permKey === null || permissions[item.permKey] === true
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
+}
+
 interface AppSidebarProps {
   user: { name: string; email: string }
+  permissions?: EmployeePermissions
 }
 
 // Componente interno da nav reutilizado em desktop e mobile
 function SidebarNav({
   collapsed,
   onNavClick,
+  navItems,
 }: {
   collapsed: boolean
   onNavClick?: () => void
+  navItems: ReturnType<typeof buildNavItems>
 }) {
   const pathname = usePathname()
   return (
@@ -205,9 +233,10 @@ function SidebarFooter({
   )
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, permissions = null }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const navItems = buildNavItems(permissions)
 
   const SidebarHeader = ({ isMobile = false }: { isMobile?: boolean }) => {
     // Modo colapsado desktop: ícone centralizado com botão de toggle abaixo do header
@@ -303,7 +332,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         )}
       >
         <SidebarHeader isMobile />
-        <SidebarNav collapsed={false} onNavClick={() => setMobileOpen(false)} />
+        <SidebarNav collapsed={false} onNavClick={() => setMobileOpen(false)} navItems={navItems} />
         <SidebarFooter user={user} collapsed={false} onNavClick={() => setMobileOpen(false)} />
       </aside>
 
@@ -315,7 +344,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         )}
       >
         <SidebarHeader />
-        <SidebarNav collapsed={collapsed} />
+        <SidebarNav collapsed={collapsed} navItems={navItems} />
         <SidebarFooter user={user} collapsed={collapsed} />
       </aside>
     </>
