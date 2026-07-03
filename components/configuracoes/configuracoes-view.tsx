@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -130,6 +130,9 @@ function LicenseCard({
   const [promoCode, setPromoCode] = useState("")
   const [promoLoading, setPromoLoading] = useState(false)
   const [savingToggle, setSavingToggle] = useState(false)
+  const [whatsappPhone, setWhatsappPhone] = useState(profile?.whatsappPhone ?? "")
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false)
+  const [whatsappSaved, setWhatsappSaved] = useState(false)
 
   const { expiresAt, daysLeft, isActive } = license
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
@@ -154,6 +157,19 @@ function LicenseCard({
       else setQuoteNotifEnabled(!value)
     } finally {
       setSavingToggle(false)
+    }
+  }
+
+  async function handleSaveWhatsapp() {
+    setSavingWhatsapp(true)
+    try {
+      await upsertBusinessProfile({ whatsappPhone: whatsappPhone.trim() })
+      setWhatsappSaved(true)
+      setTimeout(() => setWhatsappSaved(false), 3000)
+    } catch {
+      // silencioso
+    } finally {
+      setSavingWhatsapp(false)
     }
   }
 
@@ -315,6 +331,45 @@ function LicenseCard({
             onChange={v => !isStart && handleToggle("notifQuoteEnabled", v)}
             disabled={isStart || savingToggle}
           />
+        </div>
+
+        {/* Notificações via WhatsApp */}
+        <div className="pt-2 border-t border-border mt-2">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageSquare className="size-4 text-green-500 shrink-0" />
+            <p className="text-sm font-medium text-foreground">Receba notificações no seu WhatsApp</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo.
+          </p>
+          <div className="flex gap-2 items-center">
+            <Input
+              value={whatsappPhone}
+              onChange={e => setWhatsappPhone(e.target.value)}
+              placeholder="(11) 99999-9999"
+              className="bg-input border-border text-sm max-w-64"
+              type="tel"
+            />
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveWhatsapp}
+              disabled={savingWhatsapp}
+              className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+            >
+              {savingWhatsapp ? "Salvando..." : whatsappSaved ? (
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3.5" />
+                  Salvo
+                </span>
+              ) : "Salvar"}
+            </Button>
+          </div>
+          {whatsappPhone && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Notificacoes serao enviadas para <span className="font-medium text-foreground">{whatsappPhone}</span>.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
