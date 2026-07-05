@@ -758,7 +758,7 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/dashboard/financeiro")
 }
 
-// ── Business Profile ──────────────────────────────────────────────────────────
+// ── Business Profile ────────────────────────────���─────────────────────────────
 export async function getBusinessProfile() {
   const { effectiveId } = await getEffectiveUserId()
   const rows = await db.select().from(businessProfile).where(eq(businessProfile.userId, effectiveId)).limit(1)
@@ -1531,13 +1531,31 @@ export async function deleteServiceOrder(id: string) {
   const { effectiveId, isEmployee, ownerId } = await getEffectiveUserId()
   const perms = await getMyPermissions()
   if (isEmployee && !perms?.canDelete) throw new Error("Sem permissão para excluir registros.")
-  const [target] = await db.select({ title: serviceOrders.title }).from(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId))).limit(1)
+  const [target] = await db
+    .select({ title: serviceOrders.title, number: serviceOrders.number })
+    .from(serviceOrders)
+    .where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
+    .limit(1)
+
+  // Remove lançamento financeiro gerado ao concluir esta OS (identificado pelo prefixo)
+  if (target?.number) {
+    const orderPrefix = `OS #${String(target.number).padStart(4, "0")} —`
+    await db.delete(transactions).where(
+      and(
+        eq(transactions.userId, effectiveId),
+        like(transactions.description, `${orderPrefix}%`)
+      )
+    )
+  }
+
   await db.delete(serviceOrderItems).where(eq(serviceOrderItems.serviceOrderId, id))
   await db.delete(serviceOrders).where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
   if (isEmployee && ownerId) {
     logActivity({ ownerId, employeeId: sess.user.id, employeeName: sess.user.name, action: "delete", module: "ordens", description: `Excluiu a ordem de serviço "${target?.title ?? id}"`, recordId: id })
   }
   revalidatePath("/dashboard/ordens-servico")
+  revalidatePath("/dashboard/financeiro")
+  revalidatePath("/dashboard/relatorios")
 }
 
 export async function getServiceOrderWithItems(id: string) {
@@ -1968,7 +1986,7 @@ export async function acceptEmployeeInvite(token: string) {
   return { ownerId: invite.ownerId }
 }
 
-// ── Aniversariantes ───────────────────────────────────────────────────────────
+// ── Aniversariantes ────────────────────────────────���──────────────────────────
 // Retorna clientes ativos cujo dia e mês de nascimento cai no mês atual.
 export async function getBirthdayClients() {
   const { effectiveId } = await getEffectiveUserId()

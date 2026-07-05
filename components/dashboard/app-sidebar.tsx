@@ -246,9 +246,9 @@ export function AppSidebar({ user, permissions = null }: AppSidebarProps) {
           <Image
             src="/elevanthe-logo-neon.png"
             alt="Elevanthe CRM"
-            width={36}
-            height={36}
-            className="object-contain w-9 h-9"
+            width={34}
+            height={34}
+            className="object-contain"
           />
           <button
             onClick={() => setCollapsed(false)}
@@ -267,9 +267,9 @@ export function AppSidebar({ user, permissions = null }: AppSidebarProps) {
           <Image
             src="/elevanthe-logo-neon.png"
             alt="Elevanthe CRM"
-            width={40}
-            height={40}
-            className="object-contain shrink-0 w-10 h-10"
+            width={34}
+            height={34}
+            className="object-contain shrink-0"
           />
           {!isMobile && (
             <div className="flex flex-col min-w-0">

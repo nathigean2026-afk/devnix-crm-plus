@@ -1,17 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useTheme } from "next-themes"
 import {
   Check, Zap, CalendarDays, CalendarRange,
   LogOut, Loader2, ShieldCheck, Lock, Sparkles,
+  Gift, ArrowRight, CheckCircle2, Sun, Moon,
+  Bolt, BadgeCheck, X,
 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { redeemPromoCode } from "@/lib/actions"
 
 interface PlanosViewProps {
   user: { name: string; email: string }
@@ -22,42 +25,41 @@ const plans = [
   {
     id: "7d" as const,
     label: "Start",
-    duration: "7 dias",
+    tagline: "7 dias de acesso",
     price: 7,
-    period: "acesso por 7 dias",
-    description: "Experimente a plataforma. Ideal para avaliar antes de assinar.",
+    priceNote: "pagamento único",
+    description: "Experimente a plataforma inteira sem restrições. Ideal para conhecer o sistema antes de escolher um plano maior.",
     icon: Zap,
     features: [
-      "Acesso completo por 7 dias",
-      "Clientes ilimitados",
-      "Ordens de serviço ilimitadas",
-      "Orçamentos e financeiro",
-      "Suporte por email",
+      "Clientes, OS e orçamentos ilimitados",
+      "Financeiro completo",
+      "Catálogo de serviços",
+      "Link público de orçamento",
+      "Relatórios e gráficos",
+      "Suporte por e-mail",
     ],
     lockedFeatures: [
-      "Personalização de marca (logotipo, nome, CNPJ)",
+      "Logo e marca nos documentos",
       "Notificações de resposta de orçamento",
       "Funcionário auxiliar",
     ],
     highlight: false,
-    badge: null,
-    savings: null,
+    badge: null as string | null,
+    savings: null as string | null,
   },
   {
     id: "30d" as const,
     label: "Business",
-    duration: "30 dias",
+    tagline: "30 dias de acesso",
     price: 30,
-    period: "por mês",
-    description: "Para profissionais que precisam de controle total do negócio com sua própria marca.",
+    priceNote: "por mês",
+    description: "Para profissionais que querem apresentar uma marca profissional nos documentos e receber notificações em tempo real.",
     icon: CalendarDays,
     features: [
-      "Acesso completo por 30 dias",
-      "Clientes ilimitados",
-      "Ordens de serviço ilimitadas",
-      "Orçamentos e financeiro",
-      "Relatórios completos",
-      "Personalização completa da marca",
+      "Tudo do plano Start",
+      "Logo e nome da empresa nos PDFs",
+      "CNPJ no cabeçalho dos documentos",
+      "Cor de destaque personalizada",
       "Notificações de resposta de orçamento",
       "Suporte prioritário",
     ],
@@ -69,30 +71,45 @@ const plans = [
   {
     id: "1y" as const,
     label: "Enterprise",
-    duration: "360 dias",
+    tagline: "360 dias de acesso",
     price: 280,
-    period: "por ano",
-    description: "Melhor custo-benefício com todos os recursos, incluindo 1 funcionário auxiliar.",
+    priceNote: "por ano",
+    description: "Melhor custo-benefício com todos os recursos e 1 funcionário auxiliar incluso com permissões individuais.",
     icon: CalendarRange,
     features: [
-      "Acesso completo por 360 dias",
-      "Clientes ilimitados",
-      "Ordens de serviço ilimitadas",
-      "Orçamentos e financeiro",
-      "Relatórios completos",
-      "Personalização completa da marca",
-      "Notificações de resposta de orçamento",
+      "Tudo do plano Business",
+      "360 dias de acesso completo",
       "1 funcionário auxiliar incluso",
-      "Painel de permissões do funcionário",
-      "Suporte VIP",
-      "R$ 23,33/mês — economia de R$ 80 vs mensalidade",
+      "Permissões por módulo por usuário",
+      "Suporte VIP dedicado",
     ],
     lockedFeatures: [] as string[],
     highlight: false,
     badge: "Melhor valor",
-    savings: "Equivale a R$ 23,33/mês · Economia de R$ 80",
+    savings: "Equivale a R$ 23,33/mês — economia de R$ 80",
   },
 ]
+
+function ThemeToggleButton({ isDark }: { isDark: boolean }) {
+  const { setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return <div className="size-8" />
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="size-8 rounded-full flex items-center justify-center transition-all duration-200 border"
+      style={{
+        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+        backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
+        color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)",
+      }}
+      aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
+    >
+      {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+    </button>
+  )
+}
 
 // Logo oficial do Mercado Pago servido localmente
 function MpLogo({ className }: { className?: string }) {
@@ -100,17 +117,55 @@ function MpLogo({ className }: { className?: string }) {
     <Image
       src="/mercadopago-logo.png"
       alt="Mercado Pago"
-      width={20}
-      height={20}
-      className={className}
-      style={{ objectFit: "contain" }}
+      width={16}
+      height={16}
+      className={cn("object-contain", className)}
     />
   )
 }
 
 export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  const isDark = !mounted ? true : resolvedTheme === "dark"
+
+  const bg          = isDark ? "#080808" : "#f8f8f8"
+  const fg          = isDark ? "#f2f2f2" : "#0a0a0a"
+  const fgMuted     = isDark ? "rgba(242,242,242,0.42)" : "rgba(10,10,10,0.42)"
+  const fgSub       = isDark ? "rgba(242,242,242,0.28)" : "rgba(10,10,10,0.28)"
+  const cardBg      = isDark ? "#111111" : "#ffffff"
+  const cardBorder  = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"
+  const highlightBg = isDark ? "#f2f2f2" : "#0a0a0a"
+  const highlightFg = isDark ? "#0a0a0a" : "#f2f2f2"
+
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null)
+
+  // Código promocional
+  const [showPromo, setShowPromo] = useState(false)
+  const [promoCode, setPromoCode] = useState("")
+  const [promoLoading, setPromoLoading] = useState(false)
+  const [promoActivated, setPromoActivated] = useState<{ days: number; planName: string } | null>(null)
+
+  async function handleRedeemPromo() {
+    if (!promoCode.trim()) return
+    setPromoLoading(true)
+    try {
+      const result = await redeemPromoCode(promoCode.trim())
+      setPromoActivated({ days: result.days, planName: result.planName })
+      toast.success(`Código ativado! Acesso liberado por ${result.days} dias.`)
+      setTimeout(() => {
+        router.push("/dashboard")
+        router.refresh()
+      }, 3000)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Código inválido. Verifique e tente novamente.")
+    } finally {
+      setPromoLoading(false)
+    }
+  }
 
   async function handleSignOut() {
     await authClient.signOut()
@@ -128,10 +183,8 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
       })
       const data = await res.json()
       if (!res.ok || data.error) {
-        const errMsg = data.error ?? "Erro ao iniciar checkout"
-        // Loga detalhe técnico no console do browser para facilitar debug
         if (data.detail) console.error("[v0] MP Checkout detalhe:", JSON.stringify(data.detail))
-        throw new Error(errMsg)
+        throw new Error(data.error ?? "Erro ao iniciar checkout")
       }
       if (!data.initPoint) throw new Error("URL de checkout não recebida")
       window.location.href = data.initPoint
@@ -144,27 +197,52 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   const isAnyLoading = !!loadingPlanId
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+    <div className="min-h-screen" style={{ backgroundColor: bg, color: fg, fontFamily: "var(--font-geist-sans, sans-serif)" }}>
+
+      {/* Grid pattern sutil */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: isDark
+            ? "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)"
+            : "linear-gradient(rgba(0,0,0,0.065) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.065) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur-xl"
+        style={{
+          backgroundColor: isDark ? "rgba(8,8,8,0.82)" : "rgba(248,248,248,0.82)",
+          borderColor: cardBorder,
+        }}
+      >
+        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <Image
               src="/elevanthe-icon.png"
               alt="Elevanthe CRM"
-              width={28}
-              height={28}
+              width={26}
+              height={26}
               className="object-contain"
             />
-            <span className="font-bold text-sm tracking-tight">Elevanthe CRM</span>
+            <span className="font-black text-sm tracking-tight hidden sm:block" style={{ color: fg }}>
+              Elevanthe CRM
+            </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <span className="hidden md:block text-xs text-muted-foreground truncate max-w-[180px]">{user.email}</span>
+          <div className="flex items-center gap-2.5">
+            <ThemeToggleButton isDark={isDark} />
+            <span
+              className="hidden md:block text-xs truncate max-w-[180px]"
+              style={{ color: fgMuted }}
+            >
+              {user.email}
+            </span>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-muted"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all hover:opacity-80"
+              style={{ color: fgMuted, borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}
             >
               <LogOut className="size-3.5" />
               <span className="hidden sm:inline">Sair</span>
@@ -173,158 +251,195 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6">
 
         {/* Hero */}
-        <div className="pt-16 pb-12 text-center">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-widest uppercase px-3 py-1 rounded-full border border-border bg-muted/30 text-muted-foreground mb-6">
-            <Sparkles className="size-3 text-primary" />
+        <div className="pt-20 pb-14 text-center">
+          <div
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase px-3 py-1.5 rounded-full border mb-7"
+            style={{ borderColor: cardBorder, color: fgMuted }}
+          >
+            <Sparkles className="size-3" />
             {isRenovar ? "Renovação de licença" : "Planos e preços"}
           </div>
 
-          <h1 className="text-[42px] sm:text-[56px] font-black tracking-tighter leading-[1.04] text-foreground text-balance mb-5">
+          <h1
+            className="text-[clamp(2.8rem,8vw,5rem)] font-black tracking-tighter leading-[1.02] text-balance mb-5"
+            style={{ color: fg }}
+          >
             {isRenovar
               ? <>Renove seu<br className="hidden sm:block" /> acesso</>
-              : <>Escolha seu<br className="hidden sm:block" /> plano</>
+              : <>Simples,<br className="hidden sm:block" /> sem surpresas.</>
             }
           </h1>
-
-          <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-pretty mb-8">
-            Acesso completo a todos os módulos.
-            Pagamento único, sem assinatura automática.
+          <p className="text-base max-w-xl mx-auto leading-relaxed mb-6" style={{ color: fgMuted }}>
+            Pague uma vez, use o tempo inteiro. Sem assinatura automática, sem renovação forçada.
           </p>
-
-          {/* Metodos de pagamento aceitos */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {["Pix", "Cartão de crédito", "Boleto"].map((m) => (
-              <span
-                key={m}
-                className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-border bg-card text-muted-foreground"
-              >
-                {m}
-              </span>
-            ))}
-            <span className="text-[11px] font-medium px-2.5 py-1 rounded-md border border-[#009EE3]/30 bg-[#009EE3]/5 text-[#009EE3] flex items-center gap-1.5">
-              <MpLogo className="size-3.5" />
-              via Mercado Pago
-            </span>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs" style={{ color: fgSub }}>
+            <span className="flex items-center gap-1.5"><Lock className="size-3" />Pagamento via Pix</span>
+            <span className="size-1 rounded-full" style={{ backgroundColor: fgSub }} />
+            <span className="flex items-center gap-1.5"><Bolt className="size-3" />Ativação instantânea</span>
+            <span className="size-1 rounded-full" style={{ backgroundColor: fgSub }} />
+            <span className="flex items-center gap-1.5"><BadgeCheck className="size-3" />Sem renovação automática</span>
           </div>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-20">
+        {/* Cards de planos */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
           {plans.map((plan) => {
             const Icon = plan.icon
+            const isH = plan.highlight
             const isLoading = loadingPlanId === plan.id
 
             return (
               <div
                 key={plan.id}
-                className={cn(
-                  "relative flex flex-col rounded-2xl border transition-shadow duration-200",
-                  plan.highlight
-                    ? "border-primary ring-2 ring-primary/20 bg-card shadow-2xl shadow-primary/10"
-                    : "border-border bg-card hover:shadow-md"
-                )}
+                className="relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
+                style={{
+                  backgroundColor: isH ? highlightBg : cardBg,
+                  border: `1px solid ${isH ? highlightBg : cardBorder}`,
+                  transform: isH ? "scale(1.025)" : undefined,
+                  boxShadow: isH
+                    ? isDark
+                      ? "0 0 0 1px rgba(255,255,255,0.12), 0 20px 60px rgba(0,0,0,0.5)"
+                      : "0 0 0 1px rgba(0,0,0,0.2), 0 20px 60px rgba(0,0,0,0.15)"
+                    : undefined,
+                }}
               >
-                {/* Badge flutuante */}
+                {/* Grid sutil no card de destaque */}
+                {isH && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backgroundImage: isDark
+                        ? "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)"
+                        : "linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)",
+                      backgroundSize: "28px 28px",
+                    }}
+                  />
+                )}
+
+                {/* Badge topo */}
                 {plan.badge && (
-                  <div className={cn(
-                    "absolute -top-3 left-6 px-2.5 py-0.5 rounded-full text-[11px] font-bold border",
-                    plan.highlight
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-amber-500 text-white border-amber-500"
-                  )}>
+                  <div
+                    className="flex items-center justify-center py-1.5 border-b text-[11px] font-bold tracking-wide uppercase"
+                    style={{
+                      backgroundColor: isH
+                        ? isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+                        : isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+                      borderColor: isH
+                        ? isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"
+                        : cardBorder,
+                      color: isH ? highlightFg : fgMuted,
+                    }}
+                  >
                     {plan.badge}
                   </div>
                 )}
 
-                <div className="p-6 flex flex-col flex-1">
-
-                  {/* Nome e icone */}
-                  <div className="flex items-start justify-between mb-6">
+                <div className="relative z-10 p-6 flex flex-col flex-1">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-5">
                     <div>
-                      <h2 className="text-lg font-bold text-foreground">{plan.label}</h2>
-                      <p className="text-xs text-muted-foreground mt-0.5">{plan.duration}</p>
+                      <h2
+                        className="text-xl font-black tracking-tight leading-none mb-1"
+                        style={{ color: isH ? highlightFg : fg }}
+                      >
+                        {plan.label}
+                      </h2>
+                      <p className="text-xs" style={{ color: isH ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}>
+                        {plan.tagline}
+                      </p>
                     </div>
-                    <div className={cn(
-                      "size-9 rounded-lg flex items-center justify-center shrink-0",
-                      plan.highlight ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                    )}>
+                    <div
+                      className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: isH
+                          ? isDark ? "rgba(10,10,10,0.12)" : "rgba(242,242,242,0.15)"
+                          : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                        color: isH ? highlightFg : fgMuted,
+                      }}
+                    >
                       <Icon className="size-4.5" />
                     </div>
                   </div>
 
                   {/* Preco */}
-                  <div className="mb-2">
+                  <div className="mb-5">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-medium text-muted-foreground">R$</span>
-                      <span className={cn(
-                        "text-[52px] font-black tracking-tighter leading-none",
-                        plan.highlight ? "text-primary" : "text-foreground"
-                      )}>
+                      <span className="text-sm font-medium" style={{ color: isH ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}>R$</span>
+                      <span
+                        className="text-[52px] font-black tracking-tighter leading-none"
+                        style={{ color: isH ? highlightFg : fg }}
+                      >
                         {plan.price}
                       </span>
-                      <span className="text-sm font-medium text-muted-foreground">,00</span>
+                      <span className="text-sm font-medium" style={{ color: isH ? (isDark ? "rgba(10,10,10,0.5)" : "rgba(242,242,242,0.5)") : fgMuted }}>,00</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.period}</p>
+                    <p className="text-xs mt-1" style={{ color: isH ? (isDark ? "rgba(10,10,10,0.45)" : "rgba(242,242,242,0.45)") : fgMuted }}>
+                      {plan.priceNote}
+                    </p>
                     {plan.savings && (
-                      <p className="text-xs font-semibold text-emerald-500 mt-1">{plan.savings}</p>
+                      <p className="text-xs font-semibold mt-1.5" style={{ color: isDark ? "#4ade80" : "#16a34a" }}>
+                        {plan.savings}
+                      </p>
                     )}
                   </div>
 
                   {/* Separador */}
-                  <div className="my-5 h-px bg-border" />
+                  <div className="mb-5 h-px" style={{ backgroundColor: isH ? (isDark ? "rgba(10,10,10,0.12)" : "rgba(242,242,242,0.15)") : cardBorder }} />
 
                   {/* Descricao */}
-                  <p className="text-sm text-muted-foreground leading-relaxed text-pretty mb-5">
+                  <p className="text-sm leading-relaxed text-pretty mb-5" style={{ color: isH ? (isDark ? "rgba(10,10,10,0.55)" : "rgba(242,242,242,0.55)") : fgMuted }}>
                     {plan.description}
                   </p>
 
                   {/* Features */}
-                  <ul className="flex flex-col gap-3 mb-8 flex-1">
+                  <ul className="flex flex-col gap-2.5 mb-7 flex-1">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-3 text-sm">
-                        <div className={cn(
-                          "size-4 rounded-full flex items-center justify-center shrink-0",
-                          plan.highlight
-                            ? "bg-primary/15 text-primary"
-                            : "bg-muted text-muted-foreground"
-                        )}>
-                          <Check className="size-2.5" strokeWidth={3} />
+                      <li key={f} className="flex items-center gap-2.5 text-sm">
+                        <div
+                          className="size-4 rounded-full flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: isH
+                              ? isDark ? "rgba(10,10,10,0.15)" : "rgba(242,242,242,0.18)"
+                              : isDark ? "rgba(34,197,94,0.15)" : "rgba(22,163,74,0.1)",
+                          }}
+                        >
+                          <Check
+                            className="size-2.5"
+                            strokeWidth={3}
+                            style={{ color: isH ? highlightFg : (isDark ? "#4ade80" : "#16a34a") }}
+                          />
                         </div>
-                        <span className="text-foreground/80">{f}</span>
+                        <span style={{ color: isH ? (isDark ? "rgba(10,10,10,0.8)" : "rgba(242,242,242,0.8)") : (isDark ? "rgba(242,242,242,0.75)" : "rgba(10,10,10,0.75)") }}>
+                          {f}
+                        </span>
                       </li>
                     ))}
                     {plan.lockedFeatures.map((f) => (
-                      <li key={f} className="flex items-center gap-3 text-sm opacity-40">
-                        <div className="size-4 rounded-full flex items-center justify-center shrink-0 bg-muted text-muted-foreground">
-                          <Lock className="size-2.5" strokeWidth={2.5} />
+                      <li key={f} className="flex items-center gap-2.5 text-sm opacity-35">
+                        <div
+                          className="size-4 rounded-full flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }}
+                        >
+                          <X className="size-2.5" strokeWidth={2.5} style={{ color: fgMuted }} />
                         </div>
-                        <span className="text-muted-foreground line-through">{f}</span>
+                        <span className="line-through" style={{ color: fgMuted }}>{f}</span>
                       </li>
                     ))}
                   </ul>
 
-                  {/* Botao CTA */}
+                  {/* CTA */}
                   <button
                     onClick={() => handleCheckout(plan.id)}
                     disabled={isAnyLoading}
-                    className={cn(
-                      "w-full h-11 rounded-xl text-sm font-semibold transition-all duration-150",
-                      "flex items-center justify-center gap-2.5",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      plan.highlight
-                        ? [
-                          "bg-primary text-primary-foreground",
-                          "hover:brightness-110 active:brightness-95",
-                          "shadow-lg shadow-primary/30",
-                        ]
-                        : [
-                          "bg-foreground text-background",
-                          "hover:opacity-90 active:opacity-80",
-                        ]
-                    )}
+                    className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: isH ? cardBg : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
+                      color: isH ? fg : (isDark ? fg : fg),
+                      border: isH ? "none" : `1px solid ${cardBorder}`,
+                    }}
                   >
                     {isLoading ? (
                       <>
@@ -338,15 +453,107 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                       </>
                     )}
                   </button>
-
                 </div>
               </div>
             )
           })}
         </div>
 
+        {/* Código Promocional */}
+        <div className="pb-12 flex flex-col items-center">
+          {!showPromo && !promoActivated && (
+            <button
+              onClick={() => setShowPromo(true)}
+              className="flex items-center gap-2 text-sm transition-all hover:opacity-80"
+              style={{ color: fgMuted }}
+            >
+              <Gift className="size-4" />
+              Tenho um código promocional
+            </button>
+          )}
+
+          {showPromo && !promoActivated && (
+            <div
+              className="w-full max-w-sm rounded-2xl p-6 text-center"
+              style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
+            >
+              <div
+                className="size-10 rounded-xl flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }}
+              >
+                <Gift className="size-5" style={{ color: fgMuted }} />
+              </div>
+              <h3 className="font-bold mb-1" style={{ color: fg }}>Código Promocional</h3>
+              <p className="text-sm mb-5" style={{ color: fgMuted }}>
+                Insira seu código de teste para ativar o acesso gratuito.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Ex: TESTE2024"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) handleRedeemPromo()
+                  }}
+                  disabled={promoLoading}
+                  className="flex-1 h-10 rounded-lg px-3 text-sm font-mono tracking-wider focus:outline-none focus:ring-2 disabled:opacity-50"
+                  style={{
+                    backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                    border: `1px solid ${cardBorder}`,
+                    color: fg,
+                  }}
+                />
+                <button
+                  onClick={handleRedeemPromo}
+                  disabled={promoLoading || !promoCode.trim()}
+                  className="h-10 px-4 rounded-lg text-sm font-bold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-85"
+                  style={{ backgroundColor: highlightBg, color: highlightFg }}
+                >
+                  {promoLoading ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
+                </button>
+              </div>
+              <button
+                onClick={() => setShowPromo(false)}
+                className="mt-3 text-xs transition-opacity hover:opacity-70"
+                style={{ color: fgSub }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {promoActivated && (
+            <div
+              className="w-full max-w-sm rounded-2xl p-6 text-center"
+              style={{
+                backgroundColor: isDark ? "rgba(22,163,74,0.08)" : "#f0fdf4",
+                border: `1px solid ${isDark ? "rgba(22,163,74,0.2)" : "rgba(22,163,74,0.25)"}`,
+              }}
+            >
+              <div className="size-10 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: isDark ? "rgba(22,163,74,0.15)" : "#dcfce7" }}>
+                <CheckCircle2 className="size-5" style={{ color: isDark ? "#4ade80" : "#16a34a" }} />
+              </div>
+              <h3 className="font-bold mb-1" style={{ color: isDark ? "#4ade80" : "#15803d" }}>Codigo Ativado!</h3>
+              <p className="text-sm mb-1" style={{ color: isDark ? "#86efac" : "#166534" }}>
+                Plano <strong>{promoActivated.planName}</strong> ativado com sucesso.
+              </p>
+              <p className="text-sm font-semibold mb-4" style={{ color: isDark ? "#4ade80" : "#16a34a" }}>
+                {promoActivated.days} dias de acesso liberados.
+              </p>
+              <p className="text-xs flex items-center justify-center gap-1.5" style={{ color: isDark ? "#86efac" : "#166534" }}>
+                <Loader2 className="size-3 animate-spin" />
+                Redirecionando para o dashboard...
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Garantias */}
-        <div className="border-t border-border/60 py-12 grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <div
+          className="border-t py-12 grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10"
+          style={{ borderColor: cardBorder }}
+        >
           {[
             {
               icon: ShieldCheck,
@@ -365,12 +572,15 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
             },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3.5">
-              <div className="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <Icon className="size-4 text-muted-foreground" />
+              <div
+                className="size-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}
+              >
+                <Icon className="size-4" style={{ color: fgMuted }} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground mb-0.5">{title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                <p className="text-sm font-semibold mb-0.5" style={{ color: fg }}>{title}</p>
+                <p className="text-xs leading-relaxed" style={{ color: fgMuted }}>{desc}</p>
               </div>
             </div>
           ))}

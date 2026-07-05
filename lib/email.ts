@@ -32,8 +32,15 @@ export async function sendQuoteResponseEmail(params: QuoteResponseEmailParams): 
     return false
   }
 
+  // Garante que o endereço de destino contém apenas caracteres ASCII (Resend rejeita non-ASCII)
+  const sanitizedTo = params.to.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x00-\x7F]/g, "")
+  if (!sanitizedTo || !sanitizedTo.includes("@")) {
+    console.warn("[v0] Endereço de e-mail inválido após sanitização:", params.to)
+    return false
+  }
+
   const {
-    to,
+    to: _originalTo,
     providerName,
     clientName,
     quoteNumber,
@@ -102,7 +109,7 @@ export async function sendQuoteResponseEmail(params: QuoteResponseEmailParams): 
   try {
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to,
+      to: sanitizedTo,
       subject,
       html,
     })

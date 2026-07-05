@@ -125,7 +125,7 @@ export function ReportsView({ data }: ReportsViewProps) {
   }
 
   function handlePrint() {
-    window.print()
+    window.open(`/api/relatorios/pdf?days=${days}`, "_blank")
   }
 
   const summaryCards = [
