@@ -123,12 +123,16 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
     handleExpire: onTurnstileExpire,
     handleError: onTurnstileError,
     verifyToken,
+    reset: resetTurnstileState,
   } = useTurnstile()
 
   useEffect(() => { setMounted(true) }, [])
 
   const isSignIn = mode === "sign-in"
-  const isDark = !mounted || resolvedTheme === "dark"
+  // Sempre considera dark antes de montar para evitar hydration mismatch.
+  // Como o aside é SEMPRE escuro independente do tema, isso é seguro.
+  // O painel direito usa suppressHydrationWarning para tolerar a diferença.
+  const isDark = mounted ? resolvedTheme === "dark" : true
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -164,7 +168,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Ocorreu um erro. Tente novamente.")
       // Reseta o widget Turnstile para o usuário não precisar recarregar a página
-      reset()
+      resetTurnstileState()
       turnstileRef.current?.reset()
     } finally {
       setLoading(false)
@@ -173,14 +177,14 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
   return (
     <div
-      className="min-h-screen flex"
-      style={{ backgroundColor: isDark ? "#080808" : "#f8f8f8" }}
+      className="min-h-screen flex dark:bg-[#080808] bg-[#f8f8f8]"
     >
 
       {/* ─── Painel esquerdo — branding (desktop only) ─── */}
       <aside
         className="hidden lg:flex lg:w-[500px] xl:w-[540px] flex-col justify-between px-12 py-10 relative overflow-hidden flex-shrink-0"
-        style={{ backgroundColor: isDark ? "#0a0a0a" : "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ backgroundColor: "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+        suppressHydrationWarning
       >
         {/* Grid pattern de fundo (aside escuro fixo) */}
         <div
@@ -234,14 +238,15 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
       </aside>
 
       {/* ─── Painel direito — formulário ─── */}
+      {/* suppressHydrationWarning: isDark usa resolvedTheme do next-themes que é undefined no SSR */}
       <div
-        className="flex-1 flex flex-col min-h-screen relative overflow-hidden"
-        style={{ backgroundColor: isDark ? "#080808" : "#f8f8f8" }}
+        className="flex-1 flex flex-col min-h-screen relative overflow-hidden dark:bg-[#080808] bg-[#f8f8f8]"
         suppressHydrationWarning
       >
         {/* Grid pattern de fundo — light: linhas cinza claras / dark: linhas escuras */}
         <div
           className="absolute inset-0 pointer-events-none"
+          suppressHydrationWarning
           style={{
             backgroundImage: isDark
               ? "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)"
@@ -253,6 +258,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         {/* Vinheta radial suave nos cantos */}
         <div
           className="absolute inset-0 pointer-events-none"
+          suppressHydrationWarning
           style={{
             background: isDark
               ? "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(8,8,8,0.85) 100%)"
@@ -264,6 +270,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         <div
           className="relative z-10 flex items-center justify-between px-6 py-4 border-b"
           style={{ borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)" }}
+          suppressHydrationWarning
         >
           {/* Logo mobile */}
           <div className="lg:hidden">
@@ -307,6 +314,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
           <div
             className="w-full rounded-2xl border shadow-xl px-8 py-9 relative"
+            suppressHydrationWarning
             style={{
               backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#ffffff",
               borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
