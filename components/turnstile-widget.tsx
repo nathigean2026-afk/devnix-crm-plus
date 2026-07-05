@@ -22,6 +22,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetPro
     const turnstileRef = useRef<TurnstileInstance>(null)
 
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    const isDev = process.env.NODE_ENV === "development"
 
     // Expõe reset() para o pai poder resetar o widget após falha de login
     useImperativeHandle(ref, () => ({
@@ -30,7 +31,12 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetPro
       },
     }))
 
+    // Em desenvolvimento: auto-aprova imediatamente sem carregar o widget
     useEffect(() => {
+      if (isDev) {
+        onSuccess("dev-bypass-token")
+        return
+      }
       const timer = setTimeout(() => {
         if (typeof window !== "undefined" && !(window as any).turnstile) {
           setBlocked(true)
@@ -38,9 +44,10 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetPro
         }
       }, 4000)
       return () => clearTimeout(timer)
-    }, [onError])
+    }, [isDev, onSuccess, onError])
 
-    if (!siteKey) return null
+    // Sem site key ou em dev: não renderiza o widget
+    if (!siteKey || isDev) return null
 
     if (blocked) {
       return (
