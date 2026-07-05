@@ -27,9 +27,20 @@ function formatDateLong(dateStr: string | Date | null | undefined): string {
   return `${d.getUTCDate()} de ${months[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
 }
 
+function getBranding(profile: BusinessProfile | null | undefined) {
+  const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
+  return {
+    name: (isPaid && profile?.name) ? profile.name : "Elevanthe CRM",
+    logo: profile?.logo ? profile.logo : "/elevanthe-logo-neon.png",
+    document: (isPaid && profile?.document) ? profile.document : null,
+    isPaid,
+  }
+}
+
 export function PublicReceiptView({ order }: PublicReceiptViewProps) {
   const profile = order.profile
   const client = order.client
+  const branding = getBranding(profile)
 
   const handleShareWhatsApp = () => {
     const url = window.location.href
@@ -108,22 +119,18 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Prestador de Serviços</p>
                 <div className="flex items-start gap-3">
-                  {profile?.logo ? (
+                  <div className="size-12 rounded-md overflow-hidden flex items-center justify-center shrink-0 bg-white border border-gray-100">
                     <Image
-                      src={profile.logo}
-                      alt={profile.name ?? "Logo"}
-                      width={40}
-                      height={40}
-                      style={{ width: 40, height: "auto" }}
-                      className="object-contain rounded-md border border-gray-100 shrink-0"
+                      src={branding.logo}
+                      alt={branding.name}
+                      width={48}
+                      height={48}
+                      style={{ width: 48, height: "auto" }}
+                      className="object-contain"
                     />
-                  ) : (
-                    <div className="size-10 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
-                      <Building2 className="size-5 text-gray-400" />
-                    </div>
-                  )}
+                  </div>
                   <div className="flex flex-col gap-1 text-sm">
-                    <p className="font-semibold text-gray-900">{profile?.name || "Empresa"}</p>
+                    <p className="font-semibold text-gray-900">{branding.name}</p>
                     {profile?.document && <p className="text-gray-500">{profile.document}</p>}
                     {profile?.phone && (
                       <p className="flex items-center gap-1.5 text-gray-500">
