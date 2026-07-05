@@ -351,7 +351,7 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
                   {Number(quote.cashPrice) > 0 && (
                     <div className="flex justify-between items-center rounded-lg bg-green-50 border border-green-100 px-3 py-2">
                       <span className="text-sm text-slate-600 font-medium">A vista / Pix</span>
-                      <span className="text-sm font-bold text-green-700">{formatCurrency(quote.cashPrice)}</span>
+                      <span className="text-sm font-bold text-green-700">{formatCurrency(quote.cashPrice ?? 0)}</span>
                     </div>
                   )}
                   {Number(quote.cardPrice) > 0 && (
@@ -361,10 +361,10 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
                         {(quote.cardInstallments ?? 1) > 1 && ` — ${quote.cardInstallments}x`}
                       </span>
                       <div className="text-right">
-                        <span className="text-sm font-bold text-blue-700">{formatCurrency(quote.cardPrice)}</span>
+                        <span className="text-sm font-bold text-blue-700">{formatCurrency(quote.cardPrice ?? 0)}</span>
                         {(quote.cardInstallments ?? 1) > 1 && (
                           <p className="text-[11px] text-blue-500">
-                            {quote.cardInstallments}x de {formatCurrency(Number(quote.cardPrice) / (quote.cardInstallments ?? 1))}
+                            {quote.cardInstallments}x de {formatCurrency(Number(quote.cardPrice ?? 0) / (quote.cardInstallments ?? 1))}
                           </p>
                         )}
                       </div>
