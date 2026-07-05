@@ -343,6 +343,35 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
                   {formatCurrency(quote.total)}
                 </span>
               </div>
+
+              {/* Condições de pagamento */}
+              {(Number(quote.cashPrice) > 0 || Number(quote.cardPrice) > 0) && (
+                <div className="mt-3 pt-3 border-t border-dashed border-slate-200 flex flex-col gap-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condições de pagamento</p>
+                  {Number(quote.cashPrice) > 0 && (
+                    <div className="flex justify-between items-center rounded-lg bg-green-50 border border-green-100 px-3 py-2">
+                      <span className="text-sm text-slate-600 font-medium">A vista / Pix</span>
+                      <span className="text-sm font-bold text-green-700">{formatCurrency(quote.cashPrice)}</span>
+                    </div>
+                  )}
+                  {Number(quote.cardPrice) > 0 && (
+                    <div className="flex justify-between items-center rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+                      <span className="text-sm text-slate-600 font-medium">
+                        Cartão de crédito
+                        {(quote.cardInstallments ?? 1) > 1 && ` — ${quote.cardInstallments}x`}
+                      </span>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-blue-700">{formatCurrency(quote.cardPrice)}</span>
+                        {(quote.cardInstallments ?? 1) > 1 && (
+                          <p className="text-[11px] text-blue-500">
+                            {quote.cardInstallments}x de {formatCurrency(Number(quote.cardPrice) / (quote.cardInstallments ?? 1))}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

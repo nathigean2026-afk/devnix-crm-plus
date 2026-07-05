@@ -8,6 +8,7 @@ import {
   adminUpdateUser, adminSendPasswordReset, adminExtendLicense, adminRevokeAccess,
   adminDeleteUser,
   adminGetPayments,
+  adminSendDirectMessage,
 } from "@/lib/actions"
 import { AdminTickets } from "@/components/admin/admin-tickets"
 import { toast } from "sonner"
@@ -17,7 +18,7 @@ import {
   CheckCircle2, XCircle, Clock, RefreshCw, LifeBuoy, Wifi, WifiOff,
   Sun, Moon, TrendingUp, Database, Zap, AlertTriangle, Eye, Edit2,
   KeyRound, Ban, PlusCircle, ChevronDown, ChevronUp, Activity,
-  DollarSign, Calendar, Globe, Monitor, Filter, Search, X,
+  DollarSign, Calendar, Globe, Monitor, Filter, Search, X, Send,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -146,7 +147,7 @@ function StatCard({ icon: Icon, label, value, sub, color, onClick, active, darkM
   )
 }
 
-type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos"
+type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes"
 
 export default function AdminDashboard({
   stats: initialStats, codes, tickets,
@@ -173,6 +174,17 @@ export default function AdminDashboard({
   const [paymentsLoading, setPaymentsLoading] = useState(false)
   const [paymentFilter, setPaymentFilter] = useState<"todos" | "approved" | "pending" | "rejected">("todos")
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [saasConfig, setSaasConfig] = useState({
+    maintenanceMode: false,
+    supportEmail: "suporte@elevanthe.com.br",
+    maxClientsStarter: 50,
+    maxClientsProf: 300,
+    maxOsStarter: 100,
+    trialDays: 7,
+  })
+  const [configSaved, setConfigSaved] = useState(false)
+  const [broadcastUser, setBroadcastUser] = useState<LicenseRow | null>(null)
+  const [broadcastMessage, setBroadcastMessage] = useState("")
 
   const onlineUserIds = new Set(stats.onlineSessions.map(s => s.userId))
 
@@ -356,6 +368,58 @@ export default function AdminDashboard({
     }
   }
 
+  function exportUsersCSV() {
+    const header = "Nome,E-mail,Plano,Cadastro,Vencimento,Ultimo Acesso,IP,Status"
+    const rows = stats.licenseData.map(u => {
+      const days = daysLeft(u.accessExpiresAt)
+      const status = days !== null && days > 0 ? `Ativo (${days}d)` : u.accessExpiresAt ? "Expirado" : "Sem licença"
+      return [
+        `"${u.profileName || u.userName}"`,
+        `"${u.profileEmail || u.userEmail}"`,
+        u.licensePlan ?? "starter",
+        formatDate(u.userCreatedAt),
+        formatDate(u.accessExpiresAt),
+        formatDateTime(u.lastSessionAt),
+        parseIp(u.lastSessionIp),
+        status,
+      ].join(",")
+    })
+    const csv = [header, ...rows].join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `usuarios-elevanthe-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleSendBroadcast() {
+    if (!broadcastUser || !broadcastMessage.trim()) return
+    startTransition(async () => {
+      try {
+        await adminSendDirectMessage(broadcastUser.userId, broadcastMessage)
+        toast.success(`Mensagem enviada para ${broadcastUser.profileName || broadcastUser.userName}`)
+        setBroadcastUser(null)
+        setBroadcastMessage("")
+      } catch {
+        toast.error("Erro ao enviar mensagem direta. Use a aba Suporte.")
+      }
+    })
+  }
+
+  function saveConfig() {
+    setConfigSaved(true)
+    setTimeout(() => setConfigSaved(false), 2000)
+    toast.success("Configurações salvas localmente.")
+  }
+
+  // Usuários expirando nos próximos 7 dias
+  const expiringUsers = stats.licenseData.filter(u => {
+    const d = daysLeft(u.accessExpiresAt)
+    return d !== null && d > 0 && d <= 7
+  })
+
   const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "visao", label: "Visão Geral", icon: BarChart3 },
     { key: "licencas", label: "Licenças", icon: ShieldCheck },
@@ -364,6 +428,7 @@ export default function AdminDashboard({
     { key: "suporte", label: `Suporte (${tickets.filter(t => t.status === "aberto" || t.status === "em_andamento").length})`, icon: LifeBuoy },
     { key: "metricas", label: "Métricas", icon: Activity },
     { key: "pagamentos", label: "Pagamentos", icon: DollarSign },
+    { key: "configuracoes", label: "Configurações", icon: Globe },
   ]
 
   return (
@@ -448,6 +513,37 @@ export default function AdminDashboard({
           {/* ── Tab: Visão Geral ── */}
           {tab === "visao" && (
             <div className="space-y-4">
+              {/* Alertas de churn — expirando em breve */}
+              {expiringUsers.length > 0 && (
+                <div className={cn("rounded-xl border p-4", darkMode ? "bg-amber-500/8 border-amber-500/20" : "bg-amber-50 border-amber-200")}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="size-4 text-amber-400 shrink-0" />
+                    <p className={cn("text-sm font-semibold", darkMode ? "text-amber-300" : "text-amber-700")}>
+                      {expiringUsers.length} conta{expiringUsers.length > 1 ? "s" : ""} expira{expiringUsers.length > 1 ? "m" : ""} nos próximos 7 dias
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {expiringUsers.slice(0, 5).map(u => (
+                      <div key={u.userId} className={cn("flex items-center justify-between rounded-lg p-2.5 gap-3", darkMode ? "bg-white/4" : "bg-white")}>
+                        <div className="min-w-0">
+                          <p className={cn("text-sm font-medium truncate", darkMode ? "text-white" : "text-slate-800")}>{u.profileName || u.userName}</p>
+                          <p className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{u.profileEmail || u.userEmail}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-amber-400 font-bold">{daysLeft(u.accessExpiresAt)}d</span>
+                          <button
+                            onClick={() => { openEditUser(u); setTab("usuarios") }}
+                            className="text-xs bg-primary/20 hover:bg-primary/40 text-primary px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            Renovar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Mini gráfico de logins */}
               <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
                 <div className="flex items-center gap-2 mb-4">
@@ -580,6 +676,20 @@ export default function AdminDashboard({
           {tab === "usuarios" && (
             <div className="space-y-4">
               {/* Filtros */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Export CSV */}
+                <button
+                  onClick={exportUsersCSV}
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-2 transition-colors shrink-0",
+                    darkMode ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" : "border-emerald-400 text-emerald-600 hover:bg-emerald-50"
+                  )}
+                >
+                  <Monitor className="size-3.5" />
+                  Exportar CSV
+                </button>
+              </div>
+              {/* Filtros */}
               <div className="flex flex-wrap gap-2">
                 <div className={cn("flex items-center gap-2 rounded-lg border px-3 py-2 flex-1 min-w-48", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
                   <Search className={cn("size-4 shrink-0", darkMode ? "text-white/40" : "text-slate-400")} />
@@ -689,12 +799,21 @@ export default function AdminDashboard({
                               )}
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <button
-                                onClick={() => openEditUser(u)}
-                                className="inline-flex items-center gap-1 text-xs bg-primary/20 hover:bg-primary/40 text-primary px-2.5 py-1 rounded-lg transition-colors"
-                              >
-                                <Edit2 className="size-3" />Gerenciar
-                              </button>
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <button
+                                  onClick={() => { setBroadcastUser(u); setBroadcastMessage("") }}
+                                  className={cn("inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-colors border", darkMode ? "border-white/10 text-white/40 hover:text-white/70 hover:border-white/20" : "border-slate-200 text-slate-400 hover:text-slate-700")}
+                                  title="Enviar mensagem"
+                                >
+                                  <Send className="size-3" />
+                                </button>
+                                <button
+                                  onClick={() => openEditUser(u)}
+                                  className="inline-flex items-center gap-1 text-xs bg-primary/20 hover:bg-primary/40 text-primary px-2.5 py-1 rounded-lg transition-colors"
+                                >
+                                  <Edit2 className="size-3" />Gerenciar
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -1089,8 +1208,101 @@ export default function AdminDashboard({
           </div>
         )}
 
+          {/* ── Tab: Configurações SaaS ── */}
+          {tab === "configuracoes" && (
+            <div className="space-y-4">
+              {/* Modo manutenção */}
+              <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                <h2 className={cn("text-sm font-semibold uppercase tracking-wider mb-4", darkMode ? "text-white/70" : "text-slate-500")}>Sistema</h2>
+                <div className="flex flex-col gap-4">
+                  <div className={cn("flex items-center justify-between p-4 rounded-lg border", darkMode ? "border-white/8 bg-white/3" : "border-slate-100 bg-slate-50")}>
+                    <div>
+                      <p className={cn("text-sm font-medium", darkMode ? "text-white" : "text-slate-800")}>Modo Manutenção</p>
+                      <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>Bloqueia acesso de novos usuários e exibe aviso de manutenção</p>
+                    </div>
+                    <button
+                      onClick={() => setSaasConfig(c => ({ ...c, maintenanceMode: !c.maintenanceMode }))}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                        saasConfig.maintenanceMode ? "bg-red-500" : darkMode ? "bg-white/10" : "bg-slate-200"
+                      )}
+                    >
+                      <span className={cn("inline-block size-4 transform rounded-full bg-white transition-transform shadow", saasConfig.maintenanceMode ? "translate-x-6" : "translate-x-1")} />
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>E-mail de suporte</label>
+                    <input
+                      value={saasConfig.supportEmail}
+                      onChange={e => setSaasConfig(c => ({ ...c, supportEmail: e.target.value }))}
+                      className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>Dias de trial para novos usuários</label>
+                    <input
+                      type="number" min={0} max={90}
+                      value={saasConfig.trialDays}
+                      onChange={e => setSaasConfig(c => ({ ...c, trialDays: Number(e.target.value) }))}
+                      className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none w-32", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Limites por plano */}
+              <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                <h2 className={cn("text-sm font-semibold uppercase tracking-wider mb-4", darkMode ? "text-white/70" : "text-slate-500")}>Limites por Plano</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { label: "Máx. Clientes — Starter", key: "maxClientsStarter" as const, value: saasConfig.maxClientsStarter },
+                    { label: "Máx. Clientes — Professional", key: "maxClientsProf" as const, value: saasConfig.maxClientsProf },
+                    { label: "Máx. OS — Starter/mês", key: "maxOsStarter" as const, value: saasConfig.maxOsStarter },
+                  ].map(item => (
+                    <div key={item.key} className="flex flex-col gap-1.5">
+                      <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{item.label}</label>
+                      <input
+                        type="number" min={1}
+                        value={item.value}
+                        onChange={e => setSaasConfig(c => ({ ...c, [item.key]: Number(e.target.value) }))}
+                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Resumo de usuários por plano */}
+              <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                <h2 className={cn("text-sm font-semibold uppercase tracking-wider mb-4", darkMode ? "text-white/70" : "text-slate-500")}>Distribuição de Planos</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {["starter", "professional", "enterprise"].map(plan => {
+                    const cnt = stats.licenseData.filter(u => (u.licensePlan ?? "starter").toLowerCase() === plan).length
+                    const pct = stats.licenseData.length > 0 ? Math.round((cnt / stats.licenseData.length) * 100) : 0
+                    return (
+                      <div key={plan} className={cn("rounded-lg border p-4", darkMode ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-100")}>
+                        <p className="text-xs text-primary uppercase font-bold tracking-wide">{plan}</p>
+                        <p className={cn("text-2xl font-bold mt-1", darkMode ? "text-white" : "text-slate-800")}>{cnt}</p>
+                        <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{pct}% dos usuários</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={saveConfig}
+                  className="bg-primary hover:bg-primary/90 text-white text-sm px-6 py-2.5 rounded-lg transition-colors"
+                >
+                  {configSaved ? "Salvo!" : "Salvar configurações"}
+                </button>
+              </div>
+            </div>
+          )}
+
         {/* ── Tab: Pagamentos ── */}
-        {tab === "pagamentos" && (
+          {tab === "pagamentos" && (
           <div className="space-y-4">
             {/* Cards de receita */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1195,6 +1407,48 @@ export default function AdminDashboard({
           </div>
         )}
       </div>
+
+      {/* Modal: Mensagem direta ao usuário */}
+      {broadcastUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className={cn("rounded-2xl border w-full max-w-md shadow-2xl", darkMode ? "bg-[#12121a] border-white/10" : "bg-white border-slate-200")}>
+            <div className={cn("flex items-center justify-between px-5 py-4 border-b", darkMode ? "border-white/8" : "border-slate-100")}>
+              <div>
+                <p className={cn("font-semibold text-sm", darkMode ? "text-white" : "text-slate-800")}>Mensagem para {broadcastUser.profileName || broadcastUser.userName}</p>
+                <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{broadcastUser.profileEmail || broadcastUser.userEmail}</p>
+              </div>
+              <button onClick={() => setBroadcastUser(null)} className={cn("text-xs border rounded-lg px-2.5 py-1.5 transition-colors", darkMode ? "text-white/40 border-white/10 hover:text-white/70" : "text-slate-400 border-slate-200")}>
+                Fechar
+              </button>
+            </div>
+            <div className="p-5 flex flex-col gap-3">
+              <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-500")}>
+                A mensagem será enviada como uma resposta de suporte para o usuário.
+              </p>
+              <textarea
+                value={broadcastMessage}
+                onChange={e => setBroadcastMessage(e.target.value)}
+                rows={4}
+                placeholder="Digite sua mensagem aqui..."
+                className={cn("rounded-lg px-3 py-2 text-sm resize-none focus:outline-none w-full", darkMode ? "bg-white/5 border border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border border-slate-200 text-slate-800")}
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setBroadcastUser(null)} className={cn("text-sm px-4 py-2 border rounded-lg transition-colors", darkMode ? "text-white/50 border-white/10 hover:text-white/80" : "text-slate-500 border-slate-200")}>
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSendBroadcast}
+                  disabled={!broadcastMessage.trim() || isPending}
+                  className="text-sm bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  <Send className="size-3.5" />
+                  {isPending ? "Enviando..." : "Enviar mensagem"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

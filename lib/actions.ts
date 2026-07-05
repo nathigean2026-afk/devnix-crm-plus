@@ -622,6 +622,10 @@ export async function respondQuote(
         subtotal: quote.subtotal,
         discount: quote.discount,
         total: quote.total,
+        // Herda condições de pagamento do orçamento aprovado
+        cashPrice: quote.cashPrice ?? undefined,
+        cardPrice: quote.cardPrice ?? undefined,
+        cardInstallments: quote.cardInstallments ?? undefined,
         notes: quote.notes ?? undefined,
         internalNotes: quote.internalNotes ?? undefined,
       })
@@ -1298,6 +1302,29 @@ export async function adminReplyTicket(
   revalidatePath("/admin")
 }
 
+export async function adminSendDirectMessage(userId: string, message: string) {
+  // Cria um ticket de suporte de tipo "admin" e já adiciona a mensagem
+  const ticketId = crypto.randomUUID()
+  await db.insert(supportTickets).values({
+    id: ticketId,
+    userId,
+    subject: "Mensagem da equipe Elevanthe",
+    category: "outro",
+    status: "em_andamento",
+    priority: "normal",
+  })
+  await db.insert(supportMessages).values({
+    id: crypto.randomUUID(),
+    ticketId,
+    authorId: "admin",
+    authorRole: "admin",
+    body: message,
+    attachments: "[]",
+  })
+  revalidatePath("/admin")
+  revalidatePath("/dashboard/suporte")
+}
+
 export async function adminUpdateTicketStatus(
   ticketId: string,
   status: "aberto" | "em_andamento" | "pausado" | "resolvido" | "fechado",
@@ -1313,7 +1340,7 @@ export async function adminUpdateTicketStatus(
   revalidatePath("/admin")
 }
 
-// ── Service Orders ────────────────────────────────────────────────────────��───
+// ── Service Orders ─────────────────────────────────────────��──────────────��───
 export async function getServiceOrders() {
   const { effectiveId } = await getEffectiveUserId()
   return db.select().from(serviceOrders).where(eq(serviceOrders.userId, effectiveId)).orderBy(desc(serviceOrders.createdAt))
@@ -1524,26 +1551,40 @@ export async function getServiceOrderWithItems(id: string) {
 }
 
 // ── Reports ───────────────────────────��────────────���──────────────────────────
-export async function getReportData() {
+export async function getReportData(days: number = 30) {
   const { effectiveId } = await getEffectiveUserId()
 
-  const [allTransactions, allQuotes, allClients, allServices] = await Promise.all([
+  const now = new Date()
+  const since = new Date(now)
+  since.setDate(since.getDate() - days)
+
+  const [allTransactions, allQuotes, allClients, allServices, allOrders, allOrderItems] = await Promise.all([
     db.select().from(transactions).where(eq(transactions.userId, effectiveId)).orderBy(transactions.dueDate),
     db.select().from(quotes).where(eq(quotes.userId, effectiveId)).orderBy(desc(quotes.createdAt)),
     db.select().from(clients).where(eq(clients.userId, effectiveId)),
     db.select().from(services).where(eq(services.userId, effectiveId)),
+    db.select().from(serviceOrders).where(eq(serviceOrders.userId, effectiveId)),
+    db.select().from(serviceOrderItems).where(
+      sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${effectiveId})`
+    ),
   ])
 
-  // Receita x Despesa por mês (últimos 6 meses)
+  // Filtra por período selecionado
+  const periodTransactions = allTransactions.filter(t => {
+    const d = new Date(t.paidAt ?? t.dueDate ?? t.createdAt)
+    return d >= since
+  })
+  const periodQuotes = allQuotes.filter(q => new Date(q.createdAt) >= since)
+  const periodOrders = allOrders.filter(o => new Date(o.createdAt) >= since)
+
+  // Receita x Despesa por mês (últimos 6 meses — sempre exibido independente do período)
   const monthMap: Record<string, { month: string; receita: number; despesa: number }> = {}
-  const now = new Date()
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
     const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })
     monthMap[key] = { month: label, receita: 0, despesa: 0 }
   }
-
   for (const t of allTransactions) {
     if (t.status !== "pago") continue
     const dateStr = t.paidAt ?? t.dueDate ?? null
@@ -1556,19 +1597,77 @@ export async function getReportData() {
   }
   const monthlyChart = Object.values(monthMap)
 
-  // Status dos orçamentos para gráfico de pizza
+  // Status dos orçamentos no período
   const quotesStatusCount: Record<string, number> = {}
-  for (const q of allQuotes) {
+  for (const q of periodQuotes) {
     quotesStatusCount[q.status] = (quotesStatusCount[q.status] ?? 0) + 1
   }
   const quotesChart = Object.entries(quotesStatusCount).map(([status, count]) => ({ status, count }))
 
-  // Totais gerais
-  const totalReceita = allTransactions.filter(t => t.type === "receita" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
-  const totalDespesa = allTransactions.filter(t => t.type === "despesa" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
+  // Totais do período
+  const totalReceita = periodTransactions.filter(t => t.type === "receita" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
+  const totalDespesa = periodTransactions.filter(t => t.type === "despesa" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
   const totalPendente = allTransactions.filter(t => t.status === "pendente" && t.type === "receita").reduce((a, t) => a + Number(t.amount), 0)
-  const totalAprovados = allQuotes.filter(q => q.status === "aprovado").length
-  const taxaConversao = allQuotes.length > 0 ? Math.round((totalAprovados / allQuotes.length) * 100) : 0
+  const totalAprovados = periodQuotes.filter(q => q.status === "aprovado").length
+  const totalRecusados = periodQuotes.filter(q => q.status === "recusado").length
+  const taxaConversao = periodQuotes.length > 0 ? Math.round((totalAprovados / periodQuotes.length) * 100) : 0
+
+  // Top 5 clientes por receita no período
+  const clientRevenueMap: Record<string, { name: string; total: number; ordersCount: number }> = {}
+  for (const c of allClients) {
+    clientRevenueMap[c.id] = { name: c.name, total: 0, ordersCount: 0 }
+  }
+  for (const t of periodTransactions) {
+    if (t.type !== "receita" || t.status !== "pago" || !t.clientId) continue
+    if (clientRevenueMap[t.clientId]) {
+      clientRevenueMap[t.clientId].total += Number(t.amount)
+    }
+  }
+  for (const o of periodOrders) {
+    if (o.status === "concluido" && clientRevenueMap[o.clientId]) {
+      clientRevenueMap[o.clientId].ordersCount += 1
+    }
+  }
+  const topClientsByRevenue = Object.values(clientRevenueMap)
+    .filter(c => c.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
+
+  // Top 5 clientes por número de ordens de serviço no período
+  const clientOrdersMap: Record<string, { name: string; count: number }> = {}
+  for (const c of allClients) clientOrdersMap[c.id] = { name: c.name, count: 0 }
+  for (const o of periodOrders) {
+    if (clientOrdersMap[o.clientId]) clientOrdersMap[o.clientId].count += 1
+  }
+  const topClientsByOrders = Object.values(clientOrdersMap)
+    .filter(c => c.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+
+  // Top 5 serviços mais realizados no período (por itens de OS)
+  const serviceCountMap: Record<string, { name: string; count: number; revenue: number }> = {}
+  const periodOrderIds = new Set(periodOrders.map(o => o.id))
+  for (const item of allOrderItems) {
+    if (!periodOrderIds.has(item.serviceOrderId)) continue
+    const key = item.description
+    if (!serviceCountMap[key]) serviceCountMap[key] = { name: key, count: 0, revenue: 0 }
+    serviceCountMap[key].count += Number(item.quantity)
+    serviceCountMap[key].revenue += Number(item.total)
+  }
+  const topServices = Object.values(serviceCountMap)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+
+  // Orçamentos recusados com motivo no período
+  const rejectedQuotes = periodQuotes
+    .filter(q => q.status === "recusado")
+    .map(q => ({
+      number: q.number,
+      title: q.title,
+      total: q.total,
+      rejectionReason: q.rejectionReason,
+      respondedAt: q.respondedAt,
+    }))
 
   return {
     monthlyChart,
@@ -1577,10 +1676,16 @@ export async function getReportData() {
     totalDespesa,
     totalPendente,
     totalClients: allClients.length,
-    totalQuotes: allQuotes.length,
+    totalQuotes: periodQuotes.length,
     totalAprovados,
+    totalRecusados,
     taxaConversao,
     totalServices: allServices.length,
+    topClientsByRevenue,
+    topClientsByOrders,
+    topServices,
+    rejectedQuotes,
+    periodDays: days,
   }
 }
 
