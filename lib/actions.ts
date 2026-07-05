@@ -543,51 +543,52 @@ export async function respondQuote(
     revalidatePath("/dashboard/orcamentos")
     revalidatePath("/dashboard/relatorios")
 
-    // Notifica o prestador por e-mail (não bloqueia o fluxo se falhar)
-    try {
-      const [profile] = await db
-        .select()
-        .from(businessProfile)
-        .where(eq(businessProfile.userId, quote.userId))
-        .limit(1)
-      const [owner] = await db
-        .select({ email: user.email, name: user.name })
-        .from(user)
-        .where(eq(user.id, quote.userId))
-        .limit(1)
-      const [client] = await db
-        .select({ name: clients.name })
-        .from(clients)
-        .where(eq(clients.id, quote.clientId))
-        .limit(1)
+    // Carrega o perfil e plano do prestador para checar permissões
+    const [profile] = await db
+      .select()
+      .from(businessProfile)
+      .where(eq(businessProfile.userId, quote.userId))
+      .limit(1)
 
-      const to = profile?.email || owner?.email
-      if (to) {
-        await sendQuoteResponseEmail({
-          to,
-          providerName: profile?.name || owner?.name,
-          clientName: client?.name ?? "Cliente",
-          quoteNumber: quote.number,
-          quoteTitle: quote.title,
-          total: quote.total,
-          decision,
-          rejectionReason: rejectionReason ?? null,
-          respondedAt: now,
-        })
+    const ownerPlan = profile?.licensePlan ?? "starter"
+    const hasBusinessPlus = ownerPlan === "business" || ownerPlan === "enterprise"
+
+    // Notifica o prestador por e-mail apenas se tiver plano Business+
+    if (hasBusinessPlus) {
+      try {
+        const [owner] = await db
+          .select({ email: user.email, name: user.name })
+          .from(user)
+          .where(eq(user.id, quote.userId))
+          .limit(1)
+        const [client] = await db
+          .select({ name: clients.name })
+          .from(clients)
+          .where(eq(clients.id, quote.clientId))
+          .limit(1)
+
+        const to = profile?.email || owner?.email
+        if (to) {
+          await sendQuoteResponseEmail({
+            to,
+            providerName: profile?.name || owner?.name,
+            clientName: client?.name ?? "Cliente",
+            quoteNumber: quote.number,
+            quoteTitle: quote.title,
+            total: quote.total,
+            decision,
+            rejectionReason: rejectionReason ?? null,
+            respondedAt: now,
+          })
+        }
+      } catch (mailErr) {
+        console.error("[v0] Falha ao notificar prestador por e-mail:", mailErr)
       }
-    } catch (mailErr) {
-      console.error("[v0] Falha ao notificar prestador por e-mail:", mailErr)
     }
 
-    // Notifica o prestador via WhatsApp (Z-API) se tiver número cadastrado
-    try {
-      const [wp] = await db
-        .select({ whatsappPhone: businessProfile.whatsappPhone })
-        .from(businessProfile)
-        .where(eq(businessProfile.userId, quote.userId))
-        .limit(1)
-
-      if (wp?.whatsappPhone) {
+    // Notifica via WhatsApp apenas se tiver plano Business+ e número cadastrado
+    if (hasBusinessPlus && profile?.whatsappPhone) {
+      try {
         const [clientRow] = await db
           .select({ name: clients.name })
           .from(clients)
@@ -601,10 +602,10 @@ export async function respondQuote(
           ? `*Elevanthe CRM*\n\n${clientName} *aprovou* seu orçamento *${quote.title}* (#${quote.number}) no valor de ${valor}.\n\nAcesse o sistema para acompanhar.`
           : `*Elevanthe CRM*\n\n${clientName} *recusou* seu orçamento *${quote.title}* (#${quote.number}).${rejectionReason ? `\n\nMotivo: ${rejectionReason}` : ""}\n\nAcesse o sistema para mais detalhes.`
 
-        await sendWhatsAppNotification(wp.whatsappPhone, msg)
+        await sendWhatsAppNotification(profile.whatsappPhone, msg)
+      } catch {
+        // Falha silenciosa
       }
-    } catch {
-      // Falha silenciosa
     }
 
     if (decision === "aprovado") {
@@ -760,7 +761,7 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/dashboard/financeiro")
 }
 
-// ── Business Profile ────────────────────────────���─────────────────────────────
+// ── Business Profile ───────────────────���────────���─────────────────────────────
 export async function getBusinessProfile() {
   const { effectiveId } = await getEffectiveUserId()
   const rows = await db.select().from(businessProfile).where(eq(businessProfile.userId, effectiveId)).limit(1)
@@ -1760,7 +1761,7 @@ export async function getReportData(days: number = 30) {
   }
 }
 
-// ── Dashboard Stats ────────────────────────────────────���──────────��──────����────
+// ── Dashboard Stats ────────────────────��───────────────���──────────��──────����────
 export async function getDashboardStats() {
   const { effectiveId } = await getEffectiveUserId()
 
