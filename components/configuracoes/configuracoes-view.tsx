@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from "react"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { upsertBusinessProfile, redeemPromoCode } from "@/lib/actions"
+import { authClient } from "@/lib/auth-client"
 import type { BusinessProfile } from "@/lib/db/schema"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,8 +12,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone, Eye, EyeOff, KeyRound } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -382,6 +384,43 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const colorInputRef = useRef<HTMLInputElement>(null)
+
+  // Dialog de alterar senha
+  const [pwOpen, setPwOpen] = useState(false)
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" })
+  const [pwShow, setPwShow] = useState({ current: false, next: false, confirm: false })
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (pwForm.next !== pwForm.confirm) {
+      toast.error("As senhas novas não coincidem.")
+      return
+    }
+    if (pwForm.next.length < 8) {
+      toast.error("A nova senha deve ter pelo menos 8 caracteres.")
+      return
+    }
+    setPwLoading(true)
+    try {
+      const result = await authClient.changePassword({
+        currentPassword: pwForm.current,
+        newPassword: pwForm.next,
+        revokeOtherSessions: false,
+      })
+      if (result.error) {
+        toast.error(result.error.message ?? "Erro ao alterar senha. Verifique sua senha atual.")
+      } else {
+        toast.success("Senha alterada com sucesso!")
+        setPwOpen(false)
+        setPwForm({ current: "", next: "", confirm: "" })
+      }
+    } catch {
+      toast.error("Erro inesperado ao alterar senha.")
+    } finally {
+      setPwLoading(false)
+    }
+  }
 
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
   const isStart = plan === "starter" || plan === "start"
@@ -962,8 +1001,83 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
               <p className="text-sm font-medium text-foreground">Senha</p>
               <p className="text-xs text-muted-foreground">Proteja sua conta com uma senha forte.</p>
             </div>
-            <Button variant="outline" size="sm">Alterar senha</Button>
+            <Button variant="outline" size="sm" onClick={() => setPwOpen(true)}>
+              <KeyRound className="size-3.5 mr-1.5" />
+              Alterar senha
+            </Button>
           </div>
+
+          {/* Dialog alterar senha */}
+          <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+            <DialogContent className="bg-card border-border text-foreground max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">Alterar senha</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleChangePassword} className="flex flex-col gap-4 mt-2">
+                {/* Senha atual */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm text-foreground">Senha atual</Label>
+                  <div className="relative">
+                    <Input
+                      type={pwShow.current ? "text" : "password"}
+                      required
+                      value={pwForm.current}
+                      onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+                      className="bg-input border-border text-foreground pr-10"
+                      placeholder="••••••••"
+                    />
+                    <button type="button" tabIndex={-1} onClick={() => setPwShow(s => ({ ...s, current: !s.current }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {pwShow.current ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
+                {/* Nova senha */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm text-foreground">Nova senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={pwShow.next ? "text" : "password"}
+                      required
+                      minLength={8}
+                      value={pwForm.next}
+                      onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))}
+                      className="bg-input border-border text-foreground pr-10"
+                      placeholder="Mínimo 8 caracteres"
+                    />
+                    <button type="button" tabIndex={-1} onClick={() => setPwShow(s => ({ ...s, next: !s.next }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {pwShow.next ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
+                {/* Confirmar nova senha */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm text-foreground">Confirmar nova senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={pwShow.confirm ? "text" : "password"}
+                      required
+                      value={pwForm.confirm}
+                      onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+                      className={cn("bg-input border-border text-foreground pr-10", pwForm.confirm && pwForm.confirm !== pwForm.next ? "border-destructive" : "")}
+                      placeholder="Repita a nova senha"
+                    />
+                    <button type="button" tabIndex={-1} onClick={() => setPwShow(s => ({ ...s, confirm: !s.confirm }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {pwShow.confirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                  {pwForm.confirm && pwForm.confirm !== pwForm.next && (
+                    <p className="text-xs text-destructive">As senhas não coincidem</p>
+                  )}
+                </div>
+                <DialogFooter className="gap-2 mt-1">
+                  <Button type="button" variant="outline" onClick={() => setPwOpen(false)} className="border-border text-foreground hover:bg-muted">Cancelar</Button>
+                  <Button type="submit" disabled={pwLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    {pwLoading ? "Salvando..." : "Alterar senha"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
           <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-medium text-foreground">E-mail de acesso</p>

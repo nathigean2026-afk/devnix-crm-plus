@@ -570,6 +570,10 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
                   <Label className="text-foreground text-sm">Estado</Label>
                   <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="SP" className="bg-input border-border text-foreground" />
                 </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-foreground text-sm">Data de Nascimento</Label>
+                  <Input type="date" value={form.birthdate} onChange={(e) => setForm({ ...form, birthdate: e.target.value })} className="bg-input border-border text-foreground" />
+                </div>
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <Label className="text-foreground text-sm">Observações</Label>
                   <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="bg-input border-border text-foreground resize-none" />

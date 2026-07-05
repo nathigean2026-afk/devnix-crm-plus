@@ -40,8 +40,9 @@ function formatDateTime(ts: Date | string | null | undefined): string {
   if (!ts) return ""
   const d = new Date(ts)
   if (isNaN(d.getTime())) return ""
+  // Usa UTC para garantir que servidor e cliente renderizem o mesmo valor
   const pad = (n: number) => String(n).padStart(2, "0")
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} às ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
 function formatTimestamp(ts: Date | string): string {
