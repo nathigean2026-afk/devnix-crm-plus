@@ -191,21 +191,6 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
           }}
         />
 
-        {/* Marca d'agua sutil no aside */}
-        <div className="absolute inset-0 flex items-end justify-center pb-12 pointer-events-none select-none overflow-hidden">
-          <Image
-            src="/elevanthe-logo-neon.png"
-            alt=""
-            width={400}
-            height={400}
-            className="object-contain opacity-[0.04]"
-            loading="lazy"
-            fetchPriority="low"
-            sizes="400px"
-            decoding="async"
-          />
-        </div>
-
         {/* Logo */}
         <div className="relative z-10">
           <ThemedLogo className="h-10 w-auto" />
@@ -275,25 +260,25 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         />
 
         {/* Marca d'agua glamourosa — elefante + wordmark centralizados atrás do form */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none select-none overflow-hidden">
-          {/* Elefante grande */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 pointer-events-none select-none overflow-hidden">
+          {/* Elefante grande com glow */}
           <div
             className="relative"
             style={{
               filter: isDark
-                ? "blur(0.5px) drop-shadow(0 0 60px rgba(255,255,255,0.06))"
-                : "blur(0.5px) drop-shadow(0 0 60px rgba(0,0,0,0.04))",
+                ? "drop-shadow(0 0 80px rgba(120,100,255,0.18)) drop-shadow(0 0 30px rgba(255,255,255,0.08))"
+                : "drop-shadow(0 0 60px rgba(0,0,0,0.08))",
             }}
           >
             <Image
               src="/elevanthe-logo-neon.png"
               alt=""
-              width={260}
-              height={260}
+              width={320}
+              height={320}
               className="object-contain"
-              style={{ opacity: isDark ? 0.06 : 0.05 }}
+              style={{ opacity: isDark ? 0.13 : 0.08 }}
               loading="eager"
-              sizes="260px"
+              sizes="320px"
               decoding="async"
             />
           </div>
@@ -301,11 +286,11 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
           <div
             style={{
               fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
-              fontSize: "clamp(2.4rem, 6vw, 4.5rem)",
+              fontSize: "clamp(2.8rem, 7vw, 5.5rem)",
               fontWeight: 900,
-              letterSpacing: "0.18em",
+              letterSpacing: "0.22em",
               lineHeight: 1,
-              opacity: isDark ? 0.055 : 0.045,
+              opacity: isDark ? 0.1 : 0.065,
               color: isDark ? "#ffffff" : "#000000",
               userSelect: "none",
             }}
