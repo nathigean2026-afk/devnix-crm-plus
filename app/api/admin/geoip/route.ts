@@ -30,30 +30,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ip-api.com suporta batch de até 100 IPs
+  // Consulta IPs individualmente via ipwho.is (HTTPS gratuito, sem autenticação)
   if (toFetch.length > 0) {
-    try {
-      const res = await fetch("http://ip-api.com/batch?fields=status,query,city,regionName,isp,country", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toFetch.slice(0, 100).map(ip => ({ query: ip }))),
-        signal: AbortSignal.timeout(5000),
-      })
-      if (res.ok) {
-        const data = await res.json() as any[]
-        for (const item of data) {
-          if (item.status === "success") {
-            const geo = { city: item.city ?? "", region: item.regionName ?? "", isp: item.isp ?? "", country: item.country ?? "", lat: 0, lon: 0, ts: now }
-            geoCache.set(item.query, geo)
-            // mapeia de volta ao IP original (pode ter ::ffff: prefix)
-            const origIp = ips.find(i => i.replace(/^::ffff:/, "") === item.query) ?? item.query
-            result[origIp] = { city: item.city ?? "", region: item.regionName ?? "", isp: item.isp ?? "", country: item.country ?? "" }
+    await Promise.allSettled(
+      toFetch.slice(0, 20).map(async (ip) => {
+        try {
+          const res = await fetch(`https://ipwho.is/${ip}`, {
+            signal: AbortSignal.timeout(5000),
+          })
+          if (!res.ok) return
+          const item = await res.json() as any
+          if (!item.success) return
+          const geo = {
+            city: item.city ?? "",
+            region: item.region ?? "",
+            isp: item.connection?.isp ?? item.connection?.org ?? "",
+            country: item.country ?? "",
+            lat: item.latitude ?? 0,
+            lon: item.longitude ?? 0,
+            ts: now,
           }
+          geoCache.set(ip, geo)
+          const origIp = ips.find(i => i.replace(/^::ffff:/, "") === ip) ?? ip
+          result[origIp] = { city: geo.city, region: geo.region, isp: geo.isp, country: geo.country }
+        } catch {
+          // IP não resolvido — silencia
         }
-      }
-    } catch {
-      // ip-api indisponível — retorna sem geo
-    }
+      })
+    )
   }
 
   return NextResponse.json(result)

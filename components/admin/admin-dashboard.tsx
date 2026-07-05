@@ -110,9 +110,30 @@ function formatDayLabel(d: string) {
   return `${parts[2]}/${parts[1]}`
 }
 
+/** Retorna quantos dias inteiros restam (pode ser 0 se menos de 1 dia, mas ainda ativo). */
 function daysLeft(d: Date | string | null) {
   if (!d) return null
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000)
+}
+
+/** Verifica se a licença está realmente ativa comparando o timestamp diretamente. */
+function isLicenseActive(d: Date | string | null): boolean {
+  if (!d) return false
+  return new Date(d).getTime() > Date.now()
+}
+
+/** Retorna label legível do tempo restante: "45min", "3h", "5d", etc. */
+function timeLeftLabel(d: Date | string | null): string {
+  if (!d) return ""
+  const ms = new Date(d).getTime() - Date.now()
+  if (ms <= 0) return ""
+  const totalMin = Math.floor(ms / 60000)
+  if (totalMin < 60) return `${totalMin}min`
+  const hours = Math.floor(totalMin / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  const remH = hours % 24
+  return remH > 0 ? `${days}d ${remH}h` : `${days}d`
 }
 
 /** Converte minutos em label legível: "30min", "1h", "2d 3h", "30d" */
@@ -361,8 +382,8 @@ export default function AdminDashboard({
     const isOnline = onlineUserIds.has(u.userId)
     const matchFilter =
       userFilter === "todos" ? true :
-      userFilter === "ativos" ? (days !== null && days > 0) :
-      userFilter === "expirados" ? (u.accessExpiresAt !== null && (days === null || days <= 0)) :
+      userFilter === "ativos" ? isLicenseActive(u.accessExpiresAt) :
+      userFilter === "expirados" ? (u.accessExpiresAt !== null && !isLicenseActive(u.accessExpiresAt)) :
       userFilter === "online" ? isOnline : true
     return matchSearch && matchFilter
   })
@@ -393,7 +414,8 @@ export default function AdminDashboard({
     const header = "Nome,E-mail,Plano,Cadastro,Vencimento,Ultimo Acesso,IP,Status"
     const rows = stats.licenseData.map(u => {
       const days = daysLeft(u.accessExpiresAt)
-      const status = days !== null && days > 0 ? `Ativo (${days}d)` : u.accessExpiresAt ? "Expirado" : "Sem licença"
+      const active = isLicenseActive(u.accessExpiresAt)
+      const status = active ? `Ativo (${timeLeftLabel(u.accessExpiresAt)})` : u.accessExpiresAt ? "Expirado" : "Sem licença"
       return [
         `"${u.profileName || u.userName}"`,
         `"${u.profileEmail || u.userEmail}"`,
@@ -443,10 +465,10 @@ export default function AdminDashboard({
     })
   }
 
-  // Usuários expirando nos próximos 7 dias
+  // Usuários expirando nos próximos 7 dias (mas ainda ativos)
   const expiringUsers = stats.licenseData.filter(u => {
     const d = daysLeft(u.accessExpiresAt)
-    return d !== null && d > 0 && d <= 7
+    return isLicenseActive(u.accessExpiresAt) && d !== null && d <= 7
   })
 
   const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
@@ -559,7 +581,7 @@ export default function AdminDashboard({
                           <p className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{u.profileEmail || u.userEmail}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-amber-400 font-bold">{daysLeft(u.accessExpiresAt)}d</span>
+                          <span className="text-xs text-amber-400 font-bold">{timeLeftLabel(u.accessExpiresAt)}</span>
                           <button
                             onClick={() => { openEditUser(u); setTab("usuarios") }}
                             className="text-xs bg-primary/20 hover:bg-primary/40 text-primary px-2.5 py-1 rounded-lg transition-colors"
@@ -619,61 +641,9 @@ export default function AdminDashboard({
                     </thead>
                     <tbody>
                       {stats.licenseData.slice(0, 10).map((u) => {
-                        const days = daysLeft(u.accessExpiresAt)
-                        const isActive = days !== null && days > 0
-                        const isOnline = onlineUserIds.has(u.userId)
-                        return (
-                          <tr key={u.userId} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
-                            <td className="py-2.5 pr-4">
-                              <div className="flex items-center gap-2">
-                                {isOnline && <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" title="Online" />}
-                                <span className={cn("font-medium", darkMode ? "text-white" : "text-slate-800")}>{u.profileName || u.userName}</span>
-                              </div>
-                            </td>
-                            <td className={cn("py-2.5 pr-4 text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{u.profileEmail || u.userEmail}</td>
-                            <td className="py-2.5 pr-4">
-                              <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full capitalize">{u.licensePlan ?? "starter"}</span>
-                            </td>
-                            <td className={cn("py-2.5 pr-4 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{formatDateTime(u.lastSessionAt)}</td>
-                            <td className={cn("py-2.5 pr-4 text-xs font-mono", darkMode ? "text-white/40" : "text-slate-400")}>{parseIp(u.lastSessionIp)}</td>
-                            <td className="py-2.5">
-                              {isActive ? (
-                                <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="size-3.5" />{days}d</span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="size-3.5" />Expirada</span>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Tab: Licenças ── */}
-          {tab === "licencas" && (
-            <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
-              <h2 className={cn("text-sm font-semibold mb-4 uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>Todas as licenças</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className={cn("text-xs border-b", darkMode ? "text-white/40 border-white/10" : "text-slate-400 border-slate-100")}>
-                      <th className="text-left pb-2 font-medium pr-4">Empresa</th>
-                      <th className="text-left pb-2 font-medium pr-4">E-mail</th>
-                      <th className="text-left pb-2 font-medium pr-4">Plano</th>
-                      <th className="text-left pb-2 font-medium pr-4">Cadastro</th>
-                      <th className="text-left pb-2 font-medium pr-4">Vencimento</th>
-                      <th className="text-left pb-2 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.licenseData.map((u) => {
                       const days = daysLeft(u.accessExpiresAt)
-                      const isActive = days !== null && days > 0
-                      const isWarning = isActive && days! <= 7
+                      const isActive = isLicenseActive(u.accessExpiresAt)
+                      const isWarning = isActive && days !== null && days <= 1
                       return (
                         <tr key={u.userId} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
                           <td className={cn("py-2.5 pr-4 font-medium", darkMode ? "text-white" : "text-slate-800")}>{u.profileName || u.userName}</td>
@@ -686,10 +656,64 @@ export default function AdminDashboard({
                           <td className="py-2.5">
                             {isActive ? (
                               <span className={cn("flex items-center gap-1 text-xs", isWarning ? "text-yellow-400" : "text-emerald-400")}>
-                                {isWarning ? <Clock className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}{days}d
+                                {isWarning ? <Clock className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}{timeLeftLabel(u.accessExpiresAt)}
                               </span>
                             ) : (
                               <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="size-3.5" />Expirada</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* ── Tab: Licenças ── */}
+          {tab === "licencas" && (
+            <div className="space-y-4">
+              <div className={cn("rounded-xl border overflow-hidden", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={cn("text-xs border-b", darkMode ? "text-white/40 border-white/10 bg-white/3" : "text-slate-400 border-slate-100 bg-slate-50")}>
+                      <th className="text-left px-4 py-3 font-medium">Usuário</th>
+                      <th className="text-left px-4 py-3 font-medium">Plano</th>
+                      <th className="text-left px-4 py-3 font-medium">Cadastro</th>
+                      <th className="text-left px-4 py-3 font-medium">Vencimento</th>
+                      <th className="text-left px-4 py-3 font-medium">Tempo restante</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.licenseData.length === 0 ? (
+                      <tr><td colSpan={5} className={cn("text-center py-10 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhuma licença encontrada.</td></tr>
+                    ) : stats.licenseData.map((u) => {
+                      const isActive = isLicenseActive(u.accessExpiresAt)
+                      const days = daysLeft(u.accessExpiresAt)
+                      const isWarning = isActive && days !== null && days <= 1
+                      return (
+                        <tr key={u.userId} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
+                          <td className={cn("px-4 py-3 font-medium", darkMode ? "text-white" : "text-slate-800")}>
+                            <div>{u.profileName || u.userName}</div>
+                            <div className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{u.profileEmail || u.userEmail}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full capitalize">{u.licensePlan ?? "starter"}</span>
+                          </td>
+                          <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{formatDate(u.userCreatedAt)}</td>
+                          <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{formatDate(u.accessExpiresAt)}</td>
+                          <td className="px-4 py-3">
+                            {isActive ? (
+                              <span className={cn("flex items-center gap-1 text-xs", isWarning ? "text-yellow-400" : "text-emerald-400")}>
+                                {isWarning ? <Clock className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
+                                {timeLeftLabel(u.accessExpiresAt)}
+                              </span>
+                            ) : u.accessExpiresAt ? (
+                              <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="size-3.5" />Expirada</span>
+                            ) : (
+                              <span className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>Sem licença</span>
                             )}
                           </td>
                         </tr>
@@ -773,7 +797,7 @@ export default function AdminDashboard({
                         </tr>
                       ) : filteredUsers.map((u) => {
                         const days = daysLeft(u.accessExpiresAt)
-                        const isActive = days !== null && days > 0
+                        const isActive = isLicenseActive(u.accessExpiresAt)
                         const isOnline = onlineUserIds.has(u.userId)
                         return (
                           <tr key={u.userId} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
@@ -820,7 +844,7 @@ export default function AdminDashboard({
                             </td>
                             <td className="px-4 py-3">
                               {isActive ? (
-                                <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="size-3.5" />{days}d</span>
+                                <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 className="size-3.5" />{timeLeftLabel(u.accessExpiresAt)}</span>
                               ) : u.accessExpiresAt ? (
                                 <span className="flex items-center gap-1 text-xs text-red-400"><XCircle className="size-3.5" />Expirada</span>
                               ) : (
