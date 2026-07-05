@@ -207,13 +207,13 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
         <div className="px-8 py-7 text-white print:px-6" style={{ backgroundColor: accentColor }}>
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <div className="size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+              <div className="size-28 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                 <Image
                   src={branding.logo}
                   alt={branding.name}
-                  width={80}
-                  height={80}
-                  style={{ width: 80, height: "auto" }}
+                  width={112}
+                  height={112}
+                  style={{ width: 112, height: "auto" }}
                   className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
                 />
               </div>

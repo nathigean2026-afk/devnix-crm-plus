@@ -182,14 +182,14 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
         <div className="px-7 py-7 text-white print:px-6" style={{ backgroundColor: accentColor }}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+              <div className="size-28 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                 <Image
                   src={branding.logo}
                   alt={branding.name}
-                  width={80}
-                  height={80}
+                  width={112}
+                  height={112}
                   className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
-                  style={{ width: 80, height: "auto" }}
+                  style={{ width: 112, height: "auto" }}
                 />
               </div>
               <div className="min-w-0 flex-1">
