@@ -281,11 +281,11 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               <Image
                 src="/elevanthe-logo-neon.png"
                 alt="Elevanthe"
-                width={180}
-                height={180}
-                className="object-contain drop-shadow-[0_0_32px_rgba(80,120,255,0.45)]"
+                width={240}
+                height={240}
+                className="object-contain drop-shadow-[0_0_40px_rgba(80,120,255,0.5)]"
                 loading="eager"
-                sizes="180px"
+                sizes="240px"
                 decoding="async"
               />
             </div>
