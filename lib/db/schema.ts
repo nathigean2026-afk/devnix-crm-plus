@@ -156,6 +156,7 @@ export const businessProfile = pgTable("business_profile", {
   logo: text("logo"),
   notifAlertEnabled: boolean("notifAlertEnabled").notNull().default(false),
   notifQuoteEnabled: boolean("notifQuoteEnabled").notNull().default(true),
+  whatsappPhone: text("whatsappPhone"), // número para notificações via Z-API
   licensePlan: text("licensePlan").default("starter"),
   docAccentColor: text("docAccentColor").default("#1d4ed8"), // cor de destaque dos documentos públicos
   createdAt: timestamp("createdAt").notNull().defaultNow(),

@@ -474,6 +474,40 @@ export async function updateQuoteStatus(id: string, status: string) {
 }
 
 /**
+ * Envia mensagem WhatsApp ao prestador via Z-API.
+ * As credenciais (ZAPI_INSTANCE_ID e ZAPI_TOKEN) ficam apenas no servidor.
+ * O número de destino é o whatsappPhone cadastrado pelo prestador.
+ * Falha silenciosamente — nunca bloqueia o fluxo principal.
+ */
+async function sendWhatsAppNotification(phone: string, message: string) {
+  try {
+    const instanceId = process.env.ZAPI_INSTANCE_ID
+    const token = process.env.ZAPI_TOKEN
+    const clientToken = process.env.ZAPI_CLIENT_TOKEN
+
+    if (!instanceId || !token) return // credenciais não configuradas
+
+    // Normaliza o número: remove caracteres não numéricos, garante DDI 55
+    const digits = phone.replace(/\D/g, "")
+    const normalized = digits.startsWith("55") ? digits : `55${digits}`
+
+    await fetch(
+      `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(clientToken ? { "Client-Token": clientToken } : {}),
+        },
+        body: JSON.stringify({ phone: normalized, message }),
+      }
+    )
+  } catch {
+    // Falha silenciosamente — log não deve quebrar o fluxo principal
+  }
+}
+
+/**
  * Ação pública — chamada pelo cliente via página /orcamento/[id]
  * Não requer sessão; o ID do orçamento é o token de acesso.
  * Se aprovado: cria OS automaticamente copiando itens do orçamento.
@@ -539,6 +573,34 @@ export async function respondQuote(
       }
     } catch (mailErr) {
       console.error("[v0] Falha ao notificar prestador por e-mail:", mailErr)
+    }
+
+    // Notifica o prestador via WhatsApp (Z-API) se tiver número cadastrado
+    try {
+      const [wp] = await db
+        .select({ whatsappPhone: businessProfile.whatsappPhone })
+        .from(businessProfile)
+        .where(eq(businessProfile.userId, quote.userId))
+        .limit(1)
+
+      if (wp?.whatsappPhone) {
+        const [clientRow] = await db
+          .select({ name: clients.name })
+          .from(clients)
+          .where(eq(clients.id, quote.clientId))
+          .limit(1)
+
+        const clientName = clientRow?.name ?? "Um cliente"
+        const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(quote.total))
+
+        const msg = decision === "aprovado"
+          ? `*Elevanthe CRM*\n\n${clientName} *aprovou* seu orçamento *${quote.title}* (#${quote.number}) no valor de ${valor}.\n\nAcesse o sistema para acompanhar.`
+          : `*Elevanthe CRM*\n\n${clientName} *recusou* seu orçamento *${quote.title}* (#${quote.number}).${rejectionReason ? `\n\nMotivo: ${rejectionReason}` : ""}\n\nAcesse o sistema para mais detalhes.`
+
+        await sendWhatsAppNotification(wp.whatsappPhone, msg)
+      }
+    } catch {
+      // Falha silenciosa
     }
 
     if (decision === "aprovado") {
@@ -712,6 +774,7 @@ export async function upsertBusinessProfile(data: {
   notifAlertEnabled?: boolean
   notifQuoteEnabled?: boolean
   docAccentColor?: string
+  whatsappPhone?: string
 }) {
   const { effectiveId, isEmployee } = await getEffectiveUserId()
   if (isEmployee) throw new Error("Funcionários não podem editar os dados da empresa.")

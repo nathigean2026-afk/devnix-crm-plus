@@ -5,6 +5,7 @@ import "./globals.css"
 import { Toaster } from "sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ThemeProvider } from "@/components/theme-provider"
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,8 +45,9 @@ export const metadata: Metadata = {
     description:
       "Gerencie clientes, orçamentos, ordens de serviço e financeiro em um só lugar.",
   },
+  manifest: "/manifest.json",
   robots: {
-    index: false, // App autenticado — não indexar internamente
+    index: false,
     follow: false,
   },
   icons: {
@@ -80,6 +82,19 @@ export default function RootLayout({
         {/* DNS prefetch para Cloudflare Turnstile — reduz latência do script */}
         <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
         <link rel="preconnect" href="https://challenges.cloudflare.com" crossOrigin="anonymous" />
+        {/* PWA — registra o Service Worker */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .catch(function(err) { console.warn('[PWA] SW registration failed:', err); });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="font-sans antialiased bg-background">
         <ThemeProvider
@@ -104,6 +119,7 @@ export default function RootLayout({
             }}
           />
           {process.env.NODE_ENV === "production" && <Analytics />}
+          <PwaInstallPrompt />
         </ThemeProvider>
       </body>
     </html>
