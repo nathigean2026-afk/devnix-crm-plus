@@ -147,21 +147,40 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
   const [showPromo, setShowPromo] = useState(false)
   const [promoCode, setPromoCode] = useState("")
   const [promoLoading, setPromoLoading] = useState(false)
-  const [promoActivated, setPromoActivated] = useState<{ days: number; planName: string } | null>(null)
+  const [promoActivated, setPromoActivated] = useState<{ durationMinutes: number; planName: string } | null>(null)
+  const [promoAlreadyUsed, setPromoAlreadyUsed] = useState(false)
+
+  function formatDurationLabel(minutes: number): string {
+    if (minutes < 60) return `${minutes} minutos`
+    const h = Math.floor(minutes / 60)
+    if (h < 24) return `${h} hora${h > 1 ? "s" : ""}`
+    const d = Math.floor(h / 24)
+    const rem = h % 24
+    return rem > 0 ? `${d} dia${d > 1 ? "s" : ""} e ${rem}h` : `${d} dia${d > 1 ? "s" : ""}`
+  }
 
   async function handleRedeemPromo() {
     if (!promoCode.trim()) return
     setPromoLoading(true)
+    setPromoAlreadyUsed(false)
     try {
       const result = await redeemPromoCode(promoCode.trim())
-      setPromoActivated({ days: result.days, planName: result.planName })
-      toast.success(`Código ativado! Acesso liberado por ${result.days} dias.`)
+      if (!result.success) {
+        if (result.alreadyUsed) {
+          setPromoAlreadyUsed(true)
+        } else {
+          toast.error(result.error)
+        }
+        return
+      }
+      setPromoActivated({ durationMinutes: result.durationMinutes, planName: result.planName })
+      toast.success(`Codigo ativado! Acesso liberado por ${formatDurationLabel(result.durationMinutes)}.`)
+      // window.location.href forca reload completo para o servidor reconhecer a nova sessao/licenca
       setTimeout(() => {
-        router.push("/dashboard")
-        router.refresh()
-      }, 3000)
-    } catch (err: any) {
-      toast.error(err?.message ?? "Código inválido. Verifique e tente novamente.")
+        window.location.href = "/dashboard"
+      }, 2500)
+    } catch {
+      toast.error("Erro de conexao. Verifique sua internet e tente novamente.")
     } finally {
       setPromoLoading(false)
     }
@@ -523,6 +542,31 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
             </div>
           )}
 
+          {promoAlreadyUsed && !promoActivated && (
+            <div
+              className="w-full max-w-sm rounded-2xl p-6 text-center"
+              style={{
+                backgroundColor: isDark ? "rgba(239,68,68,0.07)" : "#fef2f2",
+                border: `1px solid ${isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.25)"}`,
+              }}
+            >
+              <div className="size-10 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: isDark ? "rgba(239,68,68,0.15)" : "#fee2e2" }}>
+                <X className="size-5" style={{ color: isDark ? "#f87171" : "#dc2626" }} />
+              </div>
+              <h3 className="font-bold mb-1" style={{ color: isDark ? "#f87171" : "#dc2626" }}>Codigo ja utilizado</h3>
+              <p className="text-sm mb-4" style={{ color: isDark ? "#fca5a5" : "#991b1b" }}>
+                Este codigo promocional ja foi resgatado e nao pode ser usado novamente.
+              </p>
+              <button
+                onClick={() => { setPromoAlreadyUsed(false); setPromoCode("") }}
+                className="text-xs underline transition-opacity hover:opacity-70"
+                style={{ color: isDark ? "#fca5a5" : "#991b1b" }}
+              >
+                Tentar outro codigo
+              </button>
+            </div>
+          )}
+
           {promoActivated && (
             <div
               className="w-full max-w-sm rounded-2xl p-6 text-center"
@@ -539,7 +583,7 @@ export function PlanosView({ user, isRenovar = false }: PlanosViewProps) {
                 Plano <strong>{promoActivated.planName}</strong> ativado com sucesso.
               </p>
               <p className="text-sm font-semibold mb-4" style={{ color: isDark ? "#4ade80" : "#16a34a" }}>
-                {promoActivated.days} dias de acesso liberados.
+                {formatDurationLabel(promoActivated.durationMinutes)} de acesso liberados.
               </p>
               <p className="text-xs flex items-center justify-center gap-1.5" style={{ color: isDark ? "#86efac" : "#166534" }}>
                 <Loader2 className="size-3 animate-spin" />

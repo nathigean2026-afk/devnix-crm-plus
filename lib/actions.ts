@@ -798,44 +798,56 @@ export async function upsertBusinessProfile(data: {
   revalidatePath("/dashboard/configuracoes")
 }
 
-export async function redeemPromoCode(code: string) {
-  const userId = await getUserId()
+export async function redeemPromoCode(code: string): Promise<
+  | { success: true; durationMinutes: number; planName: string; newExpiry: string; alreadyUsed: false }
+  | { success: false; error: string; alreadyUsed: boolean }
+> {
+  try {
+    const userId = await getUserId()
 
-  const [promo] = await db
-    .select()
-    .from(promoCodes)
-    .where(eq(promoCodes.code, code.toUpperCase().trim()))
-    .limit(1)
+    const [promo] = await db
+      .select()
+      .from(promoCodes)
+      .where(eq(promoCodes.code, code.toUpperCase().trim()))
+      .limit(1)
 
-  if (!promo) throw new Error("Código inválido ou não encontrado.")
-  if (promo.usedBy) throw new Error("Este código já foi utilizado.")
-  if (promo.expiresAt && new Date() > new Date(promo.expiresAt)) throw new Error("Este código expirou.")
+    if (!promo) return { success: false, error: "Código inválido ou não encontrado.", alreadyUsed: false }
+    if (promo.usedBy) return { success: false, error: "Este código já foi utilizado.", alreadyUsed: true }
+    if (promo.expiresAt && new Date() > new Date(promo.expiresAt))
+      return { success: false, error: "Este código expirou.", alreadyUsed: false }
 
-  // Busca a data de expiração atual do usuário para estender (não substituir)
-  const [u] = await db.select({ accessExpiresAt: user.accessExpiresAt }).from(user).where(eq(user.id, userId)).limit(1)
-  const now = new Date()
-  const currentExpiry = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
-  const newExpiry = new Date(currentExpiry)
-  // Usa durationMinutes se disponível (precisão em horas), senão cai para days * 1440
-  const minutes = promo.durationMinutes ?? promo.days * 1440
-  newExpiry.setTime(newExpiry.getTime() + minutes * 60 * 1000)
+    // Busca a data de expiração atual do usuário para estender (não substituir)
+    const [u] = await db.select({ accessExpiresAt: user.accessExpiresAt }).from(user).where(eq(user.id, userId)).limit(1)
+    const now = new Date()
+    const currentExpiry = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
+    const newExpiry = new Date(currentExpiry)
+    // Usa durationMinutes com precisão total; fallback para days * 1440
+    const minutes = promo.durationMinutes ?? promo.days * 1440
+    newExpiry.setTime(newExpiry.getTime() + minutes * 60 * 1000)
 
-  // Marca o código como usado
-  await db.update(promoCodes).set({ usedBy: userId, usedAt: new Date() }).where(eq(promoCodes.id, promo.id))
+    // Marca o código como usado
+    await db.update(promoCodes).set({ usedBy: userId, usedAt: new Date() }).where(eq(promoCodes.id, promo.id))
 
-  // Atualiza a expiração real da licença na tabela user
-  await db.update(user).set({ accessExpiresAt: newExpiry }).where(eq(user.id, userId))
+    // Atualiza a expiração real da licença na tabela user
+    await db.update(user).set({ accessExpiresAt: newExpiry }).where(eq(user.id, userId))
 
-  // Salva o plano no businessProfile para o admin visualizar
-  const [profile] = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
-  if (profile) {
-    await db.update(businessProfile).set({ licensePlan: promo.planName, updatedAt: new Date() }).where(eq(businessProfile.userId, userId))
-  } else {
-    await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId, name: "", licensePlan: promo.planName })
+    // Salva o plano no businessProfile para o admin visualizar
+    const [profile] = await db.select({ id: businessProfile.id }).from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+    if (profile) {
+      await db.update(businessProfile).set({ licensePlan: promo.planName, updatedAt: new Date() }).where(eq(businessProfile.userId, userId))
+    } else {
+      await db.insert(businessProfile).values({ id: crypto.randomUUID(), userId, name: "", licensePlan: promo.planName })
+    }
+
+    revalidatePath("/planos")
+    revalidatePath("/dashboard")
+    revalidatePath("/dashboard/configuracoes")
+
+    return { success: true, durationMinutes: minutes, planName: promo.planName, newExpiry: newExpiry.toISOString(), alreadyUsed: false }
+  } catch (e) {
+    console.error("[redeemPromoCode] erro inesperado:", e)
+    return { success: false, error: "Erro interno ao ativar o código. Tente novamente.", alreadyUsed: false }
   }
-
-  revalidatePath("/dashboard/configuracoes")
-  return { days: promo.days, planName: promo.planName, newExpiry: newExpiry.toISOString() }
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
