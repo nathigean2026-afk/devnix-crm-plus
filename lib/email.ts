@@ -959,3 +959,205 @@ export async function sendInviteAcceptedEmail(params: InviteAcceptedEmailParams)
     return false
   }
 }
+
+// ─── Email de recuperação de senha ────────────────────────────────────────────
+
+export async function sendPasswordResetEmail({ to, resetLink }: { to: string; resetLink: string }): Promise<boolean> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY nao configurada — email de reset nao enviado.")
+    return false
+  }
+
+  const sanitizedTo = to.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x00-\x7F]/g, "")
+  if (!sanitizedTo || !sanitizedTo.includes("@")) {
+    console.warn("[email] Email invalido apos sanitizacao:", to)
+    return false
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Redefinir senha &mdash; Elevanthe CRM</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <!-- Preview text -->
+  <div style="display:none;max-height:0;overflow:hidden;color:#f0f2f5;">
+    Redefinicao de senha solicitada para sua conta Elevanthe CRM. O link expira em 1 hora.
+  </div>
+
+  <!-- Outer wrapper -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f0f2f5;">
+    <tr>
+      <td align="center" style="padding:48px 16px 40px;">
+
+        <!-- Container -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;width:100%;">
+
+          <!-- Logo / Brand bar -->
+          <tr>
+            <td align="center" style="padding-bottom:28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#0f172a;border-radius:10px;padding:10px 20px;">
+                    <span style="font-size:13px;font-weight:700;letter-spacing:2.5px;color:#ffffff;text-transform:uppercase;text-decoration:none;">ELEVANTHE CRM</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background-color:#ffffff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.06);overflow:hidden;">
+
+              <!-- Card header — solid dark bar -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="background-color:#0f172a;padding:40px 48px 36px;text-align:center;">
+
+                    <!-- Icon badge -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 20px;">
+                      <tr>
+                        <td style="width:60px;height:60px;background-color:#1d4ed8;border-radius:14px;text-align:center;vertical-align:middle;">
+                          <!-- SVG key/lock icon — safe for all email clients -->
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:16px auto;">
+                            <rect x="5" y="11" width="14" height="10" rx="2" fill="white" fill-opacity="0.9"/>
+                            <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="12" cy="16" r="1.5" fill="#0f172a"/>
+                          </svg>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <h1 style="margin:0 0 8px;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.3px;line-height:1.3;">Redefinicao de senha</h1>
+                    <p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.6;">Recebemos uma solicitacao para redefinir a senha da sua conta.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider accent -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="height:4px;background-color:#1d4ed8;"></td>
+                </tr>
+              </table>
+
+              <!-- Card body -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="padding:40px 48px 16px;">
+                    <p style="margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Ola,</p>
+                    <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.7;">
+                      Clique no botao abaixo para criar uma nova senha. Por seguranca, este link expira em <strong style="color:#0f172a;">1 hora</strong>.
+                      Se voce nao solicitou esta alteracao, ignore este e-mail com seguranca.
+                    </p>
+
+                    <!-- CTA Button -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 32px;">
+                      <tr>
+                        <td style="background-color:#1d4ed8;border-radius:10px;text-align:center;">
+                          <a href="${resetLink}"
+                             style="display:inline-block;padding:15px 40px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;letter-spacing:0.2px;line-height:1;">
+                            Redefinir minha senha &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Divider -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="border-top:1px solid #e2e8f0;padding-top:28px;padding-bottom:4px;">
+                          <p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;">Link alternativo</p>
+                          <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
+                            Se o botao nao funcionar, copie e cole o endereco abaixo no seu navegador:
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Link box -->
+                <tr>
+                  <td style="padding:0 48px 36px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="background-color:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #1d4ed8;border-radius:6px;padding:14px 16px;">
+                          <p style="margin:0;font-size:11px;color:#1d4ed8;word-break:break-all;font-family:'Courier New',Courier,monospace;line-height:1.6;">${resetLink}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Security notice row -->
+          <tr>
+            <td style="padding:24px 0 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#fefce8;border:1px solid #fde68a;border-radius:10px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0;font-size:12.5px;color:#92400e;line-height:1.6;">
+                      <strong>Aviso de seguranca:</strong> O Elevanthe CRM nunca solicita sua senha por e-mail ou telefone.
+                      Este link e de uso unico e expira automaticamente.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:28px 0 8px;text-align:center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="border-top:1px solid #e2e8f0;padding-top:24px;">
+                    <p style="margin:0 0 6px;font-size:12px;color:#94a3b8;">
+                      &copy; 2025 Elevanthe CRM &mdash; Todos os direitos reservados.
+                    </p>
+                    <p style="margin:0;font-size:11px;color:#cbd5e1;">
+                      Esta e uma mensagem automatica &mdash; por favor, nao responda este e-mail.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: sanitizedTo,
+      subject: "Redefinicao de senha - Elevanthe CRM",
+      html,
+    })
+    if (error) {
+      console.error("[email] Erro ao enviar email de reset:", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[email] Excecao ao enviar email de reset:", e)
+    return false
+  }
+}

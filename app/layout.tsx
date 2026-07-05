@@ -82,19 +82,6 @@ export default function RootLayout({
         {/* DNS prefetch para Cloudflare Turnstile — reduz latência do script */}
         <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
         <link rel="preconnect" href="https://challenges.cloudflare.com" crossOrigin="anonymous" />
-        {/* PWA — registra o Service Worker */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .catch(function(err) { console.warn('[PWA] SW registration failed:', err); });
-                });
-              }
-            `,
-          }}
-        />
       </head>
       <body className="font-sans antialiased bg-background">
         <ThemeProvider

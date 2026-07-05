@@ -15,6 +15,17 @@ export function PwaInstallPrompt() {
   const [isIos, setIsIos] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
+  // Registra o Service Worker no cliente (sem script inline no <head> para evitar hydration mismatch)
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/sw.js", { scope: "/" })
+          .catch((err) => console.warn("[PWA] SW registration failed:", err))
+      })
+    }
+  }, [])
+
   useEffect(() => {
     // Não mostrar se já está instalado como PWA
     if (window.matchMedia("(display-mode: standalone)").matches) return
