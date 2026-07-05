@@ -821,8 +821,13 @@ export async function redeemPromoCode(code: string): Promise<
     const now = new Date()
     const currentExpiry = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
     const newExpiry = new Date(currentExpiry)
-    // Usa durationMinutes com precisão total; fallback para days * 1440
-    const minutes = promo.durationMinutes ?? promo.days * 1440
+    // Usa durationMinutes com precisão total.
+    // Fallback para days * 1440 apenas quando durationMinutes é null E days > 0.
+    // Se ambos forem 0/null, usa 1440 (1 dia) como segurança mínima.
+    const minutes =
+      (promo.durationMinutes != null && promo.durationMinutes > 0)
+        ? promo.durationMinutes
+        : (promo.days > 0 ? promo.days * 1440 : 1440)
     newExpiry.setTime(newExpiry.getTime() + minutes * 60 * 1000)
 
     // Marca o código como usado

@@ -336,42 +336,57 @@ function LicenseCard({
           />
         </div>
 
-        {/* Notificações via WhatsApp */}
+        {/* Notificações via WhatsApp — disponível apenas a partir do Business */}
         <div className="pt-2 border-t border-border mt-2">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="size-4 text-green-500 shrink-0" />
             <p className="text-sm font-medium text-foreground">Receba notificações no seu WhatsApp</p>
+            {isStart && (
+              <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/25">
+                <Lock className="size-2.5" />Business+
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mb-3">
             Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo.
           </p>
-          <div className="flex gap-2 items-center">
-            <Input
-              value={whatsappPhone}
-              onChange={e => setWhatsappPhone(e.target.value)}
-              placeholder="(11) 99999-9999"
-              className="bg-input border-border text-sm max-w-64"
-              type="tel"
+          {isStart ? (
+            <PlanGate
+              locked
+              featureName="Notificações via WhatsApp"
+              featureBenefit="Receba mensagens instantâneas no WhatsApp quando clientes aprovarem ou recusarem orçamentos."
             />
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSaveWhatsapp}
-              disabled={savingWhatsapp}
-              className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-            >
-              {savingWhatsapp ? "Salvando..." : whatsappSaved ? (
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5" />
-                  Salvo
-                </span>
-              ) : "Salvar"}
-            </Button>
-          </div>
-          {whatsappPhone && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Notificacoes serao enviadas para <span className="font-medium text-foreground">{whatsappPhone}</span>.
-            </p>
+          ) : (
+            <>
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={whatsappPhone}
+                  onChange={e => setWhatsappPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="bg-input border-border text-sm max-w-64"
+                  type="tel"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSaveWhatsapp}
+                  disabled={savingWhatsapp}
+                  className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                >
+                  {savingWhatsapp ? "Salvando..." : whatsappSaved ? (
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="size-3.5" />
+                      Salvo
+                    </span>
+                  ) : "Salvar"}
+                </Button>
+              </div>
+              {whatsappPhone && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Notificacoes serao enviadas para <span className="font-medium text-foreground">{whatsappPhone}</span>.
+                </p>
+              )}
+            </>
           )}
         </div>
       </CardContent>
