@@ -36,8 +36,9 @@ import { Separator } from "@/components/ui/separator"
 import {
   Plus, MoreHorizontal, Pencil, Trash2, Search, UsersRound,
   Phone, Mail, Building2, MapPin, History, ClipboardList,
-  FileText, DollarSign, TrendingUp, TrendingDown, Loader2
+  FileText, DollarSign, TrendingUp, TrendingDown, Loader2, UserX
 } from "lucide-react"
+import { InactiveClientsPanel } from "@/components/clientes/inactive-clients-panel"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -48,7 +49,7 @@ interface ClientsTableProps {
 
 const emptyForm = {
   name: "", email: "", phone: "", company: "", document: "",
-  address: "", city: "", state: "", notes: "",
+  address: "", city: "", state: "", notes: "", birthdate: "",
 }
 
 function formatCurrency(v: string | number | null | undefined) {
@@ -224,6 +225,7 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
       city: client.city ?? "",
       state: client.state ?? "",
       notes: client.notes ?? "",
+      birthdate: client.birthdate ?? "",
     })
     setOpen(true)
   }
@@ -288,6 +290,19 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
         </Button>
       </div>
 
+      <Tabs defaultValue="todos" className="flex flex-col gap-4">
+        <TabsList className="w-fit bg-muted/30 border border-border">
+          <TabsTrigger value="todos" className="gap-1.5 text-sm">
+            <UsersRound className="size-3.5" />
+            Todos
+          </TabsTrigger>
+          <TabsTrigger value="inativos" className="gap-1.5 text-sm">
+            <UserX className="size-3.5" />
+            Sem contato
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="todos" className="mt-0">
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -432,6 +447,16 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="inativos" className="mt-0">
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <InactiveClientsPanel />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog editar / criar */}
       <Dialog open={open} onOpenChange={setOpen}>
@@ -487,6 +512,10 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-foreground text-sm">Estado</Label>
                       <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="SP" className="bg-input border-border text-foreground" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-foreground text-sm">Data de Nascimento</Label>
+                      <Input type="date" value={form.birthdate} onChange={(e) => setForm({ ...form, birthdate: e.target.value })} className="bg-input border-border text-foreground" />
                     </div>
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
                       <Label className="text-foreground text-sm">Observações</Label>

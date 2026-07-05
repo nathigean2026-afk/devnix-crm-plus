@@ -775,6 +775,9 @@ export async function upsertBusinessProfile(data: {
   notifQuoteEnabled?: boolean
   docAccentColor?: string
   whatsappPhone?: string
+  quoteDefaultValidity?: number
+  quoteWhatsappTemplate?: string
+  docFooter?: string
 }) {
   const { effectiveId, isEmployee } = await getEffectiveUserId()
   if (isEmployee) throw new Error("Funcionários não podem editar os dados da empresa.")
@@ -1856,4 +1859,85 @@ export async function acceptEmployeeInvite(token: string) {
 
   revalidatePath("/dashboard/configuracoes")
   return { ownerId: invite.ownerId }
+}
+
+// ── Aniversariantes ───────────────────────────────────────────────────────────
+// Retorna clientes ativos cujo dia e mês de nascimento cai no mês atual.
+export async function getBirthdayClients() {
+  const { effectiveId } = await getEffectiveUserId()
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1 // 1-12
+
+  const allClients = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.userId, effectiveId), eq(clients.status, "ativo")))
+
+  return allClients.filter(c => {
+    if (!c.birthdate) return false
+    const d = new Date(c.birthdate)
+    return (d.getUTCMonth() + 1) === currentMonth
+  }).sort((a, b) => {
+    const dayA = new Date(a.birthdate!).getUTCDate()
+    const dayB = new Date(b.birthdate!).getUTCDate()
+    return dayA - dayB
+  })
+}
+
+// ── Clientes Inativos ─────────────────────────────────────────────────────────
+// Retorna clientes ativos cuja última OS ou orçamento foi criado há mais de
+// `days` dias. Também inclui clientes sem nenhuma OS/orçamento (data = null).
+export async function getInactiveClients(days: number = 90) {
+  const { effectiveId } = await getEffectiveUserId()
+
+  // Busca todos os clientes ativos do usuário
+  const allClients = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.userId, effectiveId), eq(clients.status, "ativo")))
+    .orderBy(desc(clients.createdAt))
+
+  if (allClients.length === 0) return []
+
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+
+  // Para cada cliente, busca a data da última atividade (OS ou orçamento)
+  const results = await Promise.all(
+    allClients.map(async (client) => {
+      const [lastOrder] = await db
+        .select({ createdAt: serviceOrders.createdAt })
+        .from(serviceOrders)
+        .where(and(eq(serviceOrders.userId, effectiveId), eq(serviceOrders.clientId, client.id)))
+        .orderBy(desc(serviceOrders.createdAt))
+        .limit(1)
+
+      const [lastQuote] = await db
+        .select({ createdAt: quotes.createdAt })
+        .from(quotes)
+        .where(and(eq(quotes.userId, effectiveId), eq(quotes.clientId, client.id)))
+        .orderBy(desc(quotes.createdAt))
+        .limit(1)
+
+      const dates = [lastOrder?.createdAt, lastQuote?.createdAt].filter(Boolean) as Date[]
+      const lastActivityDate = dates.length > 0
+        ? new Date(Math.max(...dates.map(d => new Date(d).getTime())))
+        : null
+
+      // Inclui apenas se: sem atividade alguma, ou última atividade antes do cutoff
+      if (lastActivityDate === null || lastActivityDate < cutoff) {
+        return { ...client, lastActivityDate }
+      }
+      return null
+    })
+  )
+
+  return results
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+    .sort((a, b) => {
+      // Sem atividade vem primeiro, depois os mais antigos
+      if (!a.lastActivityDate) return -1
+      if (!b.lastActivityDate) return 1
+      return new Date(a.lastActivityDate).getTime() - new Date(b.lastActivityDate).getTime()
+    })
 }

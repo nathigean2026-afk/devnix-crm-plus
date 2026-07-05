@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2 } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -400,6 +401,9 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
     pixType: profile?.pixType ?? "cpf",
     logo: profile?.logo ?? "",
     docAccentColor: profile?.docAccentColor ?? "#1d4ed8",
+    quoteDefaultValidity: profile?.quoteDefaultValidity ?? 30,
+    quoteWhatsappTemplate: profile?.quoteWhatsappTemplate ?? "",
+    docFooter: profile?.docFooter ?? "",
   })
 
   const [logoPreview, setLogoPreview] = useState<string>(profile?.logo ?? "")
@@ -823,6 +827,125 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
           </div>
         </CardContent>
       </Card>
+
+      {/* Preferências de Orçamento */}
+      {!isEmployee && (
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="size-5 text-primary" />
+              <CardTitle className="text-foreground text-lg">Preferências de Orçamento</CardTitle>
+            </div>
+            <CardDescription className="text-muted-foreground">
+              Configure padrões que serão aplicados automaticamente em novos orçamentos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+
+            {/* Validade padrão */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="size-4 text-muted-foreground" />
+                <Label className="text-foreground text-sm font-medium">Validade padrão dos orçamentos</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Número de dias que um orçamento fica válido após ser criado.
+              </p>
+              <Select
+                value={String(form.quoteDefaultValidity)}
+                onValueChange={(v) => setForm(f => ({ ...f, quoteDefaultValidity: Number(v) }))}
+              >
+                <SelectTrigger className="bg-input border-border w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="7">7 dias</SelectItem>
+                  <SelectItem value="15">15 dias</SelectItem>
+                  <SelectItem value="30">30 dias</SelectItem>
+                  <SelectItem value="45">45 dias</SelectItem>
+                  <SelectItem value="60">60 dias</SelectItem>
+                  <SelectItem value="90">90 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Template de mensagem WhatsApp */}
+            <div className="border-t border-border pt-5 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Smartphone className="size-4 text-green-500" />
+                <Label className="text-foreground text-sm font-medium">
+                  Mensagem padrão ao enviar orçamento pelo WhatsApp
+                </Label>
+                {isStart && (
+                  <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/5 ml-1">
+                    <Lock className="size-3 mr-1" />Business+
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Use <span className="font-mono bg-muted px-1 rounded">{"{nome}"}</span>,{" "}
+                <span className="font-mono bg-muted px-1 rounded">{"{numero}"}</span> e{" "}
+                <span className="font-mono bg-muted px-1 rounded">{"{link}"}</span> como variáveis.
+              </p>
+              {isStart ? (
+                <PlanGate
+                  locked
+                  featureName="Mensagem personalizada"
+                  featureBenefit="Personalize a mensagem enviada ao cliente quando um orçamento é compartilhado via WhatsApp."
+                />
+              ) : (
+                <Textarea
+                  value={form.quoteWhatsappTemplate}
+                  onChange={e => setForm(f => ({ ...f, quoteWhatsappTemplate: e.target.value }))}
+                  placeholder={`Olá {nome}! Segue seu orçamento {numero}.\nAcesse e aprove: {link}`}
+                  rows={4}
+                  className="bg-input border-border text-foreground text-sm resize-none"
+                  maxLength={500}
+                />
+              )}
+            </div>
+
+            {/* Rodapé personalizado */}
+            <div className="border-t border-border pt-5 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <AlignLeft className="size-4 text-muted-foreground" />
+                <Label className="text-foreground text-sm font-medium">
+                  Rodapé personalizado nos documentos
+                </Label>
+                {isStart && (
+                  <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/5 ml-1">
+                    <Lock className="size-3 mr-1" />Business+
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Texto exibido no rodapé dos orçamentos e ordens de serviço enviados ao cliente.
+              </p>
+              {isStart ? (
+                <PlanGate
+                  locked
+                  featureName="Rodapé personalizado"
+                  featureBenefit="Adicione informações extras (formas de pagamento, garantia, validade) no rodapé dos seus documentos."
+                />
+              ) : (
+                <Textarea
+                  value={form.docFooter}
+                  onChange={e => setForm(f => ({ ...f, docFooter: e.target.value }))}
+                  placeholder="Ex: Pagamento em até 12x no cartão. Garantia de 90 dias em mão de obra."
+                  rows={3}
+                  className="bg-input border-border text-foreground text-sm resize-none"
+                  maxLength={300}
+                />
+              )}
+              {form.docFooter && !isStart && (
+                <p className="text-xs text-muted-foreground">
+                  {300 - form.docFooter.length} caracteres restantes
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Segurança */}
       <Card className="bg-card border-border">

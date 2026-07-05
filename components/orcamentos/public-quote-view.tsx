@@ -53,7 +53,7 @@ function getBranding(profile: BusinessProfile | null | undefined) {
   const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
   return {
     name:        (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-icon.png",
+    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-logo-neon.png",
     document:    (isPaid && profile?.document) ? profile.document : null,
     phone:       (isPaid && profile?.phone)    ? profile.phone    : null,
     email:       (isPaid && profile?.email)    ? profile.email    : null,
@@ -62,6 +62,7 @@ function getBranding(profile: BusinessProfile | null | undefined) {
     state:       (isPaid && profile?.state)    ? profile.state    : null,
     website:     (isPaid && profile?.website)  ? profile.website  : null,
     accentColor: profile?.docAccentColor ?? "#1d4ed8",
+    docFooter:   (isPaid && profile?.docFooter) ? profile.docFooter : null,
     isPaid,
   }
 }
@@ -180,14 +181,14 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
         <div className="px-7 py-7 text-white print:px-6" style={{ backgroundColor: accentColor }}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="size-12 rounded-xl bg-white/15 flex items-center justify-center overflow-hidden shrink-0 border border-white/20">
+              <div className="size-16 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                 <Image
                   src={branding.logo}
                   alt={branding.name}
-                  width={48}
-                  height={48}
-                  className="object-contain p-1"
-                  style={{ width: 48, height: "auto" }}
+                  width={64}
+                  height={64}
+                  className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+                  style={{ width: 64, height: "auto" }}
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -546,8 +547,13 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
         )}
 
         {/* Footer */}
-        <div className="border-t border-slate-100 px-7 py-4 text-center print:px-6">
-          <p className="text-[11px] text-slate-400">
+        <div className="border-t border-slate-100 px-7 py-4 print:px-6">
+          {branding.docFooter && (
+            <p className="text-xs text-slate-600 text-center mb-2 leading-relaxed whitespace-pre-wrap">
+              {branding.docFooter}
+            </p>
+          )}
+          <p className="text-[11px] text-slate-400 text-center">
             Orçamento gerado por{" "}
             <span className="font-semibold text-slate-500">
               {branding.isPaid ? `${branding.name} via Elevanthe CRM` : "Elevanthe CRM"}

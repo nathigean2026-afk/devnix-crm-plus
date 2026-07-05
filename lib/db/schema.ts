@@ -73,6 +73,7 @@ export const clients = pgTable("clients", {
   city: text("city"),
   state: text("state"),
   notes: text("notes"),
+  birthdate: date("birthdate"), // data de nascimento para aniversariantes
   status: text("status").notNull().default("ativo"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
@@ -159,6 +160,9 @@ export const businessProfile = pgTable("business_profile", {
   whatsappPhone: text("whatsappPhone"), // número para notificações via Z-API
   licensePlan: text("licensePlan").default("starter"),
   docAccentColor: text("docAccentColor").default("#1d4ed8"), // cor de destaque dos documentos públicos
+  quoteDefaultValidity: integer("quoteDefaultValidity").default(30), // validade padrão de orçamentos em dias
+  quoteWhatsappTemplate: text("quoteWhatsappTemplate"), // template de mensagem ao enviar orçamento
+  docFooter: text("docFooter"), // rodapé personalizado nos documentos (Business+)
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
