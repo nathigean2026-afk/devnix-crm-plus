@@ -158,7 +158,7 @@ export default function AdminDashboard({
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<Tab>("visao")
   const [darkMode, setDarkMode] = useState(true)
-  const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, expiresAt: "" })
+  const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
   const [showForm, setShowForm] = useState(false)
   const [localCodes, setLocalCodes] = useState(codes)
   const [stats, setStats] = useState(initialStats)
@@ -181,6 +181,11 @@ export default function AdminDashboard({
     maxClientsProf: 300,
     maxOsStarter: 100,
     trialDays: 7,
+  })
+  const [unlimitedFlags, setUnlimitedFlags] = useState({
+    maxClientsStarter: false,
+    maxClientsProf: false,
+    maxOsStarter: false,
   })
   const [configSaved, setConfigSaved] = useState(false)
   const [broadcastUser, setBroadcastUser] = useState<LicenseRow | null>(null)
@@ -239,9 +244,11 @@ export default function AdminDashboard({
     e.preventDefault()
     startTransition(async () => {
       try {
-        await adminCreatePromoCode({ code: promoForm.code, planName: promoForm.planName, days: promoForm.days, expiresAt: promoForm.expiresAt || undefined })
-        toast.success(`Código ${promoForm.code.toUpperCase()} criado!`)
-        setPromoForm({ code: "", planName: "Starter", days: 30, expiresAt: "" })
+        // Converte horas para fração de dias e soma (arredondado para cima)
+        const totalDays = promoForm.days + (promoForm.hours > 0 ? Math.ceil(promoForm.hours / 24) : 0)
+        await adminCreatePromoCode({ code: promoForm.code, planName: promoForm.planName, days: totalDays, expiresAt: promoForm.expiresAt || undefined })
+        toast.success(`Código ${promoForm.code.toUpperCase()} criado! (${promoForm.days}d${promoForm.hours > 0 ? ` ${promoForm.hours}h` : ""})`)
+        setPromoForm({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
         setShowForm(false)
         router.refresh()
       } catch (err) { toast.error(err instanceof Error ? err.message : "Erro ao criar código.") }
@@ -851,20 +858,39 @@ export default function AdminDashboard({
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>Plano</label>
-                      <select value={promoForm.planName} onChange={e => setPromoForm(f => ({ ...f, planName: e.target.value }))}
-                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")}>
-                        {PLANS.map(p => <option key={p} value={p}>{p}</option>)}
+                      <select
+                        value={promoForm.planName}
+                        onChange={e => setPromoForm(f => ({ ...f, planName: e.target.value }))}
+                        style={darkMode ? { backgroundColor: "#1e1e2e", color: "#fff", borderColor: "rgba(255,255,255,0.12)" } : undefined}
+                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
+                      >
+                        {PLANS.map(p => (
+                          <option key={p} value={p} style={darkMode ? { backgroundColor: "#1e1e2e", color: "#fff" } : undefined}>{p}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>Dias concedidos</label>
-                      <input type="number" required min={1} max={3650} value={promoForm.days} onChange={e => setPromoForm(f => ({ ...f, days: Number(e.target.value) }))}
-                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")} />
+                      <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>Duração do acesso</label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 flex flex-col gap-0.5">
+                          <input type="number" required min={0} max={3650} value={promoForm.days} onChange={e => setPromoForm(f => ({ ...f, days: Number(e.target.value) }))}
+                            className={cn("w-full rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} />
+                          <span className={cn("text-[10px] text-center", darkMode ? "text-white/30" : "text-slate-400")}>dias</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className={cn("text-sm", darkMode ? "text-white/30" : "text-slate-300")}>+</span>
+                        </div>
+                        <div className="flex-1 flex flex-col gap-0.5">
+                          <input type="number" min={0} max={23} value={promoForm.hours} onChange={e => setPromoForm(f => ({ ...f, hours: Number(e.target.value) }))}
+                            className={cn("w-full rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} />
+                          <span className={cn("text-[10px] text-center", darkMode ? "text-white/30" : "text-slate-400")}>horas</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>Expiração do código (opcional)</label>
                       <input type="date" value={promoForm.expiresAt} onChange={e => setPromoForm(f => ({ ...f, expiresAt: e.target.value }))}
-                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")} />
+                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")} />
                     </div>
                     <div className="sm:col-span-2 flex gap-3 justify-end">
                       <button type="button" onClick={() => setShowForm(false)} className={cn("text-sm px-4 py-2 border rounded-lg transition-colors", darkMode ? "text-white/50 border-white/10 hover:text-white/80" : "text-slate-500 border-slate-200")}>Cancelar</button>
@@ -1156,7 +1182,24 @@ export default function AdminDashboard({
                       <p className="font-medium mb-1">Link gerado (válido por 1 hora):</p>
                       <p className="font-mono break-all">{`${process.env.NEXT_PUBLIC_APP_URL ?? ""}${resetLink}`}</p>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}${resetLink}`); toast.success("Link copiado!") }}
+                        onClick={() => {
+                          const text = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}${resetLink}`
+                          if (navigator.clipboard?.writeText) {
+                            navigator.clipboard.writeText(text).then(() => toast.success("Link copiado!")).catch(() => {
+                              const ta = document.createElement("textarea")
+                              ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"
+                              document.body.appendChild(ta); ta.focus(); ta.select()
+                              document.execCommand("copy"); document.body.removeChild(ta)
+                              toast.success("Link copiado!")
+                            })
+                          } else {
+                            const ta = document.createElement("textarea")
+                            ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"
+                            document.body.appendChild(ta); ta.focus(); ta.select()
+                            document.execCommand("copy"); document.body.removeChild(ta)
+                            toast.success("Link copiado!")
+                          }
+                        }}
                         className="mt-2 text-xs underline"
                       >Copiar link</button>
                     </div>
@@ -1254,21 +1297,48 @@ export default function AdminDashboard({
               <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
                 <h2 className={cn("text-sm font-semibold uppercase tracking-wider mb-4", darkMode ? "text-white/70" : "text-slate-500")}>Limites por Plano</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    { label: "Máx. Clientes — Starter", key: "maxClientsStarter" as const, value: saasConfig.maxClientsStarter },
-                    { label: "Máx. Clientes — Professional", key: "maxClientsProf" as const, value: saasConfig.maxClientsProf },
-                    { label: "Máx. OS — Starter/mês", key: "maxOsStarter" as const, value: saasConfig.maxOsStarter },
-                  ].map(item => (
-                    <div key={item.key} className="flex flex-col gap-1.5">
-                      <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{item.label}</label>
-                      <input
-                        type="number" min={1}
-                        value={item.value}
-                        onChange={e => setSaasConfig(c => ({ ...c, [item.key]: Number(e.target.value) }))}
-                        className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none", darkMode ? "bg-white/5 border border-white/10 text-white" : "bg-slate-50 border border-slate-200 text-slate-800")}
-                      />
-                    </div>
-                  ))}
+                  {([
+                    { label: "Máx. Clientes — Starter", key: "maxClientsStarter" as const },
+                    { label: "Máx. Clientes — Professional", key: "maxClientsProf" as const },
+                    { label: "Máx. OS — Starter/mês", key: "maxOsStarter" as const },
+                  ] as const).map(item => {
+                    const isUnlimited = unlimitedFlags[item.key]
+                    return (
+                      <div key={item.key} className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className={cn("text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{item.label}</label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isUnlimited}
+                              onChange={e => setUnlimitedFlags(f => ({ ...f, [item.key]: e.target.checked }))}
+                              className="accent-primary size-3.5 rounded"
+                            />
+                            <span className={cn("text-[11px]", isUnlimited ? "text-primary font-semibold" : darkMode ? "text-white/40" : "text-slate-400")}>
+                              Ilimitado
+                            </span>
+                          </label>
+                        </div>
+                        <input
+                          type="number" min={1}
+                          value={saasConfig[item.key]}
+                          disabled={isUnlimited}
+                          onChange={e => setSaasConfig(c => ({ ...c, [item.key]: Number(e.target.value) }))}
+                          className={cn(
+                            "rounded-lg px-3 py-2 text-sm focus:outline-none border transition-opacity",
+                            isUnlimited ? "opacity-40 cursor-not-allowed" : "",
+                            darkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800"
+                          )}
+                          placeholder={isUnlimited ? "∞ Ilimitado" : ""}
+                        />
+                        {isUnlimited && (
+                          <p className={cn("text-[10px]", darkMode ? "text-primary/60" : "text-primary")}>
+                            Sem limite definido — acesso irrestrito
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
