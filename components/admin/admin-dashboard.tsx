@@ -115,6 +115,16 @@ function daysLeft(d: Date | string | null) {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000)
 }
 
+/** Converte minutos em label legível: "30min", "1h", "2d 3h", "30d" */
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}min`
+  const h = Math.floor(minutes / 60)
+  if (h < 24) return `${h}h`
+  const d = Math.floor(h / 24)
+  const rem = h % 24
+  return rem > 0 ? `${d}d ${rem}h` : `${d}d`
+}
+
 function parseIp(ip: string | null) {
   if (!ip) return "—"
   const clean = ip.replace(/^::ffff:/, "")
@@ -248,10 +258,10 @@ export default function AdminDashboard({
     e.preventDefault()
     startTransition(async () => {
       try {
-        // Converte horas para fração de dias e soma (arredondado para cima)
-        const totalDays = promoForm.days + (promoForm.hours > 0 ? Math.ceil(promoForm.hours / 24) : 0)
-        await adminCreatePromoCode({ code: promoForm.code, planName: promoForm.planName, days: totalDays, expiresAt: promoForm.expiresAt || undefined })
-        toast.success(`Código ${promoForm.code.toUpperCase()} criado! (${promoForm.days}d${promoForm.hours > 0 ? ` ${promoForm.hours}h` : ""})`)
+        // Calcula duração em minutos com precisão total (sem arredondamento)
+        const durationMinutes = promoForm.days * 1440 + promoForm.hours * 60
+        await adminCreatePromoCode({ code: promoForm.code, planName: promoForm.planName, durationMinutes, expiresAt: promoForm.expiresAt || undefined })
+        toast.success(`Código ${promoForm.code.toUpperCase()} criado! (${formatDuration(durationMinutes)})`)
         setPromoForm({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
         setShowForm(false)
         router.refresh()
@@ -938,7 +948,7 @@ export default function AdminDashboard({
                           <tr key={c.id} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
                             <td className={cn("px-4 py-3 font-mono text-xs tracking-wider", darkMode ? "text-white" : "text-slate-800")}>{c.code}</td>
                             <td className="px-4 py-3"><span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">{c.planName}</span></td>
-                            <td className={cn("px-4 py-3 font-semibold", darkMode ? "text-white/80" : "text-slate-700")}>+{c.days}d</td>
+                            <td className={cn("px-4 py-3 font-semibold", darkMode ? "text-white/80" : "text-slate-700")}>+{formatDuration(c.durationMinutes ?? c.days * 1440)}</td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{c.expiresAt ? formatDate(c.expiresAt) : "—"}</td>
                             <td className={cn("px-4 py-3 text-xs font-mono", darkMode ? "text-white/50" : "text-slate-400")}>{c.usedBy ? c.usedBy.slice(0, 8) + "..." : "—"}</td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{formatDateTime(c.usedAt)}</td>

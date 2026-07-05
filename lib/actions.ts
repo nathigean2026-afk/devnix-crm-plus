@@ -816,7 +816,9 @@ export async function redeemPromoCode(code: string) {
   const now = new Date()
   const currentExpiry = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
   const newExpiry = new Date(currentExpiry)
-  newExpiry.setDate(newExpiry.getDate() + promo.days)
+  // Usa durationMinutes se disponível (precisão em horas), senão cai para days * 1440
+  const minutes = promo.durationMinutes ?? promo.days * 1440
+  newExpiry.setTime(newExpiry.getTime() + minutes * 60 * 1000)
 
   // Marca o código como usado
   await db.update(promoCodes).set({ usedBy: userId, usedAt: new Date() }).where(eq(promoCodes.id, promo.id))
@@ -1115,14 +1117,16 @@ export async function adminDeleteUser(userId: string) {
 export async function adminCreatePromoCode(data: {
   code: string
   planName: string
-  days: number
+  durationMinutes: number
   expiresAt?: string
 }) {
+  const days = Math.floor(data.durationMinutes / 1440) // mantém coluna legada
   await db.insert(promoCodes).values({
     id: crypto.randomUUID(),
     code: data.code.toUpperCase().trim(),
     planName: data.planName,
-    days: data.days,
+    days,
+    durationMinutes: data.durationMinutes,
     expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
   })
   revalidatePath("/admin")
@@ -2099,7 +2103,7 @@ export async function getInactiveClients(days: number = 90) {
     })
 }
 
-// ── SaaS Config ───────────────────────────────────────────────────────────────
+// ── SaaS Config ────────────────────────────��──────────────────────────────────
 export async function getSaasConfig() {
   const rows = await db.select().from(saasConfig).where(eq(saasConfig.id, "singleton")).limit(1)
   if (rows.length === 0) {
