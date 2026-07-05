@@ -107,8 +107,6 @@ function ThemedLogo({ className }: { className?: string }) {
 // ─── Componente principal ─────────────────────────────────────────────────────
 export function AuthForm({ mode, kicked }: AuthFormProps) {
   const router = useRouter()
-  const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
@@ -126,13 +124,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
     reset: resetTurnstileState,
   } = useTurnstile()
 
-  useEffect(() => { setMounted(true) }, [])
-
   const isSignIn = mode === "sign-in"
-  // Sempre considera dark antes de montar para evitar hydration mismatch.
-  // Como o aside é SEMPRE escuro independente do tema, isso é seguro.
-  // O painel direito usa suppressHydrationWarning para tolerar a diferença.
-  const isDark = mounted ? resolvedTheme === "dark" : true
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -167,7 +159,6 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
       router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Ocorreu um erro. Tente novamente.")
-      // Reseta o widget Turnstile para o usuário não precisar recarregar a página
       resetTurnstileState()
       turnstileRef.current?.reset()
     } finally {
@@ -176,15 +167,11 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   }
 
   return (
-    <div
-      className="min-h-screen flex dark:bg-[#080808] bg-[#f8f8f8]"
-    >
+    <div className="min-h-screen flex bg-[#f8f8f8] dark:bg-[#080808]">
 
       {/* ─── Painel esquerdo — branding (desktop only) ─── */}
       <aside
-        className="hidden lg:flex lg:w-[500px] xl:w-[540px] flex-col justify-between px-12 py-10 relative overflow-hidden flex-shrink-0"
-        style={{ backgroundColor: "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.06)" }}
-        suppressHydrationWarning
+        className="hidden lg:flex lg:w-[500px] xl:w-[540px] flex-col justify-between px-12 py-10 relative overflow-hidden flex-shrink-0 bg-[#0a0a0a] border-r border-white/[0.06]"
       >
         {/* Grid pattern de fundo (aside escuro fixo) */}
         <div
@@ -211,7 +198,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               </span>
             </div>
 
-            {/* Headline massiva — estilo elevanthe.com */}
+            {/* Headline massiva */}
             <h2
               className="text-[2.6rem] xl:text-[3.2rem] font-black leading-[1.04] tracking-tighter text-balance text-white"
               style={{ fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)" }}
@@ -238,40 +225,36 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
       </aside>
 
       {/* ─── Painel direito — formulário ─── */}
-      {/* suppressHydrationWarning: isDark usa resolvedTheme do next-themes que é undefined no SSR */}
-      <div
-        className="flex-1 flex flex-col min-h-screen relative overflow-hidden dark:bg-[#080808] bg-[#f8f8f8]"
-        suppressHydrationWarning
-      >
-        {/* Grid pattern de fundo — light: linhas cinza claras / dark: linhas escuras */}
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
+        {/* Grid pattern de fundo */}
         <div
           className="absolute inset-0 pointer-events-none"
-          suppressHydrationWarning
           style={{
-            backgroundImage: isDark
-              ? "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)"
-              : "linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)",
+            backgroundImage: "linear-gradient(rgba(0,0,0,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.055) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none dark:block hidden"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
             backgroundSize: "40px 40px",
           }}
         />
 
-        {/* Vinheta radial suave nos cantos */}
+        {/* Vinheta radial — light */}
         <div
-          className="absolute inset-0 pointer-events-none"
-          suppressHydrationWarning
-          style={{
-            background: isDark
-              ? "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(8,8,8,0.85) 100%)"
-              : "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(248,248,248,0.85) 100%)",
-          }}
+          className="absolute inset-0 pointer-events-none dark:hidden"
+          style={{ background: "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(248,248,248,0.85) 100%)" }}
+        />
+        {/* Vinheta radial — dark */}
+        <div
+          className="absolute inset-0 pointer-events-none hidden dark:block"
+          style={{ background: "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(8,8,8,0.85) 100%)" }}
         />
 
         {/* Top bar */}
-        <div
-          className="relative z-10 flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)" }}
-          suppressHydrationWarning
-        >
+        <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-black/[0.07] dark:border-white/[0.05]">
           {/* Logo mobile */}
           <div className="lg:hidden">
             <ThemedLogo className="h-8 w-auto" />
@@ -282,12 +265,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             <ThemeToggleButton />
             <Link
               href={isSignIn ? "/sign-up" : "/sign-in"}
-              className={cn(
-                "text-xs transition-colors border rounded-full px-4 py-1.5 font-medium",
-                isDark
-                  ? "text-white/50 hover:text-white border-white/10 hover:border-white/25 hover:bg-white/5"
-                  : "text-black/50 hover:text-black border-black/10 hover:border-black/25 hover:bg-black/5"
-              )}
+              className="text-xs transition-colors border rounded-full px-4 py-1.5 font-medium text-black/50 hover:text-black border-black/10 hover:border-black/25 hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:border-white/10 dark:hover:border-white/25 dark:hover:bg-white/5"
             >
               {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
             </Link>
@@ -299,7 +277,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
           <div className="w-full max-w-[400px] flex flex-col items-center gap-6">
 
             {/* Logo do elefante acima do card */}
-            <div className="flex flex-col items-center gap-2 select-none pointer-events-none">
+            <div className="flex flex-col items-center select-none pointer-events-none">
               <Image
                 src="/elevanthe-logo-neon.png"
                 alt="Elevanthe"
@@ -312,277 +290,212 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               />
             </div>
 
-          <div
-            className="w-full rounded-2xl border shadow-xl px-8 py-9 relative"
-            suppressHydrationWarning
-            style={{
-              backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#ffffff",
-              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            {/* Linha de brilho no topo do card */}
-            <div
-              className="absolute top-0 left-8 right-8 h-px"
-              style={{
-                background: isDark
-                  ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)"
-                  : "linear-gradient(90deg, transparent, rgba(0,0,0,0.08), transparent)",
-              }}
-            />
+            {/* Card do formulário */}
+            <div className="w-full rounded-2xl border shadow-xl px-8 py-9 relative bg-white dark:bg-white/[0.03] border-black/[0.08] dark:border-white/[0.08] backdrop-blur-sm">
 
-            {/* Header do form */}
-            <div className="mb-8">
-              <h1
-                className="text-[1.85rem] font-black tracking-tight leading-tight"
-                style={{
-                  color: isDark ? "#f2f2f2" : "#0a0a0a",
-                  fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
-                }}
-              >
-                {isSignIn ? "Entrar na conta" : "Criar conta grátis"}
-              </h1>
-              <p
-                className="text-sm mt-2 leading-relaxed"
-                style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.45)" }}
-              >
-                {isSignIn
-                  ? "Acesse seu CRM e continue de onde parou."
-                  : "Comece grátis, sem cartão. Escolha o plano depois."}
-              </p>
-            </div>
+              {/* Linha de brilho no topo do card */}
+              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-black/[0.08] to-transparent dark:via-white/[0.12]" />
 
-            {/* Banner sessão encerrada */}
-            {kicked && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3.5">
-                <Lock className="size-4 text-amber-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-300">Sessão encerrada</p>
-                  <p className="text-xs text-amber-400/70 mt-0.5 leading-relaxed">
-                    Sua conta foi acessada em outro dispositivo. Por segurança, esta sessão foi encerrada.
-                  </p>
-                </div>
+              {/* Header do form */}
+              <div className="mb-8">
+                <h1
+                  className="text-[1.85rem] font-black tracking-tight leading-tight text-[#0a0a0a] dark:text-[#f2f2f2]"
+                  style={{ fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)" }}
+                >
+                  {isSignIn ? "Entrar na conta" : "Criar conta grátis"}
+                </h1>
+                <p className="text-sm mt-2 leading-relaxed text-black/45 dark:text-white/40">
+                  {isSignIn
+                    ? "Acesse seu CRM e continue de onde parou."
+                    : "Comece grátis, sem cartão. Escolha o plano depois."}
+                </p>
               </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isSignIn && (
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="name"
-                    className="text-xs font-semibold tracking-wide uppercase"
-                    style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
-                  >
-                    Nome completo
-                  </Label>
-                  <div className="relative">
-                    <User
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5"
-                      style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)" }}
-                    />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Seu nome"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      required
-                      className={cn(
-                        "pl-10 h-11 rounded-xl text-sm",
-                        isDark
-                          ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-white/20 focus-visible:border-white/25"
-                          : "bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20"
-                      )}
-                    />
+              {/* Banner sessão encerrada */}
+              {kicked && (
+                <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3.5">
+                  <Lock className="size-4 text-amber-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-300">Sessão encerrada</p>
+                    <p className="text-xs text-amber-400/70 mt-0.5 leading-relaxed">
+                      Sua conta foi acessada em outro dispositivo. Por segurança, esta sessão foi encerrada.
+                    </p>
                   </div>
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="email"
-                  className="text-xs font-semibold tracking-wide uppercase"
-                  style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
-                >
-                  E-mail
-                </Label>
-                <div className="relative">
-                  <Mail
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5"
-                    style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)" }}
-                  />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    required
-                    className={cn(
-                      "pl-10 h-11 rounded-xl text-sm",
-                      isDark
-                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-white/20 focus-visible:border-white/25"
-                        : "bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20"
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="password"
-                    className="text-xs font-semibold tracking-wide uppercase"
-                    style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
-                  >
-                    Senha
-                  </Label>
-                  {isSignIn && (
-                    <Link
-                      href="/esqueci-senha"
-                      className="text-xs transition-colors"
-                      style={{ color: isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.4)" }}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isSignIn && (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="name"
+                      className="text-xs font-semibold tracking-wide uppercase text-black/40 dark:text-white/40"
                     >
-                      Esqueci a senha
-                    </Link>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5"
-                    style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)" }}
-                  />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder={isSignIn ? "Sua senha" : "Mínimo 8 caracteres"}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    required
-                    minLength={8}
-                    className={cn(
-                      "pl-10 pr-11 h-11 rounded-xl text-sm",
-                      isDark
-                        ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus-visible:ring-white/20 focus-visible:border-white/25"
-                        : "bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20"
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
-                    style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.3)" }}
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      Nome completo
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-black/25 dark:text-white/20" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Seu nome"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        required
+                        className="pl-10 h-11 rounded-xl text-sm bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20 dark:bg-white/[0.04] dark:border-white/[0.08] dark:text-white dark:placeholder:text-white/20 dark:focus-visible:ring-white/20 dark:focus-visible:border-white/25"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="email"
+                    className="text-xs font-semibold tracking-wide uppercase text-black/40 dark:text-white/40"
                   >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
+                    E-mail
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-black/25 dark:text-white/20" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      required
+                      className="pl-10 h-11 rounded-xl text-sm bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20 dark:bg-white/[0.04] dark:border-white/[0.08] dark:text-white dark:placeholder:text-white/20 dark:focus-visible:ring-white/20 dark:focus-visible:border-white/25"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Cloudflare Turnstile */}
-              <TurnstileWidget
-                ref={turnstileRef}
-                onSuccess={onTurnstileSuccess}
-                onExpire={onTurnstileExpire}
-                onError={onTurnstileError}
-              />
-              {turnstileError && (
-                <p className="text-xs text-red-400 text-center -mt-1">{turnstileError}</p>
-              )}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="password"
+                      className="text-xs font-semibold tracking-wide uppercase text-black/40 dark:text-white/40"
+                    >
+                      Senha
+                    </Label>
+                    {isSignIn && (
+                      <Link
+                        href="/esqueci-senha"
+                        className="text-xs transition-colors text-black/40 dark:text-white/40"
+                      >
+                        Esqueci a senha
+                      </Link>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-black/25 dark:text-white/20" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder={isSignIn ? "Sua senha" : "Mínimo 8 caracteres"}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      required
+                      minLength={8}
+                      className="pl-10 pr-11 h-11 rounded-xl text-sm bg-black/[0.03] border-black/[0.09] text-black placeholder:text-black/30 focus-visible:ring-black/10 focus-visible:border-black/20 dark:bg-white/[0.04] dark:border-white/[0.08] dark:text-white dark:placeholder:text-white/20 dark:focus-visible:ring-white/20 dark:focus-visible:border-white/25"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors text-black/30 dark:text-white/20"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
 
-              {/* Botão de submit — estilo pill preto elevanthe.com */}
-              <button
-                type="submit"
-                disabled={loading || turnstileVerifying || !turnstileVerified}
-                className="w-full h-11 rounded-full text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: isDark ? "#f2f2f2" : "#0a0a0a",
-                  color: isDark ? "#0a0a0a" : "#f2f2f2",
-                }}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    Aguarde...
-                  </span>
+                {/* Cloudflare Turnstile */}
+                <TurnstileWidget
+                  ref={turnstileRef}
+                  onSuccess={onTurnstileSuccess}
+                  onExpire={onTurnstileExpire}
+                  onError={onTurnstileError}
+                />
+                {turnstileError && (
+                  <p className="text-xs text-red-400 text-center -mt-1">{turnstileError}</p>
+                )}
+
+                {/* Botão de submit */}
+                <button
+                  type="submit"
+                  disabled={loading || turnstileVerifying || !turnstileVerified}
+                  className="w-full h-11 rounded-full text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-40 disabled:cursor-not-allowed bg-[#0a0a0a] text-[#f2f2f2] dark:bg-[#f2f2f2] dark:text-[#0a0a0a]"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin size-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      Aguarde...
+                    </span>
+                  ) : (
+                    <>
+                      {isSignIn ? "Entrar" : "Criar conta"}
+                      <ArrowRight className="size-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <p className="mt-6 text-center text-sm text-black/40 dark:text-white/30">
+                {isSignIn ? (
+                  <>
+                    Não tem conta?{" "}
+                    <Link
+                      href="/sign-up"
+                      className="font-semibold hover:underline transition-colors text-[#0a0a0a] dark:text-[#f2f2f2]"
+                    >
+                      Criar conta grátis
+                    </Link>
+                  </>
                 ) : (
                   <>
-                    {isSignIn ? "Entrar" : "Criar conta"}
-                    <ArrowRight className="size-4" />
+                    Já tem conta?{" "}
+                    <Link
+                      href="/sign-in"
+                      className="font-semibold hover:underline transition-colors text-[#0a0a0a] dark:text-[#f2f2f2]"
+                    >
+                      Entrar
+                    </Link>
                   </>
                 )}
-              </button>
-            </form>
+              </p>
 
-            <p
-              className="mt-6 text-center text-sm"
-              style={{ color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.4)" }}
-            >
-              {isSignIn ? (
-                <>
-                  Não tem conta?{" "}
-                  <Link
-                    href="/sign-up"
-                    className="font-semibold hover:underline transition-colors"
-                    style={{ color: isDark ? "#f2f2f2" : "#0a0a0a" }}
-                  >
-                    Criar conta grátis
-                  </Link>
-                </>
-              ) : (
-                <>
-                  Já tem conta?{" "}
-                  <Link
-                    href="/sign-in"
-                    className="font-semibold hover:underline transition-colors"
-                    style={{ color: isDark ? "#f2f2f2" : "#0a0a0a" }}
-                  >
-                    Entrar
-                  </Link>
-                </>
-              )}
-            </p>
-
-            <div className="mt-5 text-center flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowIntro(true)}
-                className="text-xs transition-colors inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer"
-                style={{ color: isDark ? "rgba(242,242,242,0.22)" : "rgba(10,10,10,0.3)" }}
-              >
-                Ver demonstração sem cadastro
-                <ArrowRight className="size-3" />
-              </button>
-              <Link
-                href="/planos/publico"
-                className="text-xs transition-colors inline-flex items-center gap-1.5 font-semibold hover:underline"
-                style={{ color: isDark ? "rgba(242,242,242,0.45)" : "rgba(10,10,10,0.5)" }}
-              >
-                Ver planos e preços
-                <ArrowRight className="size-3" />
-              </Link>
+              <div className="mt-5 text-center flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIntro(true)}
+                  className="text-xs transition-colors inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer text-black/30 dark:text-white/22"
+                >
+                  Ver demonstração sem cadastro
+                  <ArrowRight className="size-3" />
+                </button>
+                <Link
+                  href="/planos/publico"
+                  className="text-xs transition-colors inline-flex items-center gap-1.5 font-semibold hover:underline text-black/50 dark:text-white/45"
+                >
+                  Ver planos e preços
+                  <ArrowRight className="size-3" />
+                </Link>
+              </div>
             </div>
-          </div>
 
-          {/* Wordmark ELEVANTHE abaixo do card */}
-          <div
-            className="select-none pointer-events-none text-center"
-            style={{
-              fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
-              fontSize: "clamp(1.1rem, 3vw, 1.5rem)",
-              fontWeight: 900,
-              letterSpacing: "0.3em",
-              lineHeight: 1,
-            }}
-          >
-            <span className="text-foreground/20">ELEVANTHE</span>
-          </div>
+            {/* Wordmark ELEVANTHE abaixo do card */}
+            <div
+              className="select-none pointer-events-none text-center text-foreground/20 font-black tracking-[0.3em]"
+              style={{ fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)", fontSize: "clamp(1.1rem, 3vw, 1.5rem)" }}
+            >
+              ELEVANTHE
+            </div>
 
-          </div>{/* fecha wrapper flex-col do form+logo+wordmark */}
+          </div>
         </div>
 
       </div>
