@@ -435,7 +435,7 @@ export default function DemoPage() {
       </section>
 
       {/* ── TOUR INTERATIVO ── */}
-      <section className="relative z-10 px-5 pt-8 pb-24">
+      <section className="relative z-10 px-5 pt-20 pb-24">
         <div className="max-w-6xl mx-auto">
 
           {/* Tabs dos módulos — acima do conteúdo */}

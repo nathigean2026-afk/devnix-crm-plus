@@ -237,6 +237,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
       <div
         className="flex-1 flex flex-col min-h-screen relative overflow-hidden"
         style={{ backgroundColor: isDark ? "#080808" : "#f8f8f8" }}
+        suppressHydrationWarning
       >
         {/* Grid pattern de fundo — light: linhas cinza claras / dark: linhas escuras */}
         <div
@@ -258,46 +259,6 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               : "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(248,248,248,0.85) 100%)",
           }}
         />
-
-        {/* Marca d'agua glamourosa — elefante + wordmark centralizados atrás do form */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 pointer-events-none select-none overflow-hidden">
-          {/* Elefante grande com glow */}
-          <div
-            className="relative"
-            style={{
-              filter: isDark
-                ? "drop-shadow(0 0 80px rgba(120,100,255,0.18)) drop-shadow(0 0 30px rgba(255,255,255,0.08))"
-                : "drop-shadow(0 0 60px rgba(0,0,0,0.08))",
-            }}
-          >
-            <Image
-              src="/elevanthe-logo-neon.png"
-              alt=""
-              width={320}
-              height={320}
-              className="object-contain"
-              style={{ opacity: isDark ? 0.13 : 0.08 }}
-              loading="eager"
-              sizes="320px"
-              decoding="async"
-            />
-          </div>
-          {/* Wordmark ELEVANTHE em tipografia massiva */}
-          <div
-            style={{
-              fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
-              fontSize: "clamp(2.8rem, 7vw, 5.5rem)",
-              fontWeight: 900,
-              letterSpacing: "0.22em",
-              lineHeight: 1,
-              opacity: isDark ? 0.1 : 0.065,
-              color: isDark ? "#ffffff" : "#000000",
-              userSelect: "none",
-            }}
-          >
-            ELEVANTHE
-          </div>
-        </div>
 
         {/* Top bar */}
         <div
@@ -328,8 +289,24 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
         {/* Form centralizado */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10">
+          <div className="w-full max-w-[400px] flex flex-col items-center gap-6">
+
+            {/* Logo do elefante acima do card */}
+            <div className="flex flex-col items-center gap-2 select-none pointer-events-none">
+              <Image
+                src="/elevanthe-logo-neon.png"
+                alt="Elevanthe"
+                width={72}
+                height={72}
+                className="object-contain drop-shadow-[0_0_18px_rgba(120,100,255,0.35)]"
+                loading="eager"
+                sizes="72px"
+                decoding="async"
+              />
+            </div>
+
           <div
-            className="w-full max-w-[400px] rounded-2xl border shadow-xl px-8 py-9 relative"
+            className="w-full rounded-2xl border shadow-xl px-8 py-9 relative"
             style={{
               backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#ffffff",
               borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
@@ -582,6 +559,22 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               </Link>
             </div>
           </div>
+
+          {/* Wordmark ELEVANTHE abaixo do card */}
+          <div
+            className="select-none pointer-events-none text-center"
+            style={{
+              fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+              fontSize: "clamp(1.1rem, 3vw, 1.5rem)",
+              fontWeight: 900,
+              letterSpacing: "0.3em",
+              lineHeight: 1,
+            }}
+          >
+            <span className="text-foreground/20">ELEVANTHE</span>
+          </div>
+
+          </div>{/* fecha wrapper flex-col do form+logo+wordmark */}
         </div>
 
       </div>
