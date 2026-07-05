@@ -3,6 +3,7 @@ import { headers, cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
+import { QuoteNotificationsProvider } from "@/components/dashboard/quote-notifications-provider"
 import { db } from "@/lib/db"
 import { user, employeePermissions } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -78,6 +79,7 @@ export default async function DashboardLayout({
           <DashboardBreadcrumb />
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">
+          <QuoteNotificationsProvider />
           {children}
         </main>
       </div>

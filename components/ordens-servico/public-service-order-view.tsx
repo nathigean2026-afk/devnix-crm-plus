@@ -107,7 +107,7 @@ function getBranding(profile: BusinessProfile | null | undefined) {
   const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
   return {
     name:        (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-icon.png",
+    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-logo-neon.png",
     document:    (isPaid && profile?.document) ? profile.document : null,
     phone:       (isPaid && profile?.phone)    ? profile.phone    : null,
     email:       (isPaid && profile?.email)    ? profile.email    : null,
@@ -116,6 +116,7 @@ function getBranding(profile: BusinessProfile | null | undefined) {
     state:       (isPaid && profile?.state)    ? profile.state    : null,
     website:     (isPaid && profile?.website)  ? profile.website  : null,
     accentColor: profile?.docAccentColor ?? "#1d4ed8",
+    docFooter:   (isPaid && profile?.docFooter) ? profile.docFooter : null,
     isPaid,
   }
 }
@@ -206,14 +207,14 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
         <div className="px-8 py-7 text-white print:px-6" style={{ backgroundColor: accentColor }}>
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <div className="size-14 rounded-xl bg-white/15 flex items-center justify-center overflow-hidden shrink-0 border border-white/20">
+              <div className="size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                 <Image
                   src={branding.logo}
                   alt={branding.name}
-                  width={56}
-                  height={56}
-                  style={{ width: 56, height: "auto" }}
-                  className="object-contain p-1"
+                  width={80}
+                  height={80}
+                  style={{ width: 80, height: "auto" }}
+                  className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
                 />
               </div>
               <div>
@@ -436,8 +437,13 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-100 px-8 py-4 text-center print:px-6">
-          <p className="text-[11px] text-slate-400">
+        <div className="border-t border-slate-100 px-8 py-4 print:px-6">
+          {branding.docFooter && (
+            <p className="text-xs text-slate-600 text-center mb-2 leading-relaxed whitespace-pre-wrap">
+              {branding.docFooter}
+            </p>
+          )}
+          <p className="text-[11px] text-slate-400 text-center">
             Ordem de Serviço gerada por{" "}
             <span className="font-semibold text-slate-500">
               {branding.isPaid ? `${branding.name} via Elevanthe CRM` : "Elevanthe CRM"}

@@ -20,8 +20,9 @@ export function useTurnstile(): UseTurnstileReturn {
   const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Se não há site key configurada (dev), considera sempre verificado
-  const siteKeyMissing = !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  // Se não há site key configurada ou estamos em dev: considera sempre verificado
+  const isDev = process.env.NODE_ENV === "development"
+  const siteKeyMissing = !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || isDev
 
   const handleSuccess = useCallback((t: string) => {
     setToken(t)

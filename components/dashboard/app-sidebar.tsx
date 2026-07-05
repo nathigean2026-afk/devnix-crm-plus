@@ -244,10 +244,10 @@ export function AppSidebar({ user, permissions = null }: AppSidebarProps) {
       return (
         <div className="flex flex-col items-center border-b border-sidebar-border shrink-0 py-3 h-[60px] justify-center relative">
           <Image
-            src="/elevanthe-icon.png"
+            src="/elevanthe-logo-neon.png"
             alt="Elevanthe CRM"
-            width={28}
-            height={28}
+            width={34}
+            height={34}
             className="object-contain"
           />
           <button
@@ -265,7 +265,7 @@ export function AppSidebar({ user, permissions = null }: AppSidebarProps) {
       <div className="flex items-center border-b border-sidebar-border shrink-0 px-4 py-3 h-[60px]">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <Image
-            src="/elevanthe-icon.png"
+            src="/elevanthe-logo-neon.png"
             alt="Elevanthe CRM"
             width={34}
             height={34}
