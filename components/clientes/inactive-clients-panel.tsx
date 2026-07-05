@@ -85,7 +85,7 @@ export function InactiveClientsPanel() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={days} onValueChange={(v) => setDays(v)}>
+          <Select value={days} onValueChange={(v) => setDays(v ?? "90")}>
             <SelectTrigger className="w-32 bg-input border-border text-foreground text-sm h-8">
               <SelectValue />
             </SelectTrigger>

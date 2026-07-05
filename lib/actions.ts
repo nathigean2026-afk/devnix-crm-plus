@@ -199,6 +199,7 @@ export async function createClient(data: {
   city?: string
   state?: string
   notes?: string
+  birthdate?: string
 }) {
   const hdrs = await headers()
   const sess = await auth.api.getSession({ headers: hdrs })
@@ -225,6 +226,7 @@ export async function updateClient(
     state: string
     notes: string
     status: string
+    birthdate: string
   }>
 ) {
   const { effectiveId } = await getEffectiveUserId()
@@ -1311,7 +1313,7 @@ export async function adminUpdateTicketStatus(
   revalidatePath("/admin")
 }
 
-// ── Service Orders ────────────────────────────────────────────────────────────
+// ── Service Orders ────────────────────────────────────────────────────────��───
 export async function getServiceOrders() {
   const { effectiveId } = await getEffectiveUserId()
   return db.select().from(serviceOrders).where(eq(serviceOrders.userId, effectiveId)).orderBy(desc(serviceOrders.createdAt))

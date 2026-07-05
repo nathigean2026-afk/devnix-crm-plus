@@ -853,7 +853,7 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
               </p>
               <Select
                 value={String(form.quoteDefaultValidity)}
-                onValueChange={(v) => setForm(f => ({ ...f, quoteDefaultValidity: Number(v) }))}
+                onValueChange={(v) => setForm(f => ({ ...f, quoteDefaultValidity: Number(v ?? "30") }))}
               >
                 <SelectTrigger className="bg-input border-border w-48">
                   <SelectValue />
