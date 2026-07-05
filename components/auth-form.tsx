@@ -191,17 +191,17 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
           }}
         />
 
-        {/* Marca d'agua elefante — watermark sutil */}
-        <div className="absolute -bottom-20 -right-20 opacity-[0.03] pointer-events-none select-none">
+        {/* Marca d'agua sutil no aside */}
+        <div className="absolute inset-0 flex items-end justify-center pb-12 pointer-events-none select-none overflow-hidden">
           <Image
             src="/elevanthe-logo-neon.png"
             alt=""
-            width={480}
-            height={480}
-            className="object-contain"
+            width={400}
+            height={400}
+            className="object-contain opacity-[0.04]"
             loading="lazy"
             fetchPriority="low"
-            sizes="480px"
+            sizes="400px"
             decoding="async"
           />
         </div>
@@ -273,6 +273,46 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               : "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(248,248,248,0.85) 100%)",
           }}
         />
+
+        {/* Marca d'agua glamourosa — elefante + wordmark centralizados atrás do form */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none select-none overflow-hidden">
+          {/* Elefante grande */}
+          <div
+            className="relative"
+            style={{
+              filter: isDark
+                ? "blur(0.5px) drop-shadow(0 0 60px rgba(255,255,255,0.06))"
+                : "blur(0.5px) drop-shadow(0 0 60px rgba(0,0,0,0.04))",
+            }}
+          >
+            <Image
+              src="/elevanthe-logo-neon.png"
+              alt=""
+              width={260}
+              height={260}
+              className="object-contain"
+              style={{ opacity: isDark ? 0.06 : 0.05 }}
+              loading="eager"
+              sizes="260px"
+              decoding="async"
+            />
+          </div>
+          {/* Wordmark ELEVANTHE em tipografia massiva */}
+          <div
+            style={{
+              fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)",
+              fontSize: "clamp(2.4rem, 6vw, 4.5rem)",
+              fontWeight: 900,
+              letterSpacing: "0.18em",
+              lineHeight: 1,
+              opacity: isDark ? 0.055 : 0.045,
+              color: isDark ? "#ffffff" : "#000000",
+              userSelect: "none",
+            }}
+          >
+            ELEVANTHE
+          </div>
+        </div>
 
         {/* Top bar */}
         <div

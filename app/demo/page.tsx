@@ -438,32 +438,6 @@ export default function DemoPage() {
       <section className="relative z-10 px-5 pb-24">
         <div className="max-w-6xl mx-auto">
 
-          {/* Tabs dos módulos */}
-          <motion.div
-            className="flex flex-wrap gap-1.5 justify-center mb-12"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            {modules.map((m, i) => {
-              const MIcon = m.icon
-              const isA = active === i
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setActive(i)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold tracking-wide uppercase transition-all duration-200"
-                  style={{
-                    backgroundColor: isA ? cardDark : "transparent",
-                    color: isA ? cardDarkFg : fgMuted,
-                    border: `1px solid ${isA ? cardDark : cardBorder}`,
-                  }}
-                >
-                  <MIcon className="size-3.5" />
-                  <span className="hidden sm:inline">{m.label}</span>
-                </button>
-              )
-            })}
-          </motion.div>
-
           {/* Layout info + screenshot */}
           <div className="grid lg:grid-cols-5 gap-10 items-start">
 
@@ -606,7 +580,7 @@ export default function DemoPage() {
                             className="text-[10px] font-mono"
                             style={{ color: isDark ? "rgba(242,242,242,0.2)" : "rgba(10,10,10,0.25)" }}
                           >
-                            crm-devnix.vercel.app/{mod.path}
+                            crm.elevanthe.com/{mod.path}
                           </span>
                         </div>
                       </div>
@@ -659,6 +633,32 @@ export default function DemoPage() {
               </AnimatePresence>
             </div>
           </div>
+
+          {/* Tabs dos módulos — abaixo do layout */}
+          <motion.div
+            className="flex flex-wrap gap-2 justify-center mt-10"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            {modules.map((m, i) => {
+              const MIcon = m.icon
+              const isA = active === i
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setActive(i)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold tracking-wide uppercase transition-all duration-200"
+                  style={{
+                    backgroundColor: isA ? cardDark : "transparent",
+                    color: isA ? cardDarkFg : fgMuted,
+                    border: `1px solid ${isA ? cardDark : cardBorder}`,
+                  }}
+                >
+                  <MIcon className="size-3.5" />
+                  <span className="hidden sm:inline">{m.label}</span>
+                </button>
+              )
+            })}
+          </motion.div>
         </div>
       </section>
 
