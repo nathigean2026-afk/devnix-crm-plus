@@ -276,16 +276,28 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10">
           <div className="w-full max-w-[400px] flex flex-col items-center gap-6">
 
-            {/* Logo do elefante acima do card */}
+            {/* Logo do elefante acima do card — dark: neon, light: colorido */}
             <div className="flex flex-col items-center select-none pointer-events-none">
+              {/* Logo dark */}
               <Image
                 src="/elevanthe-logo-neon.png"
                 alt="Elevanthe"
-                width={240}
-                height={240}
-                className="object-contain drop-shadow-[0_0_40px_rgba(80,120,255,0.5)]"
+                width={300}
+                height={300}
+                className="object-contain drop-shadow-[0_0_48px_rgba(80,120,255,0.55)] hidden dark:block"
                 loading="eager"
-                sizes="240px"
+                sizes="300px"
+                decoding="async"
+              />
+              {/* Logo light */}
+              <Image
+                src="/elevanthe-logo-light.png"
+                alt="Elevanthe"
+                width={300}
+                height={300}
+                className="object-contain drop-shadow-[0_4px_24px_rgba(80,120,255,0.25)] block dark:hidden"
+                loading="eager"
+                sizes="300px"
                 decoding="async"
               />
             </div>
