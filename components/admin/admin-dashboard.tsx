@@ -9,6 +9,7 @@ import {
   adminDeleteUser,
   adminGetPayments,
   adminSendDirectMessage,
+  adminSaveSaasConfig,
 } from "@/lib/actions"
 import { AdminTickets } from "@/components/admin/admin-tickets"
 import { toast } from "sonner"
@@ -150,9 +151,10 @@ function StatCard({ icon: Icon, label, value, sub, color, onClick, active, darkM
 type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes"
 
 export default function AdminDashboard({
-  stats: initialStats, codes, tickets,
+  stats: initialStats, codes, tickets, initialSaasConfig,
 }: {
   stats: StatsData; codes: PromoCode[]; tickets: TicketRow[]
+  initialSaasConfig?: { maintenanceMode: boolean; supportEmail: string; maxClientsStarter: number; maxClientsProf: number; maxOsStarter: number; trialDays: number }
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -175,12 +177,12 @@ export default function AdminDashboard({
   const [paymentFilter, setPaymentFilter] = useState<"todos" | "approved" | "pending" | "rejected">("todos")
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [saasConfig, setSaasConfig] = useState({
-    maintenanceMode: false,
-    supportEmail: "suporte@elevanthe.com.br",
-    maxClientsStarter: 50,
-    maxClientsProf: 300,
-    maxOsStarter: 100,
-    trialDays: 7,
+    maintenanceMode: initialSaasConfig?.maintenanceMode ?? false,
+    supportEmail: initialSaasConfig?.supportEmail ?? "suporte@elevanthe.com.br",
+    maxClientsStarter: initialSaasConfig?.maxClientsStarter ?? 50,
+    maxClientsProf: initialSaasConfig?.maxClientsProf ?? 300,
+    maxOsStarter: initialSaasConfig?.maxOsStarter ?? 100,
+    trialDays: initialSaasConfig?.trialDays ?? 0,
   })
   const [unlimitedFlags, setUnlimitedFlags] = useState({
     maxClientsStarter: false,
@@ -417,8 +419,16 @@ export default function AdminDashboard({
 
   function saveConfig() {
     setConfigSaved(true)
-    setTimeout(() => setConfigSaved(false), 2000)
-    toast.success("Configurações salvas localmente.")
+    startTransition(async () => {
+      try {
+        await adminSaveSaasConfig(saasConfig)
+        toast.success("Configurações salvas com sucesso.")
+      } catch {
+        toast.error("Erro ao salvar configurações.")
+      } finally {
+        setConfigSaved(false)
+      }
+    })
   }
 
   // Usuários expirando nos próximos 7 dias
@@ -1373,7 +1383,7 @@ export default function AdminDashboard({
 
         {/* ── Tab: Pagamentos ── */}
           {tab === "pagamentos" && (
-          <div className="space-y-4">
+            <div className="space-y-4">
             {/* Cards de receita */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
@@ -1474,8 +1484,8 @@ export default function AdminDashboard({
                 </table>
               </div>
             </div>
-          </div>
-        )}
+            </div>
+          )}
       </div>
 
       {/* Modal: Mensagem direta ao usuário */}

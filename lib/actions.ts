@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import {
+  account,
   activityLog,
   businessProfile,
   clients,
@@ -21,6 +22,7 @@ import {
   transactions,
   user,
   verification,
+  saasConfig,
 } from "@/lib/db/schema"
 import { and, count, desc, eq, isNull, like, sql } from "drizzle-orm"
 import { sendQuoteResponseEmail } from "@/lib/email"
@@ -1035,6 +1037,36 @@ export async function adminSendPasswordReset(userId: string): Promise<string> {
   })
   // Retorna o link — o admin pode copiar e enviar manualmente
   return `/reset-password?token=${token}&userId=${userId}`
+}
+
+export async function verifyResetToken(token: string, userId: string): Promise<{ valid: boolean; message?: string }> {
+  const rows = await db
+    .select()
+    .from(verification)
+    .where(eq(verification.identifier, `admin-reset-${userId}`))
+    .limit(1)
+  if (rows.length === 0) return { valid: false, message: "Link inválido ou expirado." }
+  const row = rows[0]
+  if (row.value !== token) return { valid: false, message: "Token inválido." }
+  if (new Date(row.expiresAt) < new Date()) return { valid: false, message: "Link expirado. Solicite um novo ao administrador." }
+  return { valid: true }
+}
+
+export async function updatePasswordByToken(token: string, userId: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {
+  const check = await verifyResetToken(token, userId)
+  if (!check.valid) return { ok: false, message: check.message }
+  // Hash da nova senha usando better-auth crypto
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { hashPassword } = await import("better-auth/crypto")
+  const hashed = await (hashPassword as (p: string) => Promise<string>)(newPassword)
+  // Atualiza a senha na tabela account
+  await db
+    .update(account)
+    .set({ password: hashed })
+    .where(and(eq(account.userId, userId), eq(account.providerId, "credential")))
+  // Remove o token de verificação usado
+  await db.delete(verification).where(eq(verification.identifier, `admin-reset-${userId}`))
+  return { ok: true }
 }
 
 export async function adminExtendLicense(userId: string, days: number) {
@@ -2065,4 +2097,33 @@ export async function getInactiveClients(days: number = 90) {
       if (!b.lastActivityDate) return 1
       return new Date(a.lastActivityDate).getTime() - new Date(b.lastActivityDate).getTime()
     })
+}
+
+// ── SaaS Config ───────────────────────────────────────────────────────────────
+export async function getSaasConfig() {
+  const rows = await db.select().from(saasConfig).where(eq(saasConfig.id, "singleton")).limit(1)
+  if (rows.length === 0) {
+    // Cria o registro singleton se não existir
+    await db.insert(saasConfig).values({ id: "singleton" }).onConflictDoNothing()
+    return { id: "singleton", maintenanceMode: false, supportEmail: "suporte@elevanthe.com.br", maxClientsStarter: 50, maxClientsProf: 300, maxOsStarter: 100, trialDays: 0, updatedAt: new Date() }
+  }
+  return rows[0]
+}
+
+export async function adminSaveSaasConfig(data: {
+  maintenanceMode: boolean
+  supportEmail: string
+  maxClientsStarter: number
+  maxClientsProf: number
+  maxOsStarter: number
+  trialDays: number
+}) {
+  await db
+    .insert(saasConfig)
+    .values({ id: "singleton", ...data, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: saasConfig.id,
+      set: { ...data, updatedAt: new Date() },
+    })
+  return { ok: true }
 }

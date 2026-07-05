@@ -300,6 +300,18 @@ export const activityLog = pgTable("activity_log", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
+// Configurações globais do SaaS (singleton — id fixo = 'singleton')
+export const saasConfig = pgTable("saas_config", {
+  id: text("id").primaryKey().default("singleton"),
+  maintenanceMode: boolean("maintenanceMode").notNull().default(false),
+  supportEmail: text("supportEmail").notNull().default("suporte@elevanthe.com.br"),
+  maxClientsStarter: integer("maxClientsStarter").notNull().default(50),
+  maxClientsProf: integer("maxClientsProf").notNull().default(300),
+  maxOsStarter: integer("maxOsStarter").notNull().default(100),
+  trialDays: integer("trialDays").notNull().default(0),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect
 export type Client = typeof clients.$inferSelect
@@ -316,3 +328,4 @@ export type SupportMessage = typeof supportMessages.$inferSelect
 export type EmployeeInvite = typeof employeeInvites.$inferSelect
 export type EmployeePermission = typeof employeePermissions.$inferSelect
 export type ActivityLog = typeof activityLog.$inferSelect
+export type SaasConfig = typeof saasConfig.$inferSelect
