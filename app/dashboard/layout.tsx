@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
 import { QuoteNotificationsProvider } from "@/components/dashboard/quote-notifications-provider"
+import { LicenseWatcher } from "@/components/dashboard/license-watcher"
 import { db } from "@/lib/db"
 import { user, employeePermissions } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -35,6 +36,8 @@ export default async function DashboardLayout({
     .where(eq(employeePermissions.employeeId, session.user.id))
     .limit(1)
 
+  let licenseExpiresAt: Date | null = null
+
   if (empPerms) {
     // Funcionário: usa a licença do prestador (dono)
     const [owner] = await db
@@ -45,6 +48,7 @@ export default async function DashboardLayout({
 
     const isOwnerLicenseActive = owner?.accessExpiresAt ? owner.accessExpiresAt > now : false
     if (!isOwnerLicenseActive) redirect("/planos")
+    licenseExpiresAt = owner?.accessExpiresAt ?? null
   } else {
     // Prestador: verifica sua própria licença
     const [u] = await db
@@ -55,6 +59,7 @@ export default async function DashboardLayout({
 
     const isLicenseActive = u?.accessExpiresAt ? u.accessExpiresAt > now : false
     if (!isLicenseActive) redirect("/planos")
+    licenseExpiresAt = u?.accessExpiresAt ?? null
   }
 
   // Monta o objeto de permissões para a sidebar (null = prestador, sem restrições)
@@ -80,6 +85,9 @@ export default async function DashboardLayout({
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">
           <QuoteNotificationsProvider />
+          {licenseExpiresAt && (
+            <LicenseWatcher expiresAt={licenseExpiresAt.toISOString()} />
+          )}
           {children}
         </main>
       </div>
