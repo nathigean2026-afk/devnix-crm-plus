@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useCallback } from "react"
+import { useState, useTransition, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { PromoCode } from "@/lib/db/schema"
 import {
@@ -163,6 +163,8 @@ export default function AdminDashboard({
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
   const [showForm, setShowForm] = useState(false)
   const [localCodes, setLocalCodes] = useState(codes)
+  // Sincroniza localCodes quando o servidor devolve dados novos após router.refresh()
+  useEffect(() => { setLocalCodes(codes) }, [codes])
   const [stats, setStats] = useState(initialStats)
   const [userSearch, setUserSearch] = useState("")
   const [userFilter, setUserFilter] = useState<"todos" | "ativos" | "expirados" | "online">("todos")
