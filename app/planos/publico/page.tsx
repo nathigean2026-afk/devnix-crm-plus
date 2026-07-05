@@ -319,14 +319,14 @@ export default function PlanosPublicoPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: bg, color: fg, fontFamily: "var(--font-inter, var(--font-geist-sans), sans-serif)" }}>
 
-      {/* Dots pattern */}
+      {/* Grid pattern — light: linhas cinza / dark: linhas escuras sutis */}
       <div
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           backgroundImage: isDark
-            ? "radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)"
-            : "radial-gradient(circle, rgba(0,0,0,0.065) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
+            ? "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)"
+            : "linear-gradient(rgba(0,0,0,0.065) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.065) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
         }}
       />
 
@@ -429,15 +429,15 @@ export default function PlanosPublicoPage() {
                   boxShadow: isH ? (isDark ? "0 0 0 1px rgba(255,255,255,0.12), 0 20px 60px rgba(0,0,0,0.5)" : "0 0 0 1px rgba(0,0,0,0.2), 0 20px 60px rgba(0,0,0,0.15)") : undefined,
                 }}
               >
-                {/* Dots no card de destaque */}
+                {/* Grid sutil no card de destaque */}
                 {isH && (
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       backgroundImage: isDark
-                        ? "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)"
-                        : "radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)",
-                      backgroundSize: "20px 20px",
+                        ? "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)"
+                        : "linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)",
+                      backgroundSize: "28px 28px",
                     }}
                   />
                 )}

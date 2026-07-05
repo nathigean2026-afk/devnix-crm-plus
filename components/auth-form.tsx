@@ -10,7 +10,7 @@ import { ScreenshotCarousel } from "@/components/screenshot-carousel"
 import Image from "next/image"
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
@@ -31,6 +31,8 @@ const TurnstileWidget = dynamic(
   () => import("@/components/turnstile-widget").then((m) => ({ default: m.TurnstileWidget })),
   { ssr: false, loading: () => <div className="h-[65px]" aria-hidden /> }
 )
+
+import type { TurnstileWidgetRef } from "@/components/turnstile-widget"
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up"
@@ -111,6 +113,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: "", email: "", password: "" })
   const [showIntro, setShowIntro] = useState(false)
+  const turnstileRef = useRef<TurnstileWidgetRef>(null)
 
   const {
     isVerified: turnstileVerified,
@@ -160,6 +163,9 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
       router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Ocorreu um erro. Tente novamente.")
+      // Reseta o widget Turnstile para o usuário não precisar recarregar a página
+      reset()
+      turnstileRef.current?.reset()
     } finally {
       setLoading(false)
     }
@@ -176,12 +182,12 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         className="hidden lg:flex lg:w-[500px] xl:w-[540px] flex-col justify-between px-12 py-10 relative overflow-hidden flex-shrink-0"
         style={{ backgroundColor: isDark ? "#0a0a0a" : "#0a0a0a", borderRight: "1px solid rgba(255,255,255,0.06)" }}
       >
-        {/* Dots pattern de fundo */}
+        {/* Grid pattern de fundo (aside escuro fixo) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
           }}
         />
 
@@ -247,24 +253,24 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         className="flex-1 flex flex-col min-h-screen relative overflow-hidden"
         style={{ backgroundColor: isDark ? "#080808" : "#f8f8f8" }}
       >
-        {/* Dots pattern de fundo */}
+        {/* Grid pattern de fundo — light: linhas cinza claras / dark: linhas escuras */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: isDark
-              ? "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)"
-              : "radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+              ? "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)"
+              : "linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
           }}
         />
 
-        {/* Gradiente overlay suave — fade nos cantos */}
+        {/* Vinheta radial suave nos cantos */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: isDark
-              ? "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, #080808 100%)"
-              : "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, #f8f8f8 100%)",
+              ? "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(8,8,8,0.85) 100%)"
+              : "radial-gradient(ellipse 90% 70% at 50% 50%, transparent 35%, rgba(248,248,248,0.85) 100%)",
           }}
         />
 
@@ -466,6 +472,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
 
               {/* Cloudflare Turnstile */}
               <TurnstileWidget
+                ref={turnstileRef}
                 onSuccess={onTurnstileSuccess}
                 onExpire={onTurnstileExpire}
                 onError={onTurnstileError}

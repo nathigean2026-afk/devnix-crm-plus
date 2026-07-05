@@ -12,26 +12,29 @@ export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const doneRef = useRef(false)
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    // Pré-carrega /demo para que o redirect seja instantâneo ao pular
+    router.prefetch("/demo")
+  }, [router])
 
   useEffect(() => {
     if (!mounted) return
     const video = videoRef.current
     if (!video) return
 
-    // Trava scroll do body enquanto o intro toca
     document.body.style.overflow = "hidden"
 
-    // Tenta dar play com som; se o browser bloquear, toca mudo
     video.play().catch(() => {
       video.muted = true
       video.play()
     })
 
     function handleEnd() {
+      if (doneRef.current) return
+      doneRef.current = true
       document.body.style.overflow = ""
       if (onEnd) onEnd()
       else router.push("/demo")
@@ -45,6 +48,13 @@ export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
   }, [mounted, onEnd, router])
 
   function handleSkip() {
+    if (doneRef.current) return
+    doneRef.current = true
+    // Para o vídeo e libera recursos imediatamente
+    if (videoRef.current) {
+      videoRef.current.pause()
+      videoRef.current.src = ""
+    }
     document.body.style.overflow = ""
     if (onEnd) onEnd()
     else router.push("/demo")
@@ -96,18 +106,28 @@ export function IntroVideoOverlay({ onEnd }: IntroVideoOverlayProps) {
           bottom: "2rem",
           right: "1.5rem",
           color: "rgba(255,255,255,0.5)",
-          background: "none",
-          border: "none",
+          background: "rgba(0,0,0,0.4)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "9999px",
+          padding: "0.5rem 1rem",
           cursor: "pointer",
-          fontSize: "0.875rem",
+          fontSize: "0.8rem",
+          fontWeight: 600,
           display: "flex",
           alignItems: "center",
           gap: "0.375rem",
-          transition: "color 0.2s",
+          backdropFilter: "blur(8px)",
+          transition: "color 0.2s, background 0.2s",
           zIndex: 1,
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.9)")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = "rgba(255,255,255,0.95)"
+          e.currentTarget.style.background = "rgba(0,0,0,0.6)"
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = "rgba(255,255,255,0.5)"
+          e.currentTarget.style.background = "rgba(0,0,0,0.4)"
+        }}
       >
         Pular intro
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

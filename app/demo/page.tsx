@@ -220,14 +220,14 @@ export default function DemoPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: bg, color: fg }}>
-      {/* Dots pattern */}
+      {/* Grid pattern — light: linhas cinza / dark: linhas escuras */}
       <div
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           backgroundImage: isDark
-            ? "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)"
-            : "radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
+            ? "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)"
+            : "linear-gradient(rgba(0,0,0,0.065) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.065) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
         }}
       />
 
@@ -275,16 +275,14 @@ export default function DemoPage() {
             >
               Entrar
             </Link>
-            <a
-              href={PLANOS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/planos/publico"
               className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold tracking-wide uppercase hover:opacity-85 transition-opacity"
               style={{ backgroundColor: cardDark, color: cardDarkFg }}
             >
               Ver planos
               <ArrowRight className="size-3" />
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -349,6 +347,91 @@ export default function DemoPage() {
             </div>
           ))}
         </motion.div>
+      </section>
+
+      {/* ── PLAYER DE VÍDEO ── */}
+      <section className="relative z-10 px-5 pb-16">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div
+              className="rounded-2xl overflow-hidden border shadow-2xl"
+              style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+            >
+              {/* Chrome do player */}
+              <div
+                className="flex items-center justify-between px-4 py-3 border-b"
+                style={{
+                  backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+                  borderColor: cardBorder,
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    <span className="size-2.5 rounded-full bg-red-400/40" />
+                    <span className="size-2.5 rounded-full bg-yellow-400/40" />
+                    <span className="size-2.5 rounded-full bg-green-400/40" />
+                  </div>
+                  <span
+                    className="text-[11px] font-semibold ml-2"
+                    style={{ color: fgMuted }}
+                  >
+                    Apresentação completa da plataforma
+                  </span>
+                </div>
+                <div
+                  className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border"
+                  style={{
+                    borderColor: cardBorder,
+                    color: isDark ? "rgba(242,242,242,0.3)" : "rgba(10,10,10,0.3)",
+                  }}
+                >
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Ao vivo
+                </div>
+              </div>
+
+              {/* Área do vídeo — placeholder centralizado, substituir src quando vídeo estiver pronto */}
+              <div
+                className="relative w-full flex items-center justify-center"
+                style={{ aspectRatio: "16/9", backgroundColor: isDark ? "#0a0a0a" : "#e8e8e8" }}
+              >
+                <div
+                  className="flex flex-col items-center justify-center gap-4"
+                  style={{ color: fgMuted }}
+                >
+                  <div
+                    className="size-16 rounded-2xl flex items-center justify-center border"
+                    style={{
+                      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                      borderColor: cardBorder,
+                    }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                      <polygon points="5 3 19 12 5 21 5 3" fill={isDark ? "rgba(242,242,242,0.4)" : "rgba(10,10,10,0.3)"} />
+                    </svg>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold" style={{ color: isDark ? "rgba(242,242,242,0.5)" : "rgba(10,10,10,0.45)" }}>
+                      Vídeo em breve
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: isDark ? "rgba(242,242,242,0.25)" : "rgba(10,10,10,0.25)" }}>
+                      Tour completo da plataforma — em produção
+                    </p>
+                  </div>
+                </div>
+                {/* Quando tiver o vídeo, descomente abaixo e remova o placeholder acima:
+                <video className="absolute inset-0 w-full h-full object-cover" controls playsInline preload="metadata">
+                  <source src="/demo-video.mp4" type="video/mp4" />
+                </video>
+                */}
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* ── TOUR INTERATIVO ── */}
@@ -644,16 +727,14 @@ export default function DemoPage() {
               Comece por R$&nbsp;7 e tenha acesso completo por 7 dias. Sem compromisso, sem mensalidade automática.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a
-                href={PLANOS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/planos/publico"
                 className="flex items-center gap-2 px-7 py-3.5 rounded-full text-[11px] font-bold tracking-widest uppercase hover:opacity-85 transition-opacity"
                 style={{ backgroundColor: cardDark, color: cardDarkFg }}
               >
                 Ver planos e preços
                 <ArrowRight className="size-3.5" />
-              </a>
+              </Link>
               <Link
                 href={SIGNUP_URL}
                 className="flex items-center gap-2 px-7 py-3.5 rounded-full border text-[11px] font-bold tracking-widest uppercase hover:opacity-70 transition-all"
