@@ -11,6 +11,7 @@ import Link from "next/link"
 import { ArrowLeft, ArrowRight, CheckCircle, Lock, Mail, Sun, Moon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+
 function ThemeToggleButton() {
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -57,6 +58,7 @@ export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -74,12 +76,29 @@ export default function EsqueciSenhaPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     const tokenValid = await verifyToken()
     if (!tokenValid) return
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 1200))
-    setLoading(false)
-    setSent(true)
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`
+      // Chama diretamente o endpoint do better-auth para solicitar reset de senha
+      const res = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, redirectTo }),
+      })
+      if (!res.ok && res.status !== 200) {
+        // Mesmo em caso de erro 4xx ainda mostramos sucesso por segurança
+        // (não revelamos se o e-mail está ou não cadastrado)
+        console.warn("[esqueci-senha] status:", res.status)
+      }
+      setSent(true)
+    } catch {
+      setError("Erro de conexão. Verifique sua internet e tente novamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -345,6 +364,9 @@ export default function EsqueciSenhaPage() {
                   />
                   {turnstileError && (
                     <p className="text-xs text-red-400 text-center -mt-1">{turnstileError}</p>
+                  )}
+                  {error && (
+                    <p className="text-xs text-red-400 text-center">{error}</p>
                   )}
 
                   <button

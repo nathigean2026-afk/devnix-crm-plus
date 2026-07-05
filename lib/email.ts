@@ -959,3 +959,76 @@ export async function sendInviteAcceptedEmail(params: InviteAcceptedEmailParams)
     return false
   }
 }
+
+// ─── Email de recuperação de senha ────────────────────────────────────────────
+
+export async function sendPasswordResetEmail({ to, resetLink }: { to: string; resetLink: string }): Promise<boolean> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY nao configurada — email de reset nao enviado.")
+    return false
+  }
+
+  const sanitizedTo = to.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x00-\x7F]/g, "")
+  if (!sanitizedTo || !sanitizedTo.includes("@")) {
+    console.warn("[email] Email invalido apos sanitizacao:", to)
+    return false
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;padding:24px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:12px;letter-spacing:2px;color:#64748b;text-transform:uppercase;font-weight:600;">Elevanthe CRM</span>
+    </div>
+    <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%);padding:32px 40px;text-align:center;">
+        <div style="width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <span style="font-size:24px;">&#128274;</span>
+        </div>
+        <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Redefinir senha</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">Recebemos uma solicitacao para redefinir a sua senha</p>
+      </div>
+      <div style="padding:36px 40px;">
+        <p style="margin:0 0 20px;font-size:15px;color:#334155;line-height:1.6;">
+          Clique no botao abaixo para criar uma nova senha. O link e valido por <strong>1 hora</strong>.
+        </p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${resetLink}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;">
+            Redefinir minha senha
+          </a>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin:24px 0 0;">
+          <p style="margin:0 0 6px;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Ou copie o link abaixo</p>
+          <p style="margin:0;font-size:12px;color:#3b82f6;word-break:break-all;font-family:monospace;">${resetLink}</p>
+        </div>
+        <p style="margin:24px 0 0;font-size:13px;color:#94a3b8;line-height:1.5;">
+          Se voce nao solicitou a redefinicao de senha, ignore este e-mail. Sua conta permanece segura.
+        </p>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:20px;font-size:12px;color:#94a3b8;">
+      Notificacao automatica do Elevanthe CRM &mdash; nao responda este e-mail.
+    </p>
+  </div>
+</body>
+</html>`
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: sanitizedTo,
+      subject: "Redefinir senha — Elevanthe CRM",
+      html,
+    })
+    if (error) {
+      console.error("[email] Erro ao enviar email de reset:", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[email] Excecao ao enviar email de reset:", e)
+    return false
+  }
+}
