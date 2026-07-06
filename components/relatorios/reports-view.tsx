@@ -126,7 +126,7 @@ export function ReportsView({ data }: ReportsViewProps) {
 
   function handlePrint() {
     // window.open é bloqueado em iframes; location.href funciona universalmente
-    const url = `/api/relatorios/pdf?days=${days}`
+    const url = `/api/relatorios/pdf?days=${data.periodDays}`
     const a = document.createElement("a")
     a.href = url
     a.target = "_blank"

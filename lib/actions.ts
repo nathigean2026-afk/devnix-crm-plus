@@ -550,7 +550,8 @@ export async function respondQuote(
       .where(eq(businessProfile.userId, quote.userId))
       .limit(1)
 
-    const ownerPlan = profile?.licensePlan ?? "starter"
+    // Normaliza para minúsculo — o banco pode ter "Starter", "Business" etc.
+    const ownerPlan = (profile?.licensePlan ?? "starter").toLowerCase()
     const hasBusinessPlus = ownerPlan === "business" || ownerPlan === "enterprise"
 
     // Notifica o prestador por e-mail apenas se tiver plano Business+
