@@ -1153,7 +1153,24 @@ export async function adminCreatePromoCode(data: {
 }
 
 export async function adminGetPromoCodes() {
-  return db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt))
+  const rows = await db
+    .select({
+      id: promoCodes.id,
+      code: promoCodes.code,
+      planName: promoCodes.planName,
+      durationMinutes: promoCodes.durationMinutes,
+      days: promoCodes.days,
+      expiresAt: promoCodes.expiresAt,
+      usedBy: promoCodes.usedBy,
+      usedAt: promoCodes.usedAt,
+      createdAt: promoCodes.createdAt,
+      usedByName: user.name,
+      usedByEmail: user.email,
+    })
+    .from(promoCodes)
+    .leftJoin(user, eq(promoCodes.usedBy, user.id))
+    .orderBy(desc(promoCodes.createdAt))
+  return rows
 }
 
 export async function adminDeletePromoCode(id: string) {
