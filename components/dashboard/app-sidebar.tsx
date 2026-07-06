@@ -2,7 +2,7 @@
 
 import {
   LayoutDashboard,
-  UsersRound, // equipe / clientes
+  UsersRound,
   Wrench,
   FileText,
   DollarSign,
@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   LifeBuoy,
+  Megaphone,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -63,6 +64,7 @@ const allNavItems = [
   {
     group: "Ajuda",
     items: [
+      { href: "/dashboard/atualizacoes", label: "Atualizações", icon: Megaphone, permKey: null },
       { href: "/dashboard/suporte", label: "Suporte", icon: LifeBuoy, permKey: null },
     ],
   },

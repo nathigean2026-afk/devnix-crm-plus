@@ -23,6 +23,7 @@ import {
   user,
   verification,
   saasConfig,
+  patchNotes,
 } from "@/lib/db/schema"
 import { and, count, desc, eq, isNull, like, sql } from "drizzle-orm"
 import { sendQuoteResponseEmail } from "@/lib/email"
@@ -2148,5 +2149,64 @@ export async function adminSaveSaasConfig(data: {
       target: saasConfig.id,
       set: { ...data, updatedAt: new Date() },
     })
+  return { ok: true }
+}
+
+// ── Patch Notes ───────────────────────────────────────────────────────────────
+
+/** Busca todas as notas publicadas (para os usuários do SaaS). Não requer auth. */
+export async function getPatchNotes() {
+  return db
+    .select()
+    .from(patchNotes)
+    .where(eq(patchNotes.published, true))
+    .orderBy(desc(patchNotes.createdAt))
+}
+
+/** Busca todas as notas (publicadas + rascunhos) para o painel admin. */
+export async function adminGetPatchNotes() {
+  return db.select().from(patchNotes).orderBy(desc(patchNotes.createdAt))
+}
+
+/** Cria uma nova patch note (admin). */
+export async function adminCreatePatchNote(data: {
+  version: string
+  title: string
+  body: string
+  type: string
+  published: boolean
+}) {
+  const { nanoid } = await import("nanoid")
+  const id = nanoid()
+  await db.insert(patchNotes).values({
+    id,
+    ...data,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })
+  revalidatePath("/dashboard/atualizacoes")
+  return { ok: true, id }
+}
+
+/** Atualiza uma patch note existente (admin). */
+export async function adminUpdatePatchNote(id: string, data: {
+  version?: string
+  title?: string
+  body?: string
+  type?: string
+  published?: boolean
+}) {
+  await db
+    .update(patchNotes)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(patchNotes.id, id))
+  revalidatePath("/dashboard/atualizacoes")
+  return { ok: true }
+}
+
+/** Remove uma patch note (admin). */
+export async function adminDeletePatchNote(id: string) {
+  await db.delete(patchNotes).where(eq(patchNotes.id, id))
+  revalidatePath("/dashboard/atualizacoes")
   return { ok: true }
 }

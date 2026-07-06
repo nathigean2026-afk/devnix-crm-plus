@@ -503,72 +503,138 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
             {/* Items */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground font-semibold">Itens</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-border text-foreground hover:bg-muted">
-                  <Plus data-icon="inline-start" />Adicionar Item
+                <Label className="text-foreground font-semibold">Itens do orçamento</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-border text-foreground hover:bg-muted gap-1.5">
+                  <Plus className="size-3.5" />Adicionar Item
                 </Button>
               </div>
+
               {items.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4 border border-dashed border-border rounded-md">
-                  Clique em &quot;Adicionar Item&quot; para começar
-                </p>
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-border rounded-lg text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/20 transition-colors w-full"
+                >
+                  <Plus className="size-5" />
+                  <span className="text-sm">Clique para adicionar o primeiro item</span>
+                </button>
               )}
-              {items.map((item, idx) => (
-                <div key={item.id} className="flex flex-col gap-2 border border-border rounded-md p-3 bg-muted/20">
-                  {/* Cabeçalho do item: número + botão excluir */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Item {idx + 1}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 text-xs font-medium"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                      Excluir item
-                    </Button>
+
+              {items.map((item, idx) => {
+                const linkedService = item.serviceId ? services.find(s => s.id === item.serviceId) : null
+                return (
+                  <div key={item.id} className="border border-border rounded-lg bg-muted/10 overflow-hidden">
+                    {/* Cabeçalho do card do item */}
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/20">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {linkedService ? linkedService.name : item.description || "Item"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-primary">{formatCurrency(item.total)}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => removeItem(item.id)}
+                          title="Excluir item"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Corpo do card do item */}
+                    <div className="p-4 flex flex-col gap-3">
+                      {/* Linha 1: Serviço */}
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-muted-foreground text-xs">Serviço cadastrado (opcional)</Label>
+                        <Select
+                          value={item.serviceId ?? "__manual__"}
+                          onValueChange={(v) => updateItem(item.id, "serviceId", v === "__manual__" ? "" : v)}
+                        >
+                          <SelectTrigger className="bg-input border-border text-foreground text-sm">
+                            <SelectValue>
+                              {item.serviceId
+                                ? (services.find(s => s.id === item.serviceId)?.name ?? "Serviço removido")
+                                : <span className="text-muted-foreground">Sem vínculo — preencher manualmente</span>
+                              }
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border max-h-56">
+                            <SelectItem value="__manual__">
+                              <span className="text-muted-foreground">Sem vínculo (manual)</span>
+                            </SelectItem>
+                            {services.filter(s => s.active || s.id === item.serviceId).map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                <div className="flex items-center justify-between gap-8 w-full">
+                                  <span>{s.name}</span>
+                                  <span className="text-muted-foreground text-xs">{formatCurrency(Number(s.price))}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Linha 2: Descrição */}
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-muted-foreground text-xs">Descrição do item</Label>
+                        <Input
+                          placeholder="Descreva o serviço ou produto..."
+                          value={item.description}
+                          onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                          className="bg-input border-border text-foreground text-sm"
+                        />
+                      </div>
+
+                      {/* Linha 3: Qtd + Preço + Total visual */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-muted-foreground text-xs">Quantidade</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(item.id, "quantity", e.target.value)}
+                            className="bg-input border-border text-foreground text-sm text-center"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-muted-foreground text-xs">Preço unitário (R$)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unitPrice}
+                            onChange={(e) => updateItem(item.id, "unitPrice", e.target.value)}
+                            className="bg-input border-border text-foreground text-sm"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label className="text-muted-foreground text-xs">Total do item</Label>
+                          <div className="flex items-center h-10 px-3 rounded-md border border-border bg-muted/30 text-sm font-semibold text-primary">
+                            {formatCurrency(item.total)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
-                      <Label className="text-muted-foreground text-xs">Serviço / Descrição</Label>
-                      <Select value={item.serviceId ?? "__manual__"} onValueChange={(v) => updateItem(item.id, "serviceId", v === "__manual__" ? "" : v)}>
-                        <SelectTrigger className="bg-input border-border text-foreground h-8 text-sm">
-                          <SelectValue>
-                            {item.serviceId
-                              ? services.find((s) => s.id === item.serviceId)?.name ?? "Manual"
-                              : "Manual"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover border-border">
-                          <SelectItem value="__manual__">Manual</SelectItem>
-                          {services.filter(s => s.active || s.id === item.serviceId).map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Descrição"
-                        value={item.description}
-                        onChange={(e) => updateItem(item.id, "description", e.target.value)}
-                        className="bg-input border-border text-foreground h-8 text-sm mt-1"
-                      />
-                    </div>
-                    <div className="col-span-4 sm:col-span-2 flex flex-col gap-1">
-                      <Label className="text-muted-foreground text-xs">Qtd</Label>
-                      <Input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", e.target.value)} className="bg-input border-border text-foreground h-8 text-sm" />
-                    </div>
-                    <div className="col-span-4 sm:col-span-2 flex flex-col gap-1">
-                      <Label className="text-muted-foreground text-xs">Preço Unit.</Label>
-                      <Input type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(item.id, "unitPrice", e.target.value)} className="bg-input border-border text-foreground h-8 text-sm" />
-                    </div>
-                    <div className="col-span-4 sm:col-span-3 flex flex-col gap-1">
-                      <Label className="text-muted-foreground text-xs">Total</Label>
-                      <p className="h-8 flex items-center text-sm font-semibold text-foreground">{formatCurrency(item.total)}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
+
+              {items.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={addItem} className="self-start text-muted-foreground hover:text-foreground gap-1.5 text-xs">
+                  <Plus className="size-3.5" />
+                  Adicionar outro item
+                </Button>
+              )}
             </div>
 
             {/* Totals + Formas de pagamento no cartao */}
