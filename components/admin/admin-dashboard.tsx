@@ -22,6 +22,7 @@ import {
   Sun, Moon, TrendingUp, Database, Zap, AlertTriangle, Eye, Edit2,
   KeyRound, Ban, PlusCircle, ChevronDown, ChevronUp, Activity,
   DollarSign, Calendar, Globe, Monitor, Filter, Search, X, Send, Megaphone, Pencil,
+  MessageCircle, Smartphone, QrCode, FlaskConical, Link2Off, Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -181,7 +182,7 @@ function StatCard({ icon: Icon, label, value, sub, color, onClick, active, darkM
   )
 }
 
-type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes"
+type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp"
 
 export default function AdminDashboard({
   stats: initialStats, codes, tickets, initialSaasConfig,
@@ -227,6 +228,86 @@ export default function AdminDashboard({
   const [configSaved, setConfigSaved] = useState(false)
   const [broadcastUser, setBroadcastUser] = useState<LicenseRow | null>(null)
   const [broadcastMessage, setBroadcastMessage] = useState("")
+
+  // ── Z-API / WhatsApp ──
+  type ZapiStatus = { connected: boolean; smartphoneConnected?: boolean; session?: string; error?: string } | null
+  const [zapiStatus, setZapiStatus] = useState<ZapiStatus>(null)
+  const [zapiLoading, setZapiLoading] = useState(false)
+  const [zapiQr, setZapiQr] = useState<string | null>(null)
+  const [zapiQrLoading, setZapiQrLoading] = useState(false)
+  const [zapiTestPhone, setZapiTestPhone] = useState("")
+  const [zapiTestLoading, setZapiTestLoading] = useState(false)
+  const [zapiTestResult, setZapiTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  async function loadZapiStatus() {
+    setZapiLoading(true)
+    setZapiQr(null)
+    try {
+      const res = await fetch("/api/admin/zapi/status", { cache: "no-store" })
+      const json = await res.json()
+      if (!res.ok) {
+        setZapiStatus({ connected: false, error: json.error ?? "Erro desconhecido" })
+      } else {
+        // Z-API retorna { connected: boolean, smartphoneConnected: boolean, session: string }
+        const d = json.data ?? {}
+        setZapiStatus({
+          connected: d.connected ?? false,
+          smartphoneConnected: d.smartphoneConnected,
+          session: d.session,
+        })
+        // Se não conectado, busca QR automaticamente
+        if (!d.connected) loadZapiQr()
+      }
+    } catch {
+      setZapiStatus({ connected: false, error: "Falha ao conectar com a Z-API" })
+    } finally {
+      setZapiLoading(false)
+    }
+  }
+
+  async function loadZapiQr() {
+    setZapiQrLoading(true)
+    try {
+      const res = await fetch("/api/admin/zapi/qrcode", { cache: "no-store" })
+      const json = await res.json()
+      // Z-API retorna { value: "data:image/png;base64,..." }
+      const qr = json.data?.value ?? json.data?.qrCode ?? null
+      setZapiQr(qr)
+    } catch {
+      setZapiQr(null)
+    } finally {
+      setZapiQrLoading(false)
+    }
+  }
+
+  async function handleZapiDisconnect() {
+    if (!confirm("Deseja desconectar o WhatsApp desta instância?")) return
+    await fetch("/api/admin/zapi/disconnect", { method: "POST" })
+    await loadZapiStatus()
+  }
+
+  async function handleZapiTest() {
+    if (!zapiTestPhone.trim()) return
+    setZapiTestLoading(true)
+    setZapiTestResult(null)
+    try {
+      const res = await fetch("/api/admin/zapi/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: zapiTestPhone }),
+      })
+      const json = await res.json()
+      if (res.ok && json.status === 200) {
+        setZapiTestResult({ ok: true, msg: "Mensagem enviada com sucesso! Verifique o WhatsApp." })
+      } else {
+        setZapiTestResult({ ok: false, msg: json.data?.message ?? json.error ?? "Falha ao enviar. Verifique se o número está correto e a instância está conectada." })
+      }
+    } catch {
+      setZapiTestResult({ ok: false, msg: "Erro de conexão com a Z-API." })
+    } finally {
+      setZapiTestLoading(false)
+    }
+  }
 
   // ── Patch Notes ──
   const [patchNotesList, setPatchNotesList] = useState<PatchNote[]>([])
@@ -418,6 +499,9 @@ export default function AdminDashboard({
     if (t === "pagamentos" && paymentsList.length === 0) {
       loadPayments()
     }
+    if (t === "whatsapp" && zapiStatus === null) {
+      loadZapiStatus()
+    }
     if (t === "atualizacoes" && !patchNotesLoaded) {
       adminGetPatchNotes().then(list => {
         setPatchNotesList(list)
@@ -495,6 +579,7 @@ export default function AdminDashboard({
     { key: "suporte", label: `Suporte (${tickets.filter(t => t.status === "aberto" || t.status === "em_andamento").length})`, icon: LifeBuoy },
     { key: "metricas", label: "Métricas", icon: Activity },
     { key: "pagamentos", label: "Pagamentos", icon: DollarSign },
+    { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
     { key: "atualizacoes", label: "Atualizações", icon: Megaphone },
     { key: "configuracoes", label: "Configurações", icon: Globe },
   ]
@@ -1586,6 +1671,197 @@ export default function AdminDashboard({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab: WhatsApp / Z-API ── */}
+      {tab === "whatsapp" && (
+        <div className="space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>
+                WhatsApp via Z-API
+              </h2>
+              <p className={cn("text-xs mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>
+                Gerenciamento da instância Z-API
+              </p>
+            </div>
+            <button
+              onClick={loadZapiStatus}
+              disabled={zapiLoading}
+              className={cn("flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors", darkMode ? "border-white/10 text-white/70 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-600 hover:bg-slate-50")}
+            >
+              <RefreshCw className={cn("size-3.5", zapiLoading && "animate-spin")} />
+              Atualizar status
+            </button>
+          </div>
+
+          {/* Card de status */}
+          <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-2">
+                <p className={cn("text-xs font-semibold uppercase tracking-wider", darkMode ? "text-white/40" : "text-slate-400")}>Status da Instância</p>
+                {zapiLoading ? (
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="size-4 animate-spin text-blue-400" />
+                    <span className={cn("text-sm", darkMode ? "text-white/50" : "text-slate-500")}>Verificando conexão...</span>
+                  </div>
+                ) : zapiStatus?.error ? (
+                  <div className="flex items-center gap-2">
+                    <XCircle className="size-5 text-red-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-400">Erro de conexão</p>
+                      <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{zapiStatus.error}</p>
+                    </div>
+                  </div>
+                ) : zapiStatus?.connected ? (
+                  <div className="flex items-center gap-2">
+                    <div className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-400">Conectado</p>
+                      {zapiStatus.session && (
+                        <p className={cn("text-xs mt-0.5 font-mono", darkMode ? "text-white/30" : "text-slate-400")}>Sessão: {zapiStatus.session}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : zapiStatus ? (
+                  <div className="flex items-center gap-2">
+                    <div className="size-2.5 rounded-full bg-amber-400" />
+                    <p className="text-sm font-semibold text-amber-400">Desconectado — escaneie o QR Code</p>
+                  </div>
+                ) : (
+                  <p className={cn("text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Clique em "Atualizar status" para verificar.</p>
+                )}
+              </div>
+
+              {zapiStatus?.connected && (
+                <button
+                  onClick={handleZapiDisconnect}
+                  className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 border border-red-400/30 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Link2Off className="size-3.5" />
+                  Desconectar
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* QR Code — exibido quando desconectado */}
+          {zapiStatus && !zapiStatus.connected && !zapiStatus.error && (
+            <div className={cn("rounded-xl border p-5 flex flex-col items-center gap-4", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
+              <div className="flex items-center gap-2">
+                <QrCode className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
+                <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Escaneie o QR Code no WhatsApp</p>
+              </div>
+              <p className={cn("text-xs text-center max-w-xs", darkMode ? "text-white/40" : "text-slate-400")}>
+                Abra o WhatsApp no seu celular → Aparelhos conectados → Conectar um aparelho → Escanear QR Code
+              </p>
+
+              {zapiQrLoading ? (
+                <div className="flex flex-col items-center gap-2 py-8">
+                  <RefreshCw className="size-8 animate-spin text-blue-400" />
+                  <p className={cn("text-sm", darkMode ? "text-white/40" : "text-slate-400")}>Carregando QR Code...</p>
+                </div>
+              ) : zapiQr ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={zapiQr} alt="QR Code Z-API" className="w-56 h-56 rounded-lg border border-white/10" />
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-6">
+                  <QrCode className={cn("size-10", darkMode ? "text-white/20" : "text-slate-300")} />
+                  <p className={cn("text-sm", darkMode ? "text-white/30" : "text-slate-400")}>QR Code não disponível</p>
+                  <button
+                    onClick={loadZapiQr}
+                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={() => { loadZapiQr(); loadZapiStatus() }}
+                className={cn("flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg border transition-colors", darkMode ? "border-white/10 text-white/60 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
+              >
+                <RefreshCw className="size-3.5" />
+                Atualizar QR Code
+              </button>
+            </div>
+          )}
+
+          {/* Credenciais configuradas */}
+          <div className={cn("rounded-xl border p-5 space-y-3", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
+            <p className={cn("text-xs font-semibold uppercase tracking-wider", darkMode ? "text-white/40" : "text-slate-400")}>Credenciais Configuradas</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={cn("rounded-lg p-3 border font-mono text-xs", darkMode ? "bg-white/3 border-white/8 text-white/50" : "bg-slate-50 border-slate-200 text-slate-500")}>
+                <span className={cn("block text-[10px] uppercase mb-1", darkMode ? "text-white/30" : "text-slate-400")}>Instance ID</span>
+                {zapiStatus?.error?.includes("não configuradas") ? <span className="text-red-400">Não configurado</span> : "••••••••" + "0BADD2"}
+              </div>
+              <div className={cn("rounded-lg p-3 border font-mono text-xs", darkMode ? "bg-white/3 border-white/8 text-white/50" : "bg-slate-50 border-slate-200 text-slate-500")}>
+                <span className={cn("block text-[10px] uppercase mb-1", darkMode ? "text-white/30" : "text-slate-400")}>Token</span>
+                {zapiStatus?.error?.includes("não configuradas") ? <span className="text-red-400">Não configurado</span> : "••••••••" + "A1FB"}
+              </div>
+            </div>
+            <p className={cn("text-xs", darkMode ? "text-white/25" : "text-slate-400")}>
+              Para alterar as credenciais, acesse as variáveis de ambiente do projeto nas configurações do v0.
+            </p>
+          </div>
+
+          {/* Envio de mensagem de teste */}
+          {zapiStatus?.connected && (
+            <div className={cn("rounded-xl border p-5 space-y-3", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
+              <div className="flex items-center gap-2">
+                <FlaskConical className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
+                <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Enviar mensagem de teste</p>
+              </div>
+              <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>
+                Envie uma mensagem de teste para confirmar que a integração está funcionando.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={zapiTestPhone}
+                  onChange={e => setZapiTestPhone(e.target.value)}
+                  placeholder="Ex: 87999998888 (com DDD)"
+                  className={cn("flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")}
+                />
+                <button
+                  onClick={handleZapiTest}
+                  disabled={zapiTestLoading || !zapiTestPhone.trim()}
+                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-60 transition-colors shrink-0"
+                >
+                  {zapiTestLoading ? <RefreshCw className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                  Testar
+                </button>
+              </div>
+              {zapiTestResult && (
+                <div className={cn("flex items-start gap-2 text-xs p-3 rounded-lg border", zapiTestResult.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
+                  {zapiTestResult.ok ? <CheckCircle2 className="size-4 shrink-0 mt-0.5" /> : <XCircle className="size-4 shrink-0 mt-0.5" />}
+                  <span>{zapiTestResult.msg}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Info: quem recebe notificações */}
+          <div className={cn("rounded-xl border p-5 space-y-2", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
+            <div className="flex items-center gap-2">
+              <Smartphone className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
+              <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Como funcionam as notificações</p>
+            </div>
+            <ul className="space-y-2">
+              {[
+                { icon: CheckCircle2, color: "text-emerald-400", text: "Orçamento aprovado pelo cliente → notificação automática para o prestador" },
+                { icon: XCircle, color: "text-red-400", text: "Orçamento recusado → notificação com o motivo informado pelo cliente" },
+                { icon: Smartphone, color: "text-blue-400", text: "Cada prestador cadastra seu próprio número em Configurações → WhatsApp" },
+                { icon: ShieldCheck, color: "text-amber-400", text: "Notificações via WhatsApp disponíveis apenas para planos Business e Enterprise" },
+              ].map(({ icon: Icon, color, text }, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <Icon className={cn("size-3.5 shrink-0 mt-0.5", color)} />
+                  <span className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>{text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
