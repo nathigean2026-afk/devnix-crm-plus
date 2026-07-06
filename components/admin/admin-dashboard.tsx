@@ -850,13 +850,13 @@ export default function AdminDashboard({
                               {(() => {
                                 const geo = u.lastSessionIp ? geoData[u.lastSessionIp] : null
                                 if (!geo) return geoLoading ? <span className="opacity-40">...</span> : <span className="opacity-30">—</span>
-                                return <span title={`${geo.city}, ${geo.region}, ${geo.country}`}>{geo.city}{geo.region ? `, ${geo.region.slice(0,2)}` : ""}</span>
+                                return <span>{geo.city}{geo.region ? `, ${geo.region}` : ""}{geo.country ? `, ${geo.country}` : ""}</span>
                               })()}
                             </td>
-                            <td className={cn("px-4 py-3 text-xs max-w-28 truncate", darkMode ? "text-white/40" : "text-slate-400")}>
+                            <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/40" : "text-slate-400")}>
                               {(() => {
                                 const geo = u.lastSessionIp ? geoData[u.lastSessionIp] : null
-                                return geo?.isp ? <span title={geo.isp} className="truncate block">{geo.isp}</span> : <span className="opacity-30">—</span>
+                                return geo?.isp ? <span>{geo.isp}</span> : <span className="opacity-30">—</span>
                               })()}
                             </td>
                             <td className="px-4 py-3">
@@ -991,7 +991,14 @@ export default function AdminDashboard({
                             <td className="px-4 py-3"><span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">{c.planName}</span></td>
                             <td className={cn("px-4 py-3 font-semibold", darkMode ? "text-white/80" : "text-slate-700")}>+{formatDuration(c.durationMinutes ?? c.days * 1440)}</td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{c.expiresAt ? formatDate(c.expiresAt) : "—"}</td>
-                            <td className={cn("px-4 py-3 text-xs font-mono", darkMode ? "text-white/50" : "text-slate-400")}>{c.usedBy ? c.usedBy.slice(0, 8) + "..." : "—"}</td>
+                            <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>
+                              {c.usedBy ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className={cn("font-medium", darkMode ? "text-white/80" : "text-slate-700")}>{c.usedByName ?? "—"}</span>
+                                  <span className={cn(darkMode ? "text-white/40" : "text-slate-400")}>{c.usedByEmail ?? c.usedBy}</span>
+                                </div>
+                              ) : "—"}
+                            </td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{formatDateTime(c.usedAt)}</td>
                             <td className="px-4 py-3">
                               {c.usedBy
@@ -1632,7 +1639,12 @@ export default function AdminDashboard({
                   <select
                     value={patchForm.type}
                     onChange={e => setPatchForm(f => ({ ...f, type: e.target.value }))}
-                    className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-800")}
+                    className={cn(
+                      "rounded-lg px-3 py-2 text-sm focus:outline-none border w-full appearance-none",
+                      darkMode
+                        ? "bg-[#1a1a2e] border-white/10 text-white [&>option]:bg-[#1a1a2e] [&>option]:text-white"
+                        : "bg-slate-50 border-slate-200 text-slate-800 [&>option]:bg-white [&>option]:text-slate-800"
+                    )}
                   >
                     <option value="feature">Nova funcionalidade</option>
                     <option value="fix">Correção</option>
