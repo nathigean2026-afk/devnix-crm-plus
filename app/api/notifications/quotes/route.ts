@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
     .limit(1)
 
   // Se não tem Business+ retorna lista vazia (sem erro, para não quebrar o hook)
-  const plan = profile?.licensePlan ?? "starter"
+  // Normaliza para minúsculo para cobrir variações como "Starter", "Business" etc.
+  const plan = (profile?.licensePlan ?? "starter").toLowerCase()
   if (plan !== "business" && plan !== "enterprise") {
     return NextResponse.json({ quotes: [] })
   }

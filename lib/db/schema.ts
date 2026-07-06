@@ -301,6 +301,18 @@ export const activityLog = pgTable("activity_log", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
+// Notas de atualização / changelog do SaaS — gerenciadas pelo admin
+export const patchNotes = pgTable("patch_notes", {
+  id: text("id").primaryKey(),
+  version: text("version").notNull(),                    // ex: "1.4.2"
+  title: text("title").notNull(),
+  body: text("body").notNull(),                          // markdown simples
+  type: text("type").notNull().default("update"),        // "feature" | "fix" | "update" | "breaking"
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
 // Configurações globais do SaaS (singleton — id fixo = 'singleton')
 export const saasConfig = pgTable("saas_config", {
   id: text("id").primaryKey().default("singleton"),
@@ -330,3 +342,4 @@ export type EmployeeInvite = typeof employeeInvites.$inferSelect
 export type EmployeePermission = typeof employeePermissions.$inferSelect
 export type ActivityLog = typeof activityLog.$inferSelect
 export type SaasConfig = typeof saasConfig.$inferSelect
+export type PatchNote = typeof patchNotes.$inferSelect

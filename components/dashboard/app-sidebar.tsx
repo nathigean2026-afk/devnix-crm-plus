@@ -2,7 +2,7 @@
 
 import {
   LayoutDashboard,
-  UsersRound, // equipe / clientes
+  UsersRound,
   Wrench,
   FileText,
   DollarSign,
@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   LifeBuoy,
+  Megaphone,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -33,7 +34,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 type NavPermKey = "canClients" | "canServices" | "canQuotes" | "canOrders" | "canFinanceiro" | "canRelatorios"
 
@@ -63,6 +64,7 @@ const allNavItems = [
   {
     group: "Ajuda",
     items: [
+      { href: "/dashboard/atualizacoes", label: "Atualizações", icon: Megaphone, permKey: null },
       { href: "/dashboard/suporte", label: "Suporte", icon: LifeBuoy, permKey: null },
     ],
   },
@@ -236,7 +238,9 @@ function SidebarFooter({
 export function AppSidebar({ user, permissions = null }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const navItems = buildNavItems(permissions)
+  // useMemo garante que a lista de nav é calculada uma única vez e é idêntica
+  // entre servidor e cliente, evitando hydration mismatch por cache stale.
+  const navItems = useMemo(() => buildNavItems(permissions), [permissions])
 
   const SidebarHeader = ({ isMobile = false }: { isMobile?: boolean }) => {
     // Modo colapsado desktop: ícone centralizado com botão de toggle abaixo do header

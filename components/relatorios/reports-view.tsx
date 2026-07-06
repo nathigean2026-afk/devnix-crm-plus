@@ -125,15 +125,123 @@ export function ReportsView({ data }: ReportsViewProps) {
   }
 
   function handlePrint() {
-    // window.open é bloqueado em iframes; location.href funciona universalmente
-    const url = `/api/relatorios/pdf?days=${days}`
-    const a = document.createElement("a")
-    a.href = url
-    a.target = "_blank"
-    a.rel = "noopener noreferrer"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    const BRL = (v: number) =>
+      new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)
+    const lucroLocal = data.totalReceita - data.totalDespesa
+    const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+    const maxRevenue = Math.max(...data.topClientsByRevenue.map(c => c.total), 1)
+    const maxOrders = Math.max(...data.topClientsByOrders.map(c => c.count), 1)
+
+    const statusLabels: Record<string, string> = { aprovado: "Aprovado", recusado: "Recusado", enviado: "Enviado", rascunho: "Rascunho", expirado: "Expirado", cancelado: "Cancelado" }
+
+    function bar(value: number, max: number, color: string) {
+      const pct = max > 0 ? Math.round((value / max) * 100) : 0
+      return `<div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:5px;"></div></div><span style="font-size:12px;color:#64748b;min-width:80px;text-align:right;">${BRL(value)}</span></div>`
+    }
+    function barCount(value: number, max: number, color: string) {
+      const pct = max > 0 ? Math.round((value / max) * 100) : 0
+      return `<div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:5px;"></div></div><span style="font-size:12px;color:#64748b;min-width:40px;text-align:right;">${value}x</span></div>`
+    }
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
+<title>Relatório — ${periodLabel}</title>
+<style>
+  @page{size:A4;margin:20mm 18mm;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:13px;line-height:1.5;}
+  h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0;}
+  .header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;border-bottom:2px solid #1d4ed8;margin-bottom:24px;}
+  .badge{display:inline-block;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:4px;border:1px solid #bfdbfe;}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+  .card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;}
+  .card .lbl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .card .val{font-size:17px;font-weight:800;}
+  .section{margin-bottom:24px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{background:#f8fafc;}
+  th{padding:7px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#64748b;border-bottom:1px solid #e2e8f0;}
+  td{padding:7px 10px;border-bottom:1px solid #f1f5f9;color:#374151;}
+  tr:last-child td{border-bottom:none;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+  .bar-list{display:flex;flex-direction:column;gap:10px;}
+  .bar-item{display:flex;flex-direction:column;gap:4px;}
+  .bar-name{font-size:12px;color:#374151;font-weight:500;}
+  .summary{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:20px;}
+  .srow{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f1f5f9;}
+  .srow:last-child{border-bottom:none;}
+  .footer{margin-top:32px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>
+<div class="header">
+  <div><span class="badge">${periodLabel}</span><div style="font-size:20px;font-weight:800;">Relatório Analítico</div><div style="font-size:11px;color:#64748b;margin-top:3px;">Gerado em ${today}</div></div>
+  <div style="text-align:right;font-size:11px;color:#64748b;"><strong style="display:block;font-size:15px;font-weight:700;color:#1d4ed8;">Elevanthe CRM</strong></div>
+</div>
+
+<div class="section"><h2>Resumo do Período</h2>
+<div class="cards">
+  <div class="card"><div class="lbl">Receita</div><div class="val" style="color:#16a34a;">${BRL(data.totalReceita)}</div></div>
+  <div class="card"><div class="lbl">Despesas</div><div class="val" style="color:#dc2626;">${BRL(data.totalDespesa)}</div></div>
+  <div class="card"><div class="lbl">Lucro Líquido</div><div class="val" style="color:${lucroLocal >= 0 ? "#1d4ed8" : "#dc2626"};">${BRL(lucroLocal)}</div></div>
+  <div class="card"><div class="lbl">A Receber</div><div class="val" style="color:#d97706;">${BRL(data.totalPendente)}</div></div>
+</div>
+<div class="cards">
+  <div class="card"><div class="lbl">Clientes</div><div class="val" style="color:#1d4ed8;">${data.totalClients}</div></div>
+  <div class="card"><div class="lbl">Orçamentos</div><div class="val">${data.totalQuotes}</div></div>
+  <div class="card"><div class="lbl">Aprovados</div><div class="val" style="color:#16a34a;">${data.totalAprovados}</div></div>
+  <div class="card"><div class="lbl">Recusados</div><div class="val" style="color:#dc2626;">${data.totalRecusados}</div></div>
+</div></div>
+
+<div class="section"><h2>Detalhamento Financeiro</h2>
+<div class="summary">
+  <div class="srow"><span style="color:#64748b;">Receitas pagas</span><span style="font-weight:700;color:#16a34a;">${BRL(data.totalReceita)}</span></div>
+  <div class="srow"><span style="color:#64748b;">Despesas pagas</span><span style="font-weight:700;color:#dc2626;">${BRL(data.totalDespesa)}</span></div>
+  <div class="srow" style="background:#f8fafc;"><span style="font-weight:600;">Lucro Líquido</span><span style="font-weight:800;color:${lucroLocal >= 0 ? "#1d4ed8" : "#dc2626"};">${BRL(lucroLocal)}</span></div>
+  <div class="srow"><span style="color:#64748b;">Receitas pendentes</span><span style="font-weight:700;color:#d97706;">${BRL(data.totalPendente)}</span></div>
+  <div class="srow"><span style="color:#64748b;">Taxa de conversão</span><span style="font-weight:700;">${data.taxaConversao}%</span></div>
+</div></div>
+
+<div class="section"><h2>Orçamentos por Status</h2>
+<table><thead><tr><th>Status</th><th style="text-align:right;">Qtd</th><th style="text-align:right;">Participação</th></tr></thead><tbody>
+${data.quotesChart.map(q => `<tr><td>${statusLabels[q.status] ?? q.status}</td><td style="text-align:right;font-weight:600;">${q.count}</td><td style="text-align:right;color:#64748b;">${data.totalQuotes > 0 ? Math.round((q.count / data.totalQuotes) * 100) : 0}%</td></tr>`).join("")}
+</tbody></table></div>
+
+<div class="two-col">
+<div><h2>Top Clientes — Receita</h2><div class="bar-list">${data.topClientsByRevenue.map(c => `<div class="bar-item"><span class="bar-name">${c.name}</span>${bar(c.total, maxRevenue, "#1d4ed8")}</div>`).join("")}</div></div>
+<div><h2>Top Clientes — Serviços</h2><div class="bar-list">${data.topClientsByOrders.map(c => `<div class="bar-item"><span class="bar-name">${c.name}</span>${barCount(c.count, maxOrders, "#0891b2")}</div>`).join("")}</div></div>
+</div>
+
+${data.topServices.length > 0 ? `<div class="section"><h2>Serviços Mais Realizados</h2>
+<table><thead><tr><th>#</th><th>Serviço</th><th style="text-align:right;">Qtd</th><th style="text-align:right;">Receita</th></tr></thead><tbody>
+${data.topServices.map((s, i) => `<tr><td style="color:#94a3b8;">${i + 1}</td><td style="font-weight:500;">${s.name}</td><td style="text-align:right;">${Math.round(s.count)}x</td><td style="text-align:right;font-weight:600;color:#16a34a;">${BRL(s.revenue)}</td></tr>`).join("")}
+</tbody></table></div>` : ""}
+
+${data.rejectedQuotes.length > 0 ? `<div class="section"><h2>Orçamentos Recusados com Motivo</h2>
+<table><thead><tr><th>Nº</th><th>Título</th><th style="text-align:right;">Valor</th><th>Motivo</th></tr></thead><tbody>
+${data.rejectedQuotes.map(q => `<tr><td style="color:#94a3b8;">#${String(q.number).padStart(4, "0")}</td><td>${q.title}</td><td style="text-align:right;font-weight:600;">${BRL(Number(q.total))}</td><td style="color:#64748b;">${q.rejectionReason ?? "—"}</td></tr>`).join("")}
+</tbody></table></div>` : ""}
+
+<div class="footer"><span>Relatório gerado via Elevanthe CRM</span><span>${today} — ${periodLabel}</span></div>
+</body></html>`
+
+    // Gera em nova janela e dispara impressão — sem depender de sessão na rota de API
+    const win = window.open("", "_blank")
+    if (win) {
+      win.document.write(html)
+      win.document.close()
+      win.focus()
+      setTimeout(() => win.print(), 400)
+    } else {
+      // Fallback: blob URL para navegadores que bloqueiam window.open
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `relatorio-${data.periodDays}dias.html`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    }
   }
 
   const summaryCards = [
