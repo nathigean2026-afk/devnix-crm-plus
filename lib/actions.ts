@@ -24,6 +24,7 @@ import {
   verification,
   saasConfig,
   patchNotes,
+  pushSubscriptions,
 } from "@/lib/db/schema"
 import { and, count, desc, eq, isNull, like, sql } from "drizzle-orm"
 import { sendQuoteResponseEmail } from "@/lib/email"
@@ -1108,29 +1109,55 @@ export async function adminRevokeAccess(userId: string) {
 }
 
 export async function adminDeleteUser(userId: string) {
-  // Remove dados do usuário em ordem segura antes de deletar o registro principal.
-  // Tabelas com onDelete:"cascade" são limpas automaticamente (session, account, etc.)
-  // supportMessages não tem userId — deletar via ticketId dos tickets do usuário
+  // ── 1. Tabelas sem FK para user (deleção manual obrigatória) ────────────────
+
+  // supportMessages não tem userId: deleta via ticketId dos tickets do usuário
   await db.delete(supportMessages).where(
     sql`"ticketId" IN (SELECT id FROM support_tickets WHERE "userId" = ${userId})`
   )
   await db.delete(supportTickets).where(eq(supportTickets.userId, userId))
-  await db.delete(payments).where(eq(payments.userId, userId))
-  await db.delete(transactions).where(eq(transactions.userId, userId))
-  await db.delete(serviceOrderItems).where(
-    sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+
+  // activityLog não tem FK: deleta onde o usuário é dono ou funcionário
+  await db.delete(activityLog).where(
+    sql`"ownerId" = ${userId} OR "employeeId" = ${userId}`
   )
-  await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
+
+  // Itens de orçamento e ordem de serviço (FK para quote/serviceOrder, não para user)
   await db.delete(quoteItems).where(
     sql`"quoteId" IN (SELECT id FROM quotes WHERE "userId" = ${userId})`
   )
+  await db.delete(serviceOrderItems).where(
+    sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+  )
+
+  // ── 2. Tabelas com userId direto ────────────────────────────────────────────
   await db.delete(quotes).where(eq(quotes.userId, userId))
+  await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
+  await db.delete(transactions).where(eq(transactions.userId, userId))
   await db.delete(services).where(eq(services.userId, userId))
   await db.delete(clients).where(eq(clients.userId, userId))
-  await db.delete(employeePermissions).where(eq(employeePermissions.employeeId, userId))
-  await db.delete(employeeInvites).where(eq(employeeInvites.ownerId, userId))
+  await db.delete(payments).where(eq(payments.userId, userId))
   await db.delete(businessProfile).where(eq(businessProfile.userId, userId))
+
+  // Push subscriptions do dispositivo do usuário
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId))
+
+  // Vínculos de funcionário (como dono e como funcionário)
+  await db.delete(employeePermissions).where(
+    sql`"ownerId" = ${userId} OR "employeeId" = ${userId}`
+  )
+  await db.delete(employeeInvites).where(eq(employeeInvites.ownerId, userId))
+
+  // ── 3. Tabelas com onDelete:"cascade" (session, account, verification) ──────
+  // Serão limpas automaticamente pelo Postgres ao deletar o user,
+  // mas deletamos explicitamente para garantir consistência em ambientes sem FK enforcement.
+  await db.delete(session).where(eq(session.userId, userId))
+  await db.delete(account).where(eq(account.userId, userId))
+  await db.delete(verification).where(eq(verification.identifier, userId))
+
+  // ── 4. Registro principal ───────────────────────────────────────────────────
   await db.delete(user).where(eq(user.id, userId))
+
   revalidatePath("/admin")
 }
 
