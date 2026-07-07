@@ -1,8 +1,8 @@
 // Elevanthe CRM — Service Worker
 // Estratégia: Network First para páginas, Cache First para assets estáticos
 
-const CACHE_NAME = "elevanthe-crm-v1";
-const STATIC_CACHE = "elevanthe-static-v1";
+const CACHE_NAME = "elevanthe-crm-v3";
+const STATIC_CACHE = "elevanthe-static-v3";
 
 // Assets que devem ser cacheados imediatamente (app shell)
 const APP_SHELL = [
@@ -53,11 +53,11 @@ self.addEventListener("fetch", (event) => {
   // API routes: sempre network, sem cache
   if (url.pathname.startsWith("/api/")) return;
 
-  // Assets estáticos (_next/static, imagens públicas): Cache First
-  if (
-    url.pathname.startsWith("/_next/static/") ||
-    url.pathname.match(/\.(png|jpg|jpeg|svg|ico|webp|woff2|woff)$/)
-  ) {
+  // Chunks JS/CSS do Next.js: sempre network (nunca cachear — mudam a cada deploy)
+  if (url.pathname.startsWith("/_next/")) return;
+
+  // Assets estáticos (imagens públicas, fontes): Cache First
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|ico|webp|woff2|woff)$/)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
