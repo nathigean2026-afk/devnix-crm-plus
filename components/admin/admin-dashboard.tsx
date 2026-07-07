@@ -172,6 +172,7 @@ export default function AdminDashboard({
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [tab, setTab] = useState<Tab>("visao")
   const [darkMode, setDarkMode] = useState(true)
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
@@ -648,6 +649,19 @@ export default function AdminDashboard({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setIsRefreshing(true); router.refresh(); setTimeout(() => setIsRefreshing(false), 1000) }}
+              disabled={isRefreshing}
+              className={cn(
+                "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors",
+                darkMode ? "text-white/50 border-white/10 hover:border-white/20 hover:text-white/80" : "text-slate-500 border-slate-200 hover:border-slate-300",
+                isRefreshing && "opacity-60 cursor-not-allowed"
+              )}
+              title="Atualizar dados"
+            >
+              <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
+              <span className="hidden sm:inline">{isRefreshing ? "Atualizando..." : "Atualizar"}</span>
+            </button>
             <button
               onClick={() => setDarkMode(d => !d)}
               className={cn(
