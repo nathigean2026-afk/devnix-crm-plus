@@ -620,7 +620,7 @@ export default function AdminDashboard({
 
   return (
     <div className={cn("min-h-screen text-white", darkMode ? "dark bg-[#0a0a0f]" : "bg-slate-50")}>
-      <div className={cn("min-h-screen", darkMode ? "bg-[#0a0a0f] text-white" : "bg-slate-50 text-slate-900")}>
+      <div className={cn(darkMode ? "bg-[#0a0a0f] text-white" : "bg-slate-50 text-slate-900")}>
         {/* Header */}
         <header className={cn(
           "border-b px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-30 backdrop-blur",
