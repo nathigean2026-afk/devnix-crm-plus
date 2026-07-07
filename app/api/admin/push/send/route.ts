@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import { pushSubscriptions, pushNotifications } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -7,12 +6,6 @@ import webpush from "web-push"
 import { nanoid } from "nanoid"
 
 export async function POST(req: NextRequest) {
-  const jar = await cookies()
-  const adminSession = jar.get("admin_session")?.value
-  if (adminSession !== "admin-nathigean-001") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
-  }
-
   const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const vapidPrivate = process.env.VAPID_PRIVATE_KEY
   if (!vapidPublic || !vapidPrivate) {
