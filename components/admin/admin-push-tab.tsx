@@ -3,11 +3,21 @@
 import { RefreshCw, Bell, Send, History, Users2, Radio, CheckCircle2, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface PushStats {
+interface PushNotification {
+  id: string
+  title: string
+  body: string
+  url: string
+  type: string
+  sentBy: string
   totalSent: number
-  lastWeek: number
-  subscribers: number
-  recent: { title: string; body: string; sentAt: string; success: boolean }[]
+  totalFailed: number
+  createdAt: Date | string
+}
+
+interface PushStats {
+  totalSubscribers: number
+  notifications: PushNotification[]
 }
 
 interface Props {
@@ -21,8 +31,10 @@ interface Props {
   setPushBody: (v: string) => void
   pushUrl: string
   setPushUrl: (v: string) => void
-  pushType: "all" | "active"
-  setPushType: (v: "all" | "active") => void
+  pushType: "info" | "warning" | "promo" | "maintenance"
+  setPushType: (v: "info" | "warning" | "promo" | "maintenance") => void
+  pushRecipient: "all" | "active"
+  setPushRecipient: (v: "all" | "active") => void
   pushSending: boolean
   pushResult: { ok: boolean; message: string } | null
   handleSendPush: () => void
@@ -32,6 +44,7 @@ export function AdminPushTab({
   darkMode, pushStats, pushStatsLoading, loadPushStats,
   pushTitle, setPushTitle, pushBody, setPushBody,
   pushUrl, setPushUrl, pushType, setPushType,
+  pushRecipient, setPushRecipient,
   pushSending, pushResult, handleSendPush,
 }: Props) {
   const inputCls = cn(
@@ -67,9 +80,9 @@ export function AdminPushTab({
       {pushStats && (
         <div className="grid grid-cols-3 gap-3">
           {[
-            { icon: Send, label: "Total enviados", value: pushStats.totalSent },
-            { icon: Radio, label: "Ultima semana", value: pushStats.lastWeek },
-            { icon: Users2, label: "Assinantes", value: pushStats.subscribers },
+            { icon: Send, label: "Total enviados", value: pushStats.notifications.reduce((acc, n) => acc + n.totalSent, 0) },
+            { icon: Radio, label: "Notificacoes", value: pushStats.notifications.length },
+            { icon: Users2, label: "Assinantes", value: pushStats.totalSubscribers },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className={cn("rounded-xl border p-4", darkMode ? "border-white/8 bg-white/3" : "border-slate-200 bg-white")}>
               <Icon className={cn("size-4 mb-2", darkMode ? "text-white/40" : "text-slate-400")} />
@@ -104,7 +117,7 @@ export function AdminPushTab({
             <label className={cn("text-xs font-medium mb-1.5 block", darkMode ? "text-white/50" : "text-slate-500")}>Destinatarios</label>
             <div className="flex gap-2">
               {(["all", "active"] as const).map(t => (
-                <button key={t} onClick={() => setPushType(t)} className={cn("text-xs px-3 py-1.5 rounded-lg border transition-colors", pushType === t ? "border-primary bg-primary/10 text-primary" : darkMode ? "border-white/10 text-white/50 hover:border-white/20" : "border-slate-200 text-slate-500 hover:border-slate-300")}>
+                <button key={t} onClick={() => setPushRecipient(t)} className={cn("text-xs px-3 py-1.5 rounded-lg border transition-colors", pushRecipient === t ? "border-primary bg-primary/10 text-primary" : darkMode ? "border-white/10 text-white/50 hover:border-white/20" : "border-slate-200 text-slate-500 hover:border-slate-300")}>
                   {t === "all" ? "Todos" : "Somente ativos"}
                 </button>
               ))}
@@ -130,22 +143,24 @@ export function AdminPushTab({
       </div>
 
       {/* Recent */}
-      {pushStats?.recent && pushStats.recent.length > 0 && (
+      {pushStats?.notifications && pushStats.notifications.length > 0 && (
         <div className={cn("rounded-xl border p-5", darkMode ? "border-white/8 bg-white/3" : "border-slate-200 bg-white")}>
           <div className="flex items-center gap-2 mb-3">
             <History className={cn("size-4", darkMode ? "text-white/50" : "text-slate-400")} />
             <h3 className={cn("text-sm font-semibold", darkMode ? "text-white/80" : "text-slate-700")}>Recentes</h3>
           </div>
           <div className="space-y-2">
-            {pushStats.recent.map((n, i) => (
-              <div key={i} className={cn("flex items-start justify-between gap-3 py-2 border-b last:border-0", darkMode ? "border-white/5" : "border-slate-100")}>
+            {pushStats.notifications.map((n) => (
+              <div key={n.id} className={cn("flex items-start justify-between gap-3 py-2 border-b last:border-0", darkMode ? "border-white/5" : "border-slate-100")}>
                 <div className="min-w-0 flex-1">
                   <p className={cn("text-sm font-medium truncate", darkMode ? "text-white/80" : "text-slate-700")}>{n.title}</p>
                   <p className={cn("text-xs truncate mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{n.body}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {n.success ? <CheckCircle2 className="size-3.5 text-emerald-400" /> : <XCircle className="size-3.5 text-red-400" />}
-                  <span className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>{n.sentAt}</span>
+                  {n.totalFailed === 0 ? <CheckCircle2 className="size-3.5 text-emerald-400" /> : <XCircle className="size-3.5 text-red-400" />}
+                  <span className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>
+                    {n.totalSent} enviado(s) · {new Date(n.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
                 </div>
               </div>
             ))}

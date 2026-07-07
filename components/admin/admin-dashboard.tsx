@@ -297,8 +297,9 @@ export default function AdminDashboard({
   const [pushBody, setPushBody] = useState("")
   const [pushUrl, setPushUrl] = useState("/dashboard")
   const [pushType, setPushType] = useState<"info" | "warning" | "promo" | "maintenance">("info")
+  const [pushRecipient, setPushRecipient] = useState<"all" | "active">("all")
   const [pushSending, setPushSending] = useState(false)
-  const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [pushResult, setPushResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   async function loadPushStats() {
     setPushStatsLoading(true)
@@ -319,21 +320,24 @@ export default function AdminDashboard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ title: pushTitle, body: pushBody, url: pushUrl, type: pushType }),
+        body: JSON.stringify({ title: pushTitle, body: pushBody, url: pushUrl, type: pushType, recipient: pushRecipient }),
       })
       const json = await res.json()
       if (res.ok) {
-        setPushResult({ ok: true, msg: `Enviado para ${json.totalSent} dispositivo(s). ${json.totalFailed > 0 ? `${json.totalFailed} falhou(aram).` : ""}` })
+        const msg = json.warning
+          ? json.warning
+          : `Enviado para ${json.totalSent} dispositivo(s).${json.totalFailed > 0 ? ` ${json.totalFailed} falhou(aram).` : ""}`
+        setPushResult({ ok: json.totalSent > 0 || !json.warning, message: msg })
         setPushTitle("")
         setPushBody("")
         setPushUrl("/dashboard")
         setPushType("info")
         await loadPushStats()
       } else {
-        setPushResult({ ok: false, msg: json.error ?? "Erro ao enviar notificações." })
+        setPushResult({ ok: false, message: json.error ?? "Erro ao enviar notificações." })
       }
     } catch {
-      setPushResult({ ok: false, msg: "Erro de conexão." })
+      setPushResult({ ok: false, message: "Erro de conexão." })
     } finally {
       setPushSending(false)
     }
@@ -1744,6 +1748,8 @@ export default function AdminDashboard({
           setPushUrl={setPushUrl}
           pushType={pushType}
           setPushType={setPushType}
+          pushRecipient={pushRecipient}
+          setPushRecipient={setPushRecipient}
           pushSending={pushSending}
           pushResult={pushResult}
           handleSendPush={handleSendPush}
