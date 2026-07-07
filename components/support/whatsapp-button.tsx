@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { MessageCircle, X, Phone } from "lucide-react"
 
-const WHATSAPP_NUMBER = "5587981215180"
+const WHATSAPP_NUMBER = "5587988219342"
 const WHATSAPP_MESSAGE = encodeURIComponent("Olá! Vim pelo site do Elevanthe CRM e gostaria de tirar algumas dúvidas.")
 
 export function WhatsAppButton() {
