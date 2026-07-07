@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X, Smartphone, ArrowDown, Zap } from "lucide-react"
 import Image from "next/image"
 
 interface BeforeInstallPromptEvent extends Event {
@@ -121,7 +120,7 @@ export function PwaInstallPrompt() {
                 color: "#a78bfa",
               }}
             >
-              <Zap className="size-2.5" />
+              <svg className="size-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               Disponível como app
             </div>
             <button
@@ -132,7 +131,7 @@ export function PwaInstallPrompt() {
               onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
               onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
             >
-              <X className="size-4" />
+              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
 
@@ -191,7 +190,7 @@ export function PwaInstallPrompt() {
                   boxShadow: "0 4px 20px rgba(124,58,237,0.5), inset 0 1px 0 rgba(255,255,255,0.15)",
                 }}
               >
-                <ArrowDown className="size-4" />
+                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
                 Instalar app
               </button>
             </div>
@@ -203,7 +202,7 @@ export function PwaInstallPrompt() {
               className="flex items-center gap-3 px-4 py-3 rounded-2xl"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             >
-              <Smartphone className="size-5 shrink-0" style={{ color: "#22D3EE" }} />
+              <svg className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
               <div>
                 <p className="text-xs font-medium text-white/80">Como instalar no iPhone</p>
                 <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
