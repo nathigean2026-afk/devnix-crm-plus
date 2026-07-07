@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone, Eye, EyeOff, KeyRound } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone, Eye, EyeOff, KeyRound, Clock } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import Image from "next/image"
@@ -336,58 +336,35 @@ function LicenseCard({
           />
         </div>
 
-        {/* Notificações via WhatsApp — disponível apenas a partir do Business */}
-        <div className="pt-2 border-t border-border mt-2">
+        {/* Notificações via WhatsApp — em desenvolvimento, bloqueado para todos */}
+        <div className="pt-2 border-t border-border mt-2 opacity-60 pointer-events-none select-none">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="size-4 text-green-500 shrink-0" />
             <p className="text-sm font-medium text-foreground">Receba notificações no seu WhatsApp</p>
-            {isStart && (
-              <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/25">
-                <Lock className="size-2.5" />Business+
-              </span>
-            )}
+            <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/25">
+              <Clock className="size-2.5" />Em breve
+            </span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo.
+            Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo. Disponível em breve para planos Business e Enterprise.
           </p>
-          {isStart ? (
-            <PlanGate
-              locked
-              featureName="Notificações via WhatsApp"
-              featureBenefit="Receba mensagens instantâneas no WhatsApp quando clientes aprovarem ou recusarem orçamentos."
+          <div className="flex gap-2 items-center">
+            <Input
+              value=""
+              placeholder="(11) 99999-9999"
+              className="bg-input border-border text-sm max-w-64"
+              type="tel"
+              readOnly
             />
-          ) : (
-            <>
-              <div className="flex gap-2 items-center">
-                <Input
-                  value={whatsappPhone}
-                  onChange={e => setWhatsappPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  className="bg-input border-border text-sm max-w-64"
-                  type="tel"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSaveWhatsapp}
-                  disabled={savingWhatsapp}
-                  className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                >
-                  {savingWhatsapp ? "Salvando..." : whatsappSaved ? (
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="size-3.5" />
-                      Salvo
-                    </span>
-                  ) : "Salvar"}
-                </Button>
-              </div>
-              {whatsappPhone && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Notificacoes serao enviadas para <span className="font-medium text-foreground">{whatsappPhone}</span>.
-                </p>
-              )}
-            </>
-          )}
+            <Button
+              type="button"
+              size="sm"
+              disabled
+              className="shrink-0"
+            >
+              Salvar
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
