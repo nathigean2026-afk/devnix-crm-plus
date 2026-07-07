@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions"
 import type { PatchNote } from "@/lib/db/schema"
 import { AdminTickets } from "@/components/admin/admin-tickets"
+import { StatCard } from "@/components/admin/stat-card"
 import { toast } from "sonner"
 import Image from "next/image"
 import {
@@ -155,32 +156,6 @@ function parseIp(ip: string | null) {
   const clean = ip.replace(/^::ffff:/, "")
   if (clean === "::1" || clean === "127.0.0.1") return "Localhost"
   return clean
-}
-
-function StatCard({ icon: Icon, label, value, sub, color, onClick, active, darkMode = true }: {
-  icon: React.ElementType; label: string; value: number | string; sub?: string; color: string; onClick?: () => void; active?: boolean; darkMode?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-xl border p-4 flex items-center gap-4 text-left transition-all",
-        onClick ? "cursor-pointer" : "cursor-default",
-        darkMode
-          ? active ? "border-white/30 bg-white/8 hover:border-white/25" : "border-white/8 bg-white/4 hover:border-white/16"
-          : active ? "border-primary/40 bg-primary/5 shadow-sm" : "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow",
-      )}
-    >
-      <div className={cn("size-11 rounded-xl flex items-center justify-center shrink-0", color)}>
-        <Icon className="size-5 text-white" />
-      </div>
-      <div className="min-w-0">
-        <p className={cn("text-2xl font-bold leading-none", darkMode ? "text-white" : "text-slate-800")}>{value}</p>
-        <p className={cn("text-xs mt-1 leading-snug", darkMode ? "text-white/50" : "text-slate-500")}>{label}</p>
-        {sub && <p className={cn("text-[10px] mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>{sub}</p>}
-      </div>
-    </button>
-  )
 }
 
 type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp" | "push"
@@ -653,12 +628,16 @@ export default function AdminDashboard({
               alt="Elevanthe"
               width={32}
               height={32}
-              className={cn("rounded-lg object-contain", darkMode ? "opacity-90" : "opacity-100")}
+              className={cn("rounded-lg object-contain shrink-0", darkMode ? "opacity-90" : "opacity-100")}
             />
             <div>
               <h1 className={cn("font-bold text-sm leading-none", darkMode ? "text-white" : "text-slate-900")}>Elevanthe CRM</h1>
-              <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-500")}>Painel de Controle</p>
+              <p className={cn("text-[11px] mt-0.5", darkMode ? "text-white/40" : "text-slate-500")}>Painel de Controle</p>
             </div>
+            <div className={cn("hidden sm:block w-px h-5 mx-1", darkMode ? "bg-white/10" : "bg-slate-200")} />
+            <span className={cn("hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full", darkMode ? "text-emerald-400 bg-emerald-500/10" : "text-emerald-600 bg-emerald-50")}>
+              Admin
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -675,7 +654,7 @@ export default function AdminDashboard({
               onClick={handleLogout}
               className={cn(
                 "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors",
-                darkMode ? "text-white/50 border-white/10 hover:border-white/20 hover:text-white/80" : "text-slate-500 border-slate-200 hover:border-slate-300"
+                darkMode ? "text-white/50 border-white/10 hover:border-red-500/30 hover:text-red-400" : "text-slate-500 border-slate-200 hover:text-red-500 hover:border-red-200"
               )}
             >
               <LogOut className="size-3.5" />
@@ -686,7 +665,7 @@ export default function AdminDashboard({
 
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          <div className="grid gap-2 mb-6" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
             <StatCard darkMode={darkMode} icon={UsersRound} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
             <StatCard darkMode={darkMode} icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
             <StatCard darkMode={darkMode} icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
@@ -698,21 +677,21 @@ export default function AdminDashboard({
 
           {/* Tabs */}
           <div className={cn(
-            "flex gap-0.5 border rounded-xl p-1 mb-6 overflow-x-auto",
-            darkMode ? "bg-white/4 border-white/8" : "bg-slate-100 border-slate-200"
+            "flex gap-0.5 rounded-xl p-1 mb-6 overflow-x-auto scrollbar-none border",
+            darkMode ? "bg-white/3 border-white/8" : "bg-slate-100/80 border-slate-200"
           )}>
             {TABS.map(t => (
               <button
                 key={t.key}
                 onClick={() => handleTabChange(t.key)}
                 className={cn(
-                  "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all",
+                  "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all shrink-0",
                   tab === t.key
-                    ? darkMode ? "bg-primary text-white shadow" : "bg-primary text-white shadow"
-                    : darkMode ? "text-white/50 hover:text-white/80" : "text-slate-500 hover:text-slate-700"
+                    ? "bg-primary text-white shadow-lg shadow-primary/20"
+                    : darkMode ? "text-white/40 hover:text-white/75 hover:bg-white/5" : "text-slate-500 hover:text-slate-700 hover:bg-white"
                 )}
               >
-                <t.icon className="size-3.5" />
+                <t.icon className="size-3.5 shrink-0" />
                 {t.label}
               </button>
             ))}
@@ -759,19 +738,24 @@ export default function AdminDashboard({
                   <h2 className={cn("text-sm font-semibold", darkMode ? "text-white/70" : "text-slate-600")}>Logins diários — últimos 14 dias</h2>
                 </div>
                 {stats.dailyLogins.length === 0 ? (
-                  <p className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>Sem dados suficientes.</p>
+                  <div className="h-28 flex items-center justify-center">
+                    <p className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>Sem dados suficientes.</p>
+                  </div>
                 ) : (
-                  <div className="flex items-end gap-1 h-20">
+                  <div className="flex items-end gap-1.5 h-28 pt-2">
                     {stats.dailyLogins.map((d) => {
                       const max = Math.max(...stats.dailyLogins.map(x => x.logins), 1)
-                      const h = Math.max((d.logins / max) * 100, 6)
+                      const h = Math.max((d.logins / max) * 100, 4)
                       return (
                         <div key={d.day} className="flex flex-col items-center gap-1 flex-1 group" title={`${d.day}: ${d.logins} login(s)`}>
+                          <span className={cn("text-[9px] opacity-0 group-hover:opacity-100 transition-opacity font-bold", darkMode ? "text-white/70" : "text-slate-500")}>
+                            {d.logins}
+                          </span>
                           <div
                             style={{ height: `${h}%` }}
-                            className="w-full rounded-sm bg-primary/50 group-hover:bg-primary transition-colors min-h-[4px]"
+                            className="w-full rounded-md bg-primary/40 group-hover:bg-primary transition-all duration-200 min-h-[4px]"
                           />
-                          <span className={cn("text-[9px] rotate-45 origin-left mt-1", darkMode ? "text-white/20" : "text-slate-400")}>
+                          <span className={cn("text-[9px]", darkMode ? "text-white/20" : "text-slate-400")}>
                             {formatDayLabel(d.day)}
                           </span>
                         </div>
