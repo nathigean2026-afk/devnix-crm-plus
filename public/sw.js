@@ -1,8 +1,8 @@
 // Elevanthe CRM — Service Worker
 // Estratégia: Network First para páginas, Cache First para assets estáticos
 
-const CACHE_NAME = "elevanthe-crm-v3";
-const STATIC_CACHE = "elevanthe-static-v3";
+const CACHE_NAME = "elevanthe-crm-v4";
+const STATIC_CACHE = "elevanthe-static-v4";
 
 // Assets que devem ser cacheados imediatamente (app shell)
 const APP_SHELL = [
@@ -88,4 +88,51 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+});
+
+// ── Push: recebe notificação do servidor ─────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = { title: "Elevanthe CRM", body: "Nova atualização disponível.", url: "/dashboard", icon: "/pwa-icon-192.png", badge: "/pwa-icon-192.png", type: "info" };
+
+  try {
+    if (event.data) data = { ...data, ...JSON.parse(event.data.text()) };
+  } catch (_) {}
+
+  // Cor do badge por tipo de notificação
+  const tagMap = { maintenance: "maintenance", promo: "promo", warning: "warning", info: "info" };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || "/pwa-icon-192.png",
+      badge: data.badge || "/pwa-icon-192.png",
+      tag: tagMap[data.type] || "info",
+      data: { url: data.url || "/dashboard" },
+      requireInteraction: data.type === "maintenance" || data.type === "warning",
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+// ── Notification click: abre a URL correta ao clicar ─────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/dashboard";
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Se já tem uma aba aberta, foca nela e navega
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && "focus" in client) {
+            client.focus();
+            client.navigate(targetUrl);
+            return;
+          }
+        }
+        // Senão abre uma nova aba
+        if (clients.openWindow) return clients.openWindow(targetUrl);
+      })
+  );
 });
