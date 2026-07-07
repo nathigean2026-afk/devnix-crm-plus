@@ -324,7 +324,7 @@ export default function AdminDashboard({
   async function loadPushStats() {
     setPushStatsLoading(true)
     try {
-      const res = await fetch("/api/admin/push/stats", { cache: "no-store" })
+      const res = await fetch("/api/admin/push/stats", { cache: "no-store", credentials: "include" })
       const json = await res.json()
       if (res.ok) setPushStats(json)
     } catch { /* silencioso */ }
@@ -339,6 +339,7 @@ export default function AdminDashboard({
       const res = await fetch("/api/admin/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ title: pushTitle, body: pushBody, url: pushUrl, type: pushType }),
       })
       const json = await res.json()
