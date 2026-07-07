@@ -200,6 +200,17 @@ await pool.query(`
     "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
   );
 
+  CREATE TABLE IF NOT EXISTS "admin_log" (
+    id TEXT PRIMARY KEY,
+    "adminEmail" TEXT NOT NULL,
+    action TEXT NOT NULL,
+    description TEXT NOT NULL,
+    "targetUserId" TEXT,
+    "targetUserEmail" TEXT,
+    meta TEXT,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+
   CREATE TABLE IF NOT EXISTS "support_tickets" (
     id TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL,
