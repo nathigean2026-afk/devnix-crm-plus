@@ -12,11 +12,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Chaves VAPID não configuradas. Adicione NEXT_PUBLIC_VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY nas variáveis de ambiente." }, { status: 500 })
   }
 
-  webpush.setVapidDetails(
-    process.env.VAPID_EMAIL ?? "mailto:suporte@elevanthe.com.br",
-    vapidPublic,
-    vapidPrivate
-  )
+  const rawEmail = process.env.VAPID_EMAIL ?? "suporte@elevanthe.com.br"
+  const vapidEmail = rawEmail.startsWith("mailto:") ? rawEmail : `mailto:${rawEmail}`
+
+  webpush.setVapidDetails(vapidEmail, vapidPublic, vapidPrivate)
 
   try {
     const { title, body, url, type } = await req.json()
