@@ -14,10 +14,6 @@ interface Props {
 }
 
 export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiStatus, handleZapiDisconnect }: Props) {
-  const card = cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200 shadow-sm")
-  const label = cn("text-xs font-semibold uppercase tracking-wider", darkMode ? "text-white/40" : "text-slate-400")
-  const text = cn("text-sm", darkMode ? "text-white/60" : "text-slate-500")
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -27,7 +23,7 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
             WhatsApp via Z-API
           </h2>
           <p className={cn("text-xs mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>
-            Gerenciamento da instância Z-API
+            Gerenciamento da instancia Z-API
           </p>
         </div>
         <button
@@ -40,88 +36,91 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
         </button>
       </div>
 
-      {/* Status card */}
-      <div className={card}>
+      {/* Status Card */}
+      <div className={cn("rounded-xl border p-5", darkMode ? "border-white/8 bg-white/3" : "border-slate-200 bg-white")}>
         <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <p className={label}>Status da Instância</p>
-            {zapiLoading ? (
-              <div className="flex items-center gap-2">
-                <RefreshCw className="size-4 animate-spin text-blue-400" />
-                <span className={text}>Verificando conexão...</span>
-              </div>
-            ) : zapiStatus?.error ? (
-              <div className="flex items-center gap-2">
-                <XCircle className="size-5 text-red-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-red-400">Erro de conexão</p>
-                  <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{zapiStatus.error}</p>
-                </div>
-              </div>
-            ) : zapiStatus?.connected ? (
-              <div className="flex items-center gap-2">
-                <div className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <div>
-                  <p className="text-sm font-semibold text-emerald-400">Conectado</p>
-                  {zapiStatus.session && (
-                    <p className={cn("text-xs mt-0.5 font-mono", darkMode ? "text-white/30" : "text-slate-400")}>Sessão: {zapiStatus.session}</p>
-                  )}
-                </div>
-              </div>
-            ) : zapiStatus ? (
-              <div className="flex items-center gap-2">
-                <div className="size-2.5 rounded-full bg-amber-400" />
-                <p className="text-sm font-semibold text-amber-400">Desconectado — escaneie o QR Code</p>
-              </div>
-            ) : (
-              <p className={text}>Clique em &quot;Atualizar status&quot; para verificar.</p>
-            )}
+          <div className="flex items-center gap-3">
+            <div className={cn("size-10 rounded-xl flex items-center justify-center", zapiStatus?.connected ? "bg-emerald-500/15" : "bg-slate-500/15")}>
+              <Smartphone className={cn("size-5", zapiStatus?.connected ? "text-emerald-400" : darkMode ? "text-white/40" : "text-slate-400")} />
+            </div>
+            <div>
+              <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>
+                {zapiStatus === null ? "Verificando..." : zapiStatus.connected ? "Conectado" : "Desconectado"}
+              </p>
+              <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>
+                {zapiStatus?.session ? `Sessao: ${zapiStatus.session}` : "Instancia Z-API"}
+              </p>
+            </div>
           </div>
 
-          {zapiStatus?.connected && (
+          <div className="flex items-center gap-2">
+            <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full",
+              zapiStatus?.connected ? "bg-emerald-500/15 text-emerald-400" : darkMode ? "bg-white/5 text-white/40" : "bg-slate-100 text-slate-500"
+            )}>
+              <span className={cn("size-1.5 rounded-full", zapiStatus?.connected ? "bg-emerald-400 animate-pulse" : "bg-slate-400")} />
+              {zapiStatus?.connected ? "Online" : "Offline"}
+            </span>
+          </div>
+        </div>
+
+        {zapiStatus?.connected && (
+          <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Smartphone className={cn("size-3.5", zapiStatus.smartphoneConnected ? "text-emerald-400" : "text-amber-400")} />
+              <span className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>
+                Smartphone: {zapiStatus.smartphoneConnected ? "Conectado" : "Desconectado"}
+              </span>
+            </div>
             <button
               onClick={handleZapiDisconnect}
-              className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 border border-red-400/30 px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
             >
               <Link2Off className="size-3.5" />
               Desconectar
             </button>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Info cards */}
-      <div className="grid sm:grid-cols-3 gap-3">
-        {[
-          { icon: QrCode, title: "QR Code", desc: "Escaneie com o WhatsApp para conectar a instância Z-API ao número de telefone.", color: "text-purple-400", bg: darkMode ? "bg-purple-500/10" : "bg-purple-50" },
-          { icon: Smartphone, title: "Smartphone conectado", desc: zapiStatus?.smartphoneConnected ? "Sim — telefone vinculado e ativo." : "Não detectado ainda.", color: zapiStatus?.smartphoneConnected ? "text-emerald-400" : "text-amber-400", bg: darkMode ? "bg-white/4" : "bg-slate-50" },
-          { icon: FlaskConical, title: "Sandbox / Produção", desc: "Esta instância opera em modo de produção com a Z-API. Certifique-se de que a chave está ativa.", color: "text-blue-400", bg: darkMode ? "bg-blue-500/10" : "bg-blue-50" },
-        ].map(({ icon: Icon, title, desc, color, bg }) => (
-          <div key={title} className={cn("rounded-xl border p-4 flex gap-3", darkMode ? "border-white/8 bg-white/3" : "border-slate-200 bg-white shadow-sm")}>
-            <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", bg)}>
-              <Icon className={cn("size-4", color)} />
-            </div>
-            <div>
-              <p className={cn("text-xs font-semibold", darkMode ? "text-white/70" : "text-slate-700")}>{title}</p>
-              <p className={cn("text-xs mt-0.5 leading-relaxed", darkMode ? "text-white/35" : "text-slate-400")}>{desc}</p>
+        {zapiStatus && !zapiStatus.connected && (
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <p className={cn("text-xs mb-3", darkMode ? "text-white/40" : "text-slate-400")}>
+              Escaneie o QR Code no painel Z-API para reconectar:
+            </p>
+            <div className={cn("flex items-center justify-center rounded-lg border-2 border-dashed h-32", darkMode ? "border-white/10" : "border-slate-200")}>
+              <div className="text-center">
+                <QrCode className={cn("size-8 mx-auto mb-2", darkMode ? "text-white/20" : "text-slate-300")} />
+                <p className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>QR Code disponivel no painel Z-API</p>
+              </div>
             </div>
           </div>
-        ))}
+        )}
+
+        {zapiStatus?.error && (
+          <div className="mt-3 flex items-center gap-2 text-red-400 text-xs">
+            <XCircle className="size-3.5 shrink-0" />
+            <span>{zapiStatus.error}</span>
+          </div>
+        )}
       </div>
 
-      {/* Como funciona */}
-      <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-200")}>
-        <p className={cn("text-xs font-semibold mb-3", darkMode ? "text-white/50" : "text-slate-500")}>Como funciona</p>
+      {/* Sandbox Test */}
+      <div className={cn("rounded-xl border p-5", darkMode ? "border-white/8 bg-white/3" : "border-slate-200 bg-white")}>
+        <div className="flex items-center gap-2 mb-3">
+          <FlaskConical className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
+          <h3 className={cn("text-sm font-semibold", darkMode ? "text-white/80" : "text-slate-700")}>Como funcionam as notificacoes</h3>
+        </div>
         <ul className="space-y-2">
           {[
-            "Configure as variáveis ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN no painel.",
-            'Clique em "Atualizar status" para verificar a conexão com a instância.',
-            "Se desconectado, escaneie o QR Code com o WhatsApp do número de envio.",
-            "Após conectar, o sistema enviará mensagens automáticas para os usuários.",
+            "Configure as variaveis ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN no painel.",
+            'Clique em "Atualizar status" para verificar a conexao com a instancia.',
+            "Se desconectado, escaneie o QR Code com o WhatsApp do numero de envio.",
+            "Apos conectar, o sistema enviara mensagens automaticas para os usuarios.",
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-2">
-              <span className={cn("size-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5", darkMode ? "bg-white/10 text-white/50" : "bg-slate-200 text-slate-500")}>{i + 1}</span>
-              <span className={cn("text-xs leading-relaxed", darkMode ? "text-white/40" : "text-slate-500")}>{step}</span>
+              <span className={cn("size-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5",
+                darkMode ? "bg-white/8 text-white/50" : "bg-slate-100 text-slate-500"
+              )}>{i + 1}</span>
+              <span className={cn("text-xs leading-relaxed", darkMode ? "text-white/50" : "text-slate-500")}>{step}</span>
             </li>
           ))}
         </ul>

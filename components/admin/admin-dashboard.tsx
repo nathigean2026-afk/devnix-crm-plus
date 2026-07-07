@@ -1,5 +1,5 @@
 "use client"
-// v3 - tabs extracted
+// v4 - tabs extracted final
 
 import { useState, useTransition, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -1718,8 +1718,6 @@ export default function AdminDashboard({
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
-
       {/* ── Tab: WhatsApp / Z-API ── */}
       {tab === "whatsapp" && (
         <AdminWhatsappTab
@@ -1762,7 +1760,6 @@ export default function AdminDashboard({
         />
       )}
 
-      </div>{/* fim max-w-7xl externo */}
-    </div>
+      </div>
   )
 }
