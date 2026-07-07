@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Download, X, Smartphone } from "lucide-react"
+import { X, Smartphone, ArrowDown, Zap } from "lucide-react"
 import Image from "next/image"
 
 interface BeforeInstallPromptEvent extends Event {
@@ -14,8 +14,9 @@ export function PwaInstallPrompt() {
   const [show, setShow] = useState(false)
   const [isIos, setIsIos] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [visible, setVisible] = useState(false)
 
-  // Registra o Service Worker no cliente (sem script inline no <head> para evitar hydration mismatch)
+  // Registra o Service Worker
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -27,28 +28,29 @@ export function PwaInstallPrompt() {
   }, [])
 
   useEffect(() => {
-    // Não mostrar se já está instalado como PWA
     if (window.matchMedia("(display-mode: standalone)").matches) return
-    // Não mostrar se já foi dispensado nesta sessão
     if (sessionStorage.getItem("pwa-prompt-dismissed")) return
 
-    // Detecta iOS (Safari não emite beforeinstallprompt)
     const ua = navigator.userAgent
     const isIosDevice = /iphone|ipad|ipod/i.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream
     const isInStandaloneMode = ("standalone" in navigator) && (navigator as unknown as { standalone: boolean }).standalone
 
     if (isIosDevice && !isInStandaloneMode) {
       setIsIos(true)
-      // Mostra instrução iOS após 3s
-      const t = setTimeout(() => setShow(true), 3000)
+      const t = setTimeout(() => {
+        setShow(true)
+        setTimeout(() => setVisible(true), 50)
+      }, 3000)
       return () => clearTimeout(t)
     }
 
-    // Android / Chrome / outros: aguarda o evento nativo
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setTimeout(() => setShow(true), 2000)
+      setTimeout(() => {
+        setShow(true)
+        setTimeout(() => setVisible(true), 50)
+      }, 2000)
     }
 
     window.addEventListener("beforeinstallprompt", handler)
@@ -60,14 +62,18 @@ export function PwaInstallPrompt() {
     await deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
     if (outcome === "accepted") {
-      setShow(false)
+      setVisible(false)
+      setTimeout(() => setShow(false), 350)
     }
     setDeferredPrompt(null)
   }
 
   const handleDismiss = () => {
-    setShow(false)
-    setDismissed(true)
+    setVisible(false)
+    setTimeout(() => {
+      setShow(false)
+      setDismissed(true)
+    }, 350)
     sessionStorage.setItem("pwa-prompt-dismissed", "1")
   }
 
@@ -77,72 +83,138 @@ export function PwaInstallPrompt() {
     <div
       role="dialog"
       aria-label="Instalar Elevanthe CRM"
-      className="fixed bottom-4 left-4 right-4 z-[9999] mx-auto max-w-sm"
+      className="fixed bottom-0 left-0 right-0 z-[9999] px-3 pb-4"
+      style={{
+        transform: visible ? "translateY(0)" : "translateY(110%)",
+        opacity: visible ? 1 : 0,
+        transition: "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease",
+      }}
     >
-      <div className="rounded-2xl border border-white/10 bg-[#0d1526] shadow-2xl shadow-black/60 backdrop-blur-xl p-4">
-        <div className="flex items-start gap-3">
-          {/* Ícone do app */}
-          <div className="shrink-0 rounded-xl overflow-hidden w-12 h-12 bg-white/5 flex items-center justify-center">
-            <Image
-              src="/pwa-icon-192.png"
-              alt="Elevanthe CRM"
-              width={48}
-              height={48}
-              className="object-contain"
-            />
-          </div>
+      {/* Card principal */}
+      <div
+        className="relative rounded-3xl overflow-hidden"
+        style={{
+          background: "linear-gradient(145deg, #111827 0%, #0d1526 60%, #0a1020 100%)",
+          border: "1px solid rgba(124, 58, 237, 0.25)",
+          boxShadow: "0 -4px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Brilho decorativo roxo no topo */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.8), transparent)" }}
+        />
+        {/* Brilho ciano sutil no canto */}
+        <div
+          className="absolute -top-16 -right-16 w-40 h-40 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%)" }}
+        />
 
-          {/* Texto */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white leading-tight">
-              Instalar Elevanthe CRM
-            </p>
-            <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
-              {isIos
-                ? 'Toque em "Compartilhar" e depois "Adicionar à Tela de Início"'
-                : "Adicione à tela inicial para acesso rápido, offline e sem o navegador."}
-            </p>
-          </div>
-
-          {/* Fechar */}
-          <button
-            onClick={handleDismiss}
-            aria-label="Fechar"
-            className="shrink-0 p-1 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        {/* Botões de ação */}
-        {!isIos && (
-          <div className="flex gap-2 mt-3">
+        <div className="relative p-4">
+          {/* Linha superior: badge + fechar */}
+          <div className="flex items-center justify-between mb-3">
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase"
+              style={{
+                background: "rgba(124,58,237,0.15)",
+                border: "1px solid rgba(124,58,237,0.3)",
+                color: "#a78bfa",
+              }}
+            >
+              <Zap className="size-2.5" />
+              Disponível como app
+            </div>
             <button
               onClick={handleDismiss}
-              className="flex-1 py-2 rounded-xl text-xs font-medium text-white/40 hover:text-white/60 border border-white/10 hover:border-white/20 transition-colors"
+              aria-label="Fechar"
+              className="p-1.5 rounded-full transition-colors"
+              style={{ color: "rgba(255,255,255,0.3)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
             >
-              Agora não
-            </button>
-            <button
-              onClick={handleInstall}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-            >
-              <Download className="size-3.5" />
-              Instalar
+              <X className="size-4" />
             </button>
           </div>
-        )}
 
-        {/* Instrução iOS visual */}
-        {isIos && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/[0.07]">
-            <Smartphone className="size-4 text-blue-400 shrink-0" />
-            <p className="text-[11px] text-white/50 leading-tight">
-              Safari <span className="text-white/70 font-medium">→</span> Compartilhar{" "}
-              <span className="text-white/70 font-medium">→</span> Adicionar à Tela de Início
-            </p>
+          {/* Conteúdo: ícone + texto */}
+          <div className="flex items-center gap-3.5 mb-4">
+            <div
+              className="shrink-0 rounded-2xl overflow-hidden"
+              style={{
+                width: 56,
+                height: 56,
+                boxShadow: "0 4px 20px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.08)",
+              }}
+            >
+              <Image
+                src="/pwa-icon-192.png"
+                alt="Elevanthe CRM"
+                width={56}
+                height={56}
+                className="object-cover w-full h-full"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-bold text-white leading-tight tracking-tight">
+                Elevanthe CRM
+              </p>
+              <p className="text-[12px] mt-0.5 leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+                {isIos
+                  ? "Instale direto do Safari para acesso rápido e offline"
+                  : "Acesso instantâneo, offline e sem abrir o navegador"}
+              </p>
+            </div>
           </div>
-        )}
+
+          {/* Separador */}
+          <div className="h-px mb-4" style={{ background: "rgba(255,255,255,0.06)" }} />
+
+          {/* Botões Android */}
+          {!isIos && (
+            <div className="flex gap-2.5">
+              <button
+                onClick={handleDismiss}
+                className="flex-1 py-3 rounded-2xl text-sm font-medium transition-colors"
+                style={{
+                  color: "rgba(255,255,255,0.35)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(255,255,255,0.03)",
+                }}
+              >
+                Agora não
+              </button>
+              <button
+                onClick={handleInstall}
+                className="flex-[2] flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
+                style={{
+                  background: "linear-gradient(135deg, #7C3AED 0%, #6d28d9 50%, #5b21b6 100%)",
+                  boxShadow: "0 4px 20px rgba(124,58,237,0.5), inset 0 1px 0 rgba(255,255,255,0.15)",
+                }}
+              >
+                <ArrowDown className="size-4" />
+                Instalar app
+              </button>
+            </div>
+          )}
+
+          {/* Instrução iOS */}
+          {isIos && (
+            <div
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <Smartphone className="size-5 shrink-0" style={{ color: "#22D3EE" }} />
+              <div>
+                <p className="text-xs font-medium text-white/80">Como instalar no iPhone</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  Compartilhar{" "}
+                  <span className="text-white/60 font-semibold">→</span>{" "}
+                  Adicionar à Tela de Início
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
