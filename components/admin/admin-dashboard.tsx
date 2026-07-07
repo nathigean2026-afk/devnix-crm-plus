@@ -1,4 +1,5 @@
 "use client"
+// v4 - tabs extracted final
 
 import { useState, useTransition, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -14,6 +15,10 @@ import {
 } from "@/lib/actions"
 import type { PatchNote } from "@/lib/db/schema"
 import { AdminTickets } from "@/components/admin/admin-tickets"
+import { StatCard } from "@/components/admin/stat-card"
+import { AdminWhatsappTab } from "@/components/admin/admin-whatsapp-tab"
+import { AdminPushTab } from "@/components/admin/admin-push-tab"
+import { AdminAtualizacoesTab } from "@/components/admin/admin-atualizacoes-tab"
 import { toast } from "sonner"
 import Image from "next/image"
 import {
@@ -157,32 +162,6 @@ function parseIp(ip: string | null) {
   return clean
 }
 
-function StatCard({ icon: Icon, label, value, sub, color, onClick, active, darkMode = true }: {
-  icon: React.ElementType; label: string; value: number | string; sub?: string; color: string; onClick?: () => void; active?: boolean; darkMode?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-xl border p-4 flex items-center gap-4 text-left transition-all",
-        onClick ? "cursor-pointer" : "cursor-default",
-        darkMode
-          ? active ? "border-white/30 bg-white/8 hover:border-white/25" : "border-white/8 bg-white/4 hover:border-white/16"
-          : active ? "border-primary/40 bg-primary/5 shadow-sm" : "border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow",
-      )}
-    >
-      <div className={cn("size-11 rounded-xl flex items-center justify-center shrink-0", color)}>
-        <Icon className="size-5 text-white" />
-      </div>
-      <div className="min-w-0">
-        <p className={cn("text-2xl font-bold leading-none", darkMode ? "text-white" : "text-slate-800")}>{value}</p>
-        <p className={cn("text-xs mt-1 leading-snug", darkMode ? "text-white/50" : "text-slate-500")}>{label}</p>
-        {sub && <p className={cn("text-[10px] mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>{sub}</p>}
-      </div>
-    </button>
-  )
-}
-
 type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp" | "push"
 
 export default function AdminDashboard({
@@ -318,8 +297,9 @@ export default function AdminDashboard({
   const [pushBody, setPushBody] = useState("")
   const [pushUrl, setPushUrl] = useState("/dashboard")
   const [pushType, setPushType] = useState<"info" | "warning" | "promo" | "maintenance">("info")
+  const [pushRecipient, setPushRecipient] = useState<"all" | "active">("all")
   const [pushSending, setPushSending] = useState(false)
-  const [pushResult, setPushResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [pushResult, setPushResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   async function loadPushStats() {
     setPushStatsLoading(true)
@@ -340,21 +320,24 @@ export default function AdminDashboard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ title: pushTitle, body: pushBody, url: pushUrl, type: pushType }),
+        body: JSON.stringify({ title: pushTitle, body: pushBody, url: pushUrl, type: pushType, recipient: pushRecipient }),
       })
       const json = await res.json()
       if (res.ok) {
-        setPushResult({ ok: true, msg: `Enviado para ${json.totalSent} dispositivo(s). ${json.totalFailed > 0 ? `${json.totalFailed} falhou(aram).` : ""}` })
+        const msg = json.warning
+          ? json.warning
+          : `Enviado para ${json.totalSent} dispositivo(s).${json.totalFailed > 0 ? ` ${json.totalFailed} falhou(aram).` : ""}`
+        setPushResult({ ok: json.totalSent > 0 || !json.warning, message: msg })
         setPushTitle("")
         setPushBody("")
         setPushUrl("/dashboard")
         setPushType("info")
         await loadPushStats()
       } else {
-        setPushResult({ ok: false, msg: json.error ?? "Erro ao enviar notificações." })
+        setPushResult({ ok: false, message: json.error ?? "Erro ao enviar notificações." })
       }
     } catch {
-      setPushResult({ ok: false, msg: "Erro de conexão." })
+      setPushResult({ ok: false, message: "Erro de conexão." })
     } finally {
       setPushSending(false)
     }
@@ -641,7 +624,7 @@ export default function AdminDashboard({
 
   return (
     <div className={cn("min-h-screen text-white", darkMode ? "dark bg-[#0a0a0f]" : "bg-slate-50")}>
-      <div className={cn("min-h-screen", darkMode ? "bg-[#0a0a0f] text-white" : "bg-slate-50 text-slate-900")}>
+      <div className={cn(darkMode ? "bg-[#0a0a0f] text-white" : "bg-slate-50 text-slate-900")}>
         {/* Header */}
         <header className={cn(
           "border-b px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-30 backdrop-blur",
@@ -653,12 +636,16 @@ export default function AdminDashboard({
               alt="Elevanthe"
               width={32}
               height={32}
-              className={cn("rounded-lg object-contain", darkMode ? "opacity-90" : "opacity-100")}
+              className={cn("rounded-lg object-contain shrink-0", darkMode ? "opacity-90" : "opacity-100")}
             />
             <div>
               <h1 className={cn("font-bold text-sm leading-none", darkMode ? "text-white" : "text-slate-900")}>Elevanthe CRM</h1>
-              <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-500")}>Painel de Controle</p>
+              <p className={cn("text-[11px] mt-0.5", darkMode ? "text-white/40" : "text-slate-500")}>Painel de Controle</p>
             </div>
+            <div className={cn("hidden sm:block w-px h-5 mx-1", darkMode ? "bg-white/10" : "bg-slate-200")} />
+            <span className={cn("hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full", darkMode ? "text-emerald-400 bg-emerald-500/10" : "text-emerald-600 bg-emerald-50")}>
+              Admin
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -675,7 +662,7 @@ export default function AdminDashboard({
               onClick={handleLogout}
               className={cn(
                 "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors",
-                darkMode ? "text-white/50 border-white/10 hover:border-white/20 hover:text-white/80" : "text-slate-500 border-slate-200 hover:border-slate-300"
+                darkMode ? "text-white/50 border-white/10 hover:border-red-500/30 hover:text-red-400" : "text-slate-500 border-slate-200 hover:text-red-500 hover:border-red-200"
               )}
             >
               <LogOut className="size-3.5" />
@@ -686,7 +673,7 @@ export default function AdminDashboard({
 
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          <div className="grid gap-2 mb-6" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
             <StatCard darkMode={darkMode} icon={UsersRound} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
             <StatCard darkMode={darkMode} icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
             <StatCard darkMode={darkMode} icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
@@ -698,21 +685,21 @@ export default function AdminDashboard({
 
           {/* Tabs */}
           <div className={cn(
-            "flex gap-0.5 border rounded-xl p-1 mb-6 overflow-x-auto",
-            darkMode ? "bg-white/4 border-white/8" : "bg-slate-100 border-slate-200"
+            "flex gap-0.5 rounded-xl p-1 mb-6 overflow-x-auto scrollbar-none border",
+            darkMode ? "bg-white/3 border-white/8" : "bg-slate-100/80 border-slate-200"
           )}>
             {TABS.map(t => (
               <button
                 key={t.key}
                 onClick={() => handleTabChange(t.key)}
                 className={cn(
-                  "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all",
+                  "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all shrink-0",
                   tab === t.key
-                    ? darkMode ? "bg-primary text-white shadow" : "bg-primary text-white shadow"
-                    : darkMode ? "text-white/50 hover:text-white/80" : "text-slate-500 hover:text-slate-700"
+                    ? "bg-primary text-white shadow-lg shadow-primary/20"
+                    : darkMode ? "text-white/40 hover:text-white/75 hover:bg-white/5" : "text-slate-500 hover:text-slate-700 hover:bg-white"
                 )}
               >
-                <t.icon className="size-3.5" />
+                <t.icon className="size-3.5 shrink-0" />
                 {t.label}
               </button>
             ))}
@@ -759,19 +746,24 @@ export default function AdminDashboard({
                   <h2 className={cn("text-sm font-semibold", darkMode ? "text-white/70" : "text-slate-600")}>Logins diários — últimos 14 dias</h2>
                 </div>
                 {stats.dailyLogins.length === 0 ? (
-                  <p className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>Sem dados suficientes.</p>
+                  <div className="h-28 flex items-center justify-center">
+                    <p className={cn("text-xs", darkMode ? "text-white/30" : "text-slate-400")}>Sem dados suficientes.</p>
+                  </div>
                 ) : (
-                  <div className="flex items-end gap-1 h-20">
+                  <div className="flex items-end gap-1.5 h-28 pt-2">
                     {stats.dailyLogins.map((d) => {
                       const max = Math.max(...stats.dailyLogins.map(x => x.logins), 1)
-                      const h = Math.max((d.logins / max) * 100, 6)
+                      const h = Math.max((d.logins / max) * 100, 4)
                       return (
                         <div key={d.day} className="flex flex-col items-center gap-1 flex-1 group" title={`${d.day}: ${d.logins} login(s)`}>
+                          <span className={cn("text-[9px] opacity-0 group-hover:opacity-100 transition-opacity font-bold", darkMode ? "text-white/70" : "text-slate-500")}>
+                            {d.logins}
+                          </span>
                           <div
                             style={{ height: `${h}%` }}
-                            className="w-full rounded-sm bg-primary/50 group-hover:bg-primary transition-colors min-h-[4px]"
+                            className="w-full rounded-md bg-primary/40 group-hover:bg-primary transition-all duration-200 min-h-[4px]"
                           />
-                          <span className={cn("text-[9px] rotate-45 origin-left mt-1", darkMode ? "text-white/20" : "text-slate-400")}>
+                          <span className={cn("text-[9px]", darkMode ? "text-white/20" : "text-slate-400")}>
                             {formatDayLabel(d.day)}
                           </span>
                         </div>
@@ -1732,498 +1724,48 @@ export default function AdminDashboard({
 
       {/* ── Tab: WhatsApp / Z-API ── */}
       {tab === "whatsapp" && (
-        <div className="space-y-5">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>
-                WhatsApp via Z-API
-              </h2>
-              <p className={cn("text-xs mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>
-                Gerenciamento da instância Z-API
-              </p>
-            </div>
-            <button
-              onClick={loadZapiStatus}
-              disabled={zapiLoading}
-              className={cn("flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors", darkMode ? "border-white/10 text-white/70 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-600 hover:bg-slate-50")}
-            >
-              <RefreshCw className={cn("size-3.5", zapiLoading && "animate-spin")} />
-              Atualizar status
-            </button>
-          </div>
-
-          {/* Card de status */}
-          <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-2">
-                <p className={cn("text-xs font-semibold uppercase tracking-wider", darkMode ? "text-white/40" : "text-slate-400")}>Status da Instância</p>
-                {zapiLoading ? (
-                  <div className="flex items-center gap-2">
-                    <RefreshCw className="size-4 animate-spin text-blue-400" />
-                    <span className={cn("text-sm", darkMode ? "text-white/50" : "text-slate-500")}>Verificando conexão...</span>
-                  </div>
-                ) : zapiStatus?.error ? (
-                  <div className="flex items-center gap-2">
-                    <XCircle className="size-5 text-red-400 shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-red-400">Erro de conexão</p>
-                      <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{zapiStatus.error}</p>
-                    </div>
-                  </div>
-                ) : zapiStatus?.connected ? (
-                  <div className="flex items-center gap-2">
-                    <div className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <div>
-                      <p className="text-sm font-semibold text-emerald-400">Conectado</p>
-                      {zapiStatus.session && (
-                        <p className={cn("text-xs mt-0.5 font-mono", darkMode ? "text-white/30" : "text-slate-400")}>Sessão: {zapiStatus.session}</p>
-                      )}
-                    </div>
-                  </div>
-                ) : zapiStatus ? (
-                  <div className="flex items-center gap-2">
-                    <div className="size-2.5 rounded-full bg-amber-400" />
-                    <p className="text-sm font-semibold text-amber-400">Desconectado — escaneie o QR Code</p>
-                  </div>
-                ) : (
-                  <p className={cn("text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Clique em "Atualizar status" para verificar.</p>
-                )}
-              </div>
-
-              {zapiStatus?.connected && (
-                <button
-                  onClick={handleZapiDisconnect}
-                  className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 border border-red-400/30 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  <Link2Off className="size-3.5" />
-                  Desconectar
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* QR Code — exibido quando desconectado */}
-          {zapiStatus && !zapiStatus.connected && !zapiStatus.error && (
-            <div className={cn("rounded-xl border p-5 flex flex-col items-center gap-4", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-              <div className="flex items-center gap-2">
-                <QrCode className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
-                <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Escaneie o QR Code no WhatsApp</p>
-              </div>
-              <p className={cn("text-xs text-center max-w-xs", darkMode ? "text-white/40" : "text-slate-400")}>
-                Abra o WhatsApp no seu celular → Aparelhos conectados → Conectar um aparelho → Escanear QR Code
-              </p>
-
-              {zapiQrLoading ? (
-                <div className="flex flex-col items-center gap-2 py-8">
-                  <RefreshCw className="size-8 animate-spin text-blue-400" />
-                  <p className={cn("text-sm", darkMode ? "text-white/40" : "text-slate-400")}>Carregando QR Code...</p>
-                </div>
-              ) : zapiQr ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={zapiQr} alt="QR Code Z-API" className="w-56 h-56 rounded-lg border border-white/10" />
-              ) : (
-                <div className="flex flex-col items-center gap-2 py-6">
-                  <QrCode className={cn("size-10", darkMode ? "text-white/20" : "text-slate-300")} />
-                  <p className={cn("text-sm", darkMode ? "text-white/30" : "text-slate-400")}>QR Code não disponível</p>
-                  <button
-                    onClick={loadZapiQr}
-                    className="text-xs text-blue-400 hover:text-blue-300 underline"
-                  >
-                    Tentar novamente
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={() => { loadZapiQr(); loadZapiStatus() }}
-                className={cn("flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg border transition-colors", darkMode ? "border-white/10 text-white/60 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
-              >
-                <RefreshCw className="size-3.5" />
-                Atualizar QR Code
-              </button>
-            </div>
-          )}
-
-          {/* Credenciais configuradas */}
-          <div className={cn("rounded-xl border p-5 space-y-3", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-            <p className={cn("text-xs font-semibold uppercase tracking-wider", darkMode ? "text-white/40" : "text-slate-400")}>Credenciais Configuradas</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className={cn("rounded-lg p-3 border font-mono text-xs", darkMode ? "bg-white/3 border-white/8 text-white/50" : "bg-slate-50 border-slate-200 text-slate-500")}>
-                <span className={cn("block text-[10px] uppercase mb-1", darkMode ? "text-white/30" : "text-slate-400")}>Instance ID</span>
-                {zapiStatus?.error?.includes("não configuradas") ? <span className="text-red-400">Não configurado</span> : "••••••••" + "0BADD2"}
-              </div>
-              <div className={cn("rounded-lg p-3 border font-mono text-xs", darkMode ? "bg-white/3 border-white/8 text-white/50" : "bg-slate-50 border-slate-200 text-slate-500")}>
-                <span className={cn("block text-[10px] uppercase mb-1", darkMode ? "text-white/30" : "text-slate-400")}>Token</span>
-                {zapiStatus?.error?.includes("não configuradas") ? <span className="text-red-400">Não configurado</span> : "••••••••" + "A1FB"}
-              </div>
-            </div>
-            <p className={cn("text-xs", darkMode ? "text-white/25" : "text-slate-400")}>
-              Para alterar as credenciais, acesse as variáveis de ambiente do projeto nas configurações do v0.
-            </p>
-          </div>
-
-          {/* Envio de mensagem de teste */}
-          {zapiStatus?.connected && (
-            <div className={cn("rounded-xl border p-5 space-y-3", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-              <div className="flex items-center gap-2">
-                <FlaskConical className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
-                <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Enviar mensagem de teste</p>
-              </div>
-              <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>
-                Envie uma mensagem de teste para confirmar que a integração está funcionando.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  value={zapiTestPhone}
-                  onChange={e => setZapiTestPhone(e.target.value)}
-                  placeholder="Ex: 87999998888 (com DDD)"
-                  className={cn("flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")}
-                />
-                <button
-                  onClick={handleZapiTest}
-                  disabled={zapiTestLoading || !zapiTestPhone.trim()}
-                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-60 transition-colors shrink-0"
-                >
-                  {zapiTestLoading ? <RefreshCw className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-                  Testar
-                </button>
-              </div>
-              {zapiTestResult && (
-                <div className={cn("flex items-start gap-2 text-xs p-3 rounded-lg border", zapiTestResult.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
-                  {zapiTestResult.ok ? <CheckCircle2 className="size-4 shrink-0 mt-0.5" /> : <XCircle className="size-4 shrink-0 mt-0.5" />}
-                  <span>{zapiTestResult.msg}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Info: quem recebe notificações */}
-          <div className={cn("rounded-xl border p-5 space-y-2", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-            <div className="flex items-center gap-2">
-              <Smartphone className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
-              <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Como funcionam as notificações</p>
-            </div>
-            <ul className="space-y-2">
-              {[
-                { icon: CheckCircle2, color: "text-emerald-400", text: "Orçamento aprovado pelo cliente → notificação automática para o prestador" },
-                { icon: XCircle, color: "text-red-400", text: "Orçamento recusado → notificação com o motivo informado pelo cliente" },
-                { icon: Smartphone, color: "text-blue-400", text: "Cada prestador cadastra seu próprio número em Configurações → WhatsApp" },
-                { icon: ShieldCheck, color: "text-amber-400", text: "Notificações via WhatsApp disponíveis apenas para planos Business e Enterprise" },
-              ].map(({ icon: Icon, color, text }, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <Icon className={cn("size-3.5 shrink-0 mt-0.5", color)} />
-                  <span className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>{text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <AdminWhatsappTab
+          darkMode={darkMode}
+          zapiStatus={zapiStatus}
+          zapiLoading={zapiLoading}
+          loadZapiStatus={loadZapiStatus}
+          handleZapiDisconnect={handleZapiDisconnect}
+        />
       )}
 
-      {/* ── Tab: Atualiza��ões / Patch Notes ── */}
       {/* ── Tab: Push Notifications ── */}
       {tab === "push" && (
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>Push Notifications</h2>
-              <p className={cn("text-xs mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>Envie notificações para todos os dispositivos inscritos, mesmo com o app fechado</p>
-            </div>
-            <button onClick={loadPushStats} disabled={pushStatsLoading} className={cn("flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors", darkMode ? "border-white/10 text-white/70 hover:text-white hover:bg-white/5" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
-              <RefreshCw className={cn("size-3.5", pushStatsLoading && "animate-spin")} />Atualizar
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className={cn("rounded-xl border p-5", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-            <div className="flex items-center gap-4">
-              <div className={cn("flex items-center justify-center size-12 rounded-xl shrink-0", darkMode ? "bg-blue-500/10" : "bg-blue-50")}>
-                <Users2 className="size-6 text-blue-400" />
-              </div>
-              <div>
-                <p className={cn("text-xs font-semibold uppercase tracking-wider mb-0.5", darkMode ? "text-white/40" : "text-slate-400")}>Dispositivos Inscritos</p>
-                {pushStatsLoading
-                  ? <div className="flex items-center gap-2"><RefreshCw className="size-3.5 animate-spin text-blue-400" /><span className={cn("text-sm", darkMode ? "text-white/40" : "text-slate-400")}>Carregando...</span></div>
-                  : <p className={cn("text-3xl font-bold", darkMode ? "text-white" : "text-slate-800")}>{pushStats?.totalSubscribers ?? 0}</p>
-                }
-              </div>
-              <div className="ml-auto text-right">
-                <div className="flex items-center gap-1.5 justify-end">
-                  <Radio className="size-3.5 text-emerald-400 animate-pulse" />
-                  <span className="text-xs text-emerald-400 font-medium">Ativo</span>
-                </div>
-                <p className={cn("text-xs mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>VAPID configurado</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Formulário */}
-          <div className={cn("rounded-xl border p-5 space-y-4", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-            <div className="flex items-center gap-2">
-              <Bell className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
-              <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Enviar nova notificação</p>
-            </div>
-            {/* Tipo */}
-            <div className="grid grid-cols-4 gap-2">
-              {(["info", "promo", "warning", "maintenance"] as const).map((tp) => {
-                const labels: Record<string, string> = { info: "Informativo", promo: "Promoção", warning: "Aviso", maintenance: "Manutenção" }
-                const activeColors: Record<string, string> = { info: "border-blue-500/40 text-blue-400 bg-blue-500/10", promo: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10", warning: "border-amber-500/40 text-amber-400 bg-amber-500/10", maintenance: "border-red-500/40 text-red-400 bg-red-500/10" }
-                const inactive = darkMode ? "border-white/10 text-white/40 hover:text-white/70" : "border-slate-200 text-slate-400 hover:text-slate-600"
-                return (
-                  <button key={tp} onClick={() => setPushType(tp)} className={cn("text-xs py-1.5 px-2 rounded-lg border transition-colors font-medium", pushType === tp ? activeColors[tp] : inactive)}>{labels[tp]}</button>
-                )
-              })}
-            </div>
-            {/* Título */}
-            <div>
-              <label className={cn("block text-xs font-medium mb-1.5", darkMode ? "text-white/50" : "text-slate-500")}>Título *</label>
-              <input value={pushTitle} onChange={e => setPushTitle(e.target.value)} placeholder="Ex: Manutenção programada" maxLength={60} className={cn("w-full rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")} />
-              <p className={cn("text-right text-[10px] mt-0.5", darkMode ? "text-white/20" : "text-slate-400")}>{pushTitle.length}/60</p>
-            </div>
-            {/* Mensagem */}
-            <div>
-              <label className={cn("block text-xs font-medium mb-1.5", darkMode ? "text-white/50" : "text-slate-500")}>Mensagem *</label>
-              <textarea value={pushBody} onChange={e => setPushBody(e.target.value)} placeholder="Ex: O sistema ficará indisponível hoje das 23h às 01h." maxLength={200} rows={3} className={cn("w-full rounded-lg px-3 py-2 text-sm focus:outline-none border resize-none", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")} />
-              <p className={cn("text-right text-[10px] mt-0.5", darkMode ? "text-white/20" : "text-slate-400")}>{pushBody.length}/200</p>
-            </div>
-            {/* URL */}
-            <div>
-              <label className={cn("block text-xs font-medium mb-1.5", darkMode ? "text-white/50" : "text-slate-500")}>URL ao clicar</label>
-              <input value={pushUrl} onChange={e => setPushUrl(e.target.value)} placeholder="/dashboard" className={cn("w-full rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")} />
-            </div>
-            {/* Resultado */}
-            {pushResult && (
-              <div className={cn("flex items-start gap-2 text-xs p-3 rounded-lg border", pushResult.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
-                {pushResult.ok ? <CheckCircle2 className="size-4 shrink-0 mt-0.5" /> : <XCircle className="size-4 shrink-0 mt-0.5" />}
-                <span>{pushResult.msg}</span>
-              </div>
-            )}
-            {/* Botão */}
-            <button onClick={handleSendPush} disabled={pushSending || !pushTitle.trim() || !pushBody.trim()} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
-              {pushSending ? <><RefreshCw className="size-4 animate-spin" />Enviando...</> : <><Send className="size-4" />Enviar para {pushStats?.totalSubscribers ?? 0} dispositivo(s)</>}
-            </button>
-          </div>
-
-          {/* Histórico */}
-          <div className={cn("rounded-xl border p-5 space-y-3", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-            <div className="flex items-center gap-2">
-              <History className={cn("size-4", darkMode ? "text-white/50" : "text-slate-500")} />
-              <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>Histórico recente</p>
-            </div>
-            {pushStatsLoading ? (
-              <div className="flex items-center gap-2 py-4"><RefreshCw className="size-4 animate-spin text-blue-400" /><span className={cn("text-sm", darkMode ? "text-white/40" : "text-slate-400")}>Carregando...</span></div>
-            ) : !pushStats?.notifications?.length ? (
-              <p className={cn("text-sm py-4 text-center", darkMode ? "text-white/30" : "text-slate-400")}>Nenhuma notificação enviada ainda.</p>
-            ) : (
-              <div className="space-y-2">
-                {pushStats.notifications.map((n) => {
-                  const typeColors: Record<string, string> = { info: "text-blue-400 bg-blue-500/10 border-blue-500/20", promo: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", warning: "text-amber-400 bg-amber-500/10 border-amber-500/20", maintenance: "text-red-400 bg-red-500/10 border-red-500/20" }
-                  const typeLabels: Record<string, string> = { info: "Info", promo: "Promo", warning: "Aviso", maintenance: "Manutenção" }
-                  return (
-                    <div key={n.id} className={cn("rounded-lg p-3 border", darkMode ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-200")}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", typeColors[n.type] ?? typeColors.info)}>{typeLabels[n.type] ?? n.type}</span>
-                            <p className={cn("text-xs font-semibold truncate", darkMode ? "text-white" : "text-slate-800")}>{n.title}</p>
-                          </div>
-                          <p className={cn("text-xs truncate", darkMode ? "text-white/40" : "text-slate-500")}>{n.body}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xs text-emerald-400 font-medium">{n.totalSent} enviado(s)</p>
-                          {n.totalFailed > 0 && <p className="text-[10px] text-red-400">{n.totalFailed} falhou</p>}
-                          <p className={cn("text-[10px] mt-0.5", darkMode ? "text-white/25" : "text-slate-400")}>{new Date(n.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <AdminPushTab
+          darkMode={darkMode}
+          pushStats={pushStats}
+          pushStatsLoading={pushStatsLoading}
+          loadPushStats={loadPushStats}
+          pushTitle={pushTitle}
+          setPushTitle={setPushTitle}
+          pushBody={pushBody}
+          setPushBody={setPushBody}
+          pushUrl={pushUrl}
+          setPushUrl={setPushUrl}
+          pushType={pushType}
+          setPushType={setPushType}
+          pushRecipient={pushRecipient}
+          setPushRecipient={setPushRecipient}
+          pushSending={pushSending}
+          pushResult={pushResult}
+          handleSendPush={handleSendPush}
+        />
       )}
 
+      {/* ── Tab: Atualizações ── */}
       {tab === "atualizacoes" && (
-        <div className="space-y-4">
-          {/* Header + botão novo */}
-          <div className="flex items-center justify-between">
-            <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>
-              Notas de Atualização
-            </h2>
-            <button
-              onClick={() => { setPatchForm({ version: "", title: "", body: "", type: "feature", published: true }); setEditingPatchId(null); setPatchFormOpen(true) }}
-              className="flex items-center gap-1.5 text-sm bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus className="size-4" />
-              Nova atualização
-            </button>
-          </div>
-
-          {/* Formulário de criação/edição */}
-          {patchFormOpen && (
-            <div className={cn("rounded-xl border p-5 space-y-4", darkMode ? "bg-white/4 border-white/10" : "bg-white border-slate-200")}>
-              <p className={cn("text-sm font-semibold", darkMode ? "text-white" : "text-slate-800")}>
-                {editingPatchId ? "Editar Atualização" : "Nova Atualização"}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>Versão</label>
-                  <input
-                    value={patchForm.version}
-                    onChange={e => setPatchForm(f => ({ ...f, version: e.target.value }))}
-                    placeholder="ex: 1.4.2"
-                    className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")}
-                  />
-                </div>
-                <div className="flex flex-col gap-1 sm:col-span-2">
-                  <label className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>Título</label>
-                  <input
-                    value={patchForm.title}
-                    onChange={e => setPatchForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="Título da atualização"
-                    className={cn("rounded-lg px-3 py-2 text-sm focus:outline-none border", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>Tipo</label>
-                  <select
-                    value={patchForm.type}
-                    onChange={e => setPatchForm(f => ({ ...f, type: e.target.value }))}
-                    className={cn(
-                      "rounded-lg px-3 py-2 text-sm focus:outline-none border w-full appearance-none",
-                      darkMode
-                        ? "bg-[#1a1a2e] border-white/10 text-white [&>option]:bg-[#1a1a2e] [&>option]:text-white"
-                        : "bg-slate-50 border-slate-200 text-slate-800 [&>option]:bg-white [&>option]:text-slate-800"
-                    )}
-                  >
-                    <option value="feature">Nova funcionalidade</option>
-                    <option value="fix">Correção</option>
-                    <option value="update">Melhoria</option>
-                    <option value="breaking">Mudança importante</option>
-                    <option value="news">Novidade</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1 sm:col-span-2">
-                  <label className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>
-                    Status
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer mt-1">
-                    <input
-                      type="checkbox"
-                      checked={patchForm.published}
-                      onChange={e => setPatchForm(f => ({ ...f, published: e.target.checked }))}
-                      className="size-4 accent-primary"
-                    />
-                    <span className={cn("text-sm", darkMode ? "text-white/70" : "text-slate-600")}>Publicada (visível aos usuários)</span>
-                  </label>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-500")}>
-                  Conteúdo — use <code className="font-mono">- item</code> para lista e <code className="font-mono">**negrito**</code>
-                </label>
-                <textarea
-                  value={patchForm.body}
-                  onChange={e => setPatchForm(f => ({ ...f, body: e.target.value }))}
-                  rows={6}
-                  placeholder={"- Corrigido problema no cálculo de total\n- Adicionado suporte a múltiplos clientes\n**Nota:** requer atualização da página"}
-                  className={cn("rounded-lg px-3 py-2 text-sm resize-y focus:outline-none w-full border font-mono", darkMode ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-slate-50 border-slate-200 text-slate-800")}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => { setPatchFormOpen(false); setEditingPatchId(null) }}
-                  className={cn("text-sm px-4 py-2 border rounded-lg transition-colors", darkMode ? "text-white/50 border-white/10 hover:text-white/80" : "text-slate-500 border-slate-200")}
-                >
-                  Cancelar
-                </button>
-                <button
-                  disabled={patchSaving || !patchForm.title.trim() || !patchForm.version.trim() || !patchForm.body.trim()}
-                  onClick={async () => {
-                    if (!patchForm.title.trim() || !patchForm.version.trim() || !patchForm.body.trim()) return
-                    setPatchSaving(true)
-                    try {
-                      if (editingPatchId) {
-                        await adminUpdatePatchNote(editingPatchId, patchForm)
-                        setPatchNotesList(list => list.map(n => n.id === editingPatchId ? { ...n, ...patchForm, updatedAt: new Date() } : n))
-                      } else {
-                        const res = await adminCreatePatchNote(patchForm)
-                        if (res.ok) {
-                          const updated = await adminGetPatchNotes()
-                          setPatchNotesList(updated)
-                        }
-                      }
-                      setPatchFormOpen(false)
-                      setEditingPatchId(null)
-                      setPatchForm({ version: "", title: "", body: "", type: "feature", published: true })
-                    } finally { setPatchSaving(false) }
-                  }}
-                  className="text-sm bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg disabled:opacity-60 transition-colors"
-                >
-                  {patchSaving ? "Salvando..." : editingPatchId ? "Salvar alterações" : "Publicar"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Lista de notas */}
-          {!patchNotesLoaded ? (
-            <p className={cn("text-sm text-center py-8", darkMode ? "text-white/30" : "text-slate-400")}>Carregando...</p>
-          ) : patchNotesList.length === 0 ? (
-            <div className="flex flex-col items-center py-16 gap-2">
-              <Megaphone className={cn("size-8", darkMode ? "text-white/20" : "text-slate-300")} />
-              <p className={cn("text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhuma atualização publicada ainda.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {patchNotesList.map(note => (
-                <div key={note.id} className={cn("rounded-xl border p-4 flex items-start justify-between gap-4", darkMode ? "bg-white/4 border-white/8" : "bg-white border-slate-200")}>
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn("text-xs font-mono px-2 py-0.5 rounded border", darkMode ? "bg-white/5 border-white/10 text-white/60" : "bg-slate-100 border-slate-200 text-slate-500")}>v{note.version}</span>
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full", note.type === "feature" ? "bg-blue-500/20 text-blue-400" : note.type === "fix" ? "bg-green-500/20 text-green-400" : note.type === "breaking" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400")}>
-                        {note.type === "feature" ? "Nova func." : note.type === "fix" ? "Correção" : note.type === "breaking" ? "Importante" : note.type === "news" ? "Novidade" : "Melhoria"}
-                      </span>
-                      {!note.published && (
-                        <span className={cn("text-xs px-2 py-0.5 rounded-full", darkMode ? "bg-white/5 text-white/30" : "bg-slate-100 text-slate-400")}>Rascunho</span>
-                      )}
-                    </div>
-                    <p className={cn("font-semibold text-sm", darkMode ? "text-white" : "text-slate-800")}>{note.title}</p>
-                    <p className={cn("text-xs line-clamp-2", darkMode ? "text-white/40" : "text-slate-400")}>{note.body}</p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => {
-                        setPatchForm({ version: note.version, title: note.title, body: note.body, type: note.type, published: note.published })
-                        setEditingPatchId(note.id)
-                        setPatchFormOpen(true)
-                      }}
-                      className={cn("p-1.5 rounded-lg transition-colors", darkMode ? "text-white/40 hover:text-white hover:bg-white/5" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100")}
-                    >
-                      <Pencil className="size-3.5" />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!confirm("Excluir esta atualização?")) return
-                        await adminDeletePatchNote(note.id)
-                        setPatchNotesList(list => list.filter(n => n.id !== note.id))
-                      }}
-                      className={cn("p-1.5 rounded-lg transition-colors", darkMode ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10" : "text-red-400 hover:text-red-500 hover:bg-red-50")}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <AdminAtualizacoesTab
+          darkMode={darkMode}
+          patchNotesList={patchNotesList}
+          setPatchNotesList={setPatchNotesList}
+          patchNotesLoaded={patchNotesLoaded}
+        />
       )}
 
-    </div>
+      </div>
   )
 }

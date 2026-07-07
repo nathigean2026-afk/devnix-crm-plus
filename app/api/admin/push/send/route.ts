@@ -18,17 +18,36 @@ export async function POST(req: NextRequest) {
   webpush.setVapidDetails(vapidEmail, vapidPublic, vapidPrivate)
 
   try {
-    const { title, body, url, type } = await req.json()
+    const { title, body, url, type, recipient } = await req.json()
 
     if (!title?.trim() || !body?.trim()) {
       return NextResponse.json({ error: "Título e mensagem são obrigatórios" }, { status: 400 })
     }
 
-    const subs = await db.select().from(pushSubscriptions)
+    let allSubs = await db.select().from(pushSubscriptions)
 
-    if (subs.length === 0) {
-      return NextResponse.json({ error: "Nenhum dispositivo inscrito" }, { status: 400 })
+    if (recipient === "active") {
+      // Filtra apenas subscriptions ativas (criadas nos últimos 90 dias)
+      const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+      allSubs = allSubs.filter(s => new Date(s.createdAt) > cutoff)
     }
+
+    if (allSubs.length === 0) {
+      // Salva no histórico como envio sem destinatários
+      await db.insert(pushNotifications).values({
+        id: nanoid(),
+        title: title.trim(),
+        body: body.trim(),
+        url: url ?? "/dashboard",
+        type: type ?? "info",
+        sentBy: "admin",
+        totalSent: 0,
+        totalFailed: 0,
+      })
+      return NextResponse.json({ ok: true, totalSent: 0, totalFailed: 0, warning: "Nenhum dispositivo inscrito para receber notificações." })
+    }
+
+    const subs = allSubs
 
     const payload = JSON.stringify({
       title: title.trim(),
