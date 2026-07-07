@@ -718,25 +718,27 @@ export default function AdminDashboard({
           </div>
 
           {/* Tabs */}
-          <div className={cn(
-            "flex flex-wrap gap-0.5 rounded-xl p-1 border mb-6",
-            darkMode ? "bg-white/3 border-white/8" : "bg-slate-100/80 border-slate-200"
-          )}>
-            {TABS.map(t => (
-              <button
-                key={t.key}
-                onClick={() => handleTabChange(t.key)}
-                className={cn(
-                  "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all",
-                  tab === t.key
-                    ? "bg-primary text-white shadow-lg shadow-primary/20"
-                    : darkMode ? "text-white/40 hover:text-white/75 hover:bg-white/5" : "text-slate-500 hover:text-slate-700 hover:bg-white"
-                )}
-              >
-                <t.icon className="size-3.5 shrink-0" />
-                {t.label}
-              </button>
-            ))}
+          <div className="mb-6 w-full overflow-x-auto">
+            <div className={cn(
+              "inline-flex gap-0.5 rounded-xl p-1 border min-w-full",
+              darkMode ? "bg-white/3 border-white/8" : "bg-slate-100/80 border-slate-200"
+            )}>
+              {TABS.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => handleTabChange(t.key)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 text-xs px-2 py-2 rounded-lg font-medium whitespace-nowrap transition-all",
+                    tab === t.key
+                      ? "bg-primary text-white shadow-lg shadow-primary/20"
+                      : darkMode ? "text-white/40 hover:text-white/75 hover:bg-white/5" : "text-slate-500 hover:text-slate-700 hover:bg-white"
+                  )}
+                >
+                  <t.icon className="size-3.5 shrink-0" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── Tab: Visão Geral ─�� */}
