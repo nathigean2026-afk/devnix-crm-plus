@@ -1714,8 +1714,8 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* ── Tab: WhatsApp / Z-API ── */}
-      {tab === "whatsapp" && (
+        {/* ── Tab: WhatsApp / Z-API ── */}
+          {tab === "whatsapp" && (
         <div className="space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -1903,11 +1903,10 @@ export default function AdminDashboard({
             </ul>
           </div>
         </div>
-      )}
+          )}
 
-      {/* ── Tab: Atualiza��ões / Patch Notes ── */}
-      {/* ── Tab: Push Notifications ── */}
-      {tab === "push" && (
+          {/* ── Tab: Push Notifications ── */}
+          {tab === "push" && (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -2027,10 +2026,11 @@ export default function AdminDashboard({
             )}
           </div>
         </div>
-      )}
+          )}
 
-      {tab === "atualizacoes" && (
-        <div className="space-y-4">
+          {/* ── Tab: Atualizações / Patch Notes ── */}
+          {tab === "atualizacoes" && (
+          <div className="space-y-4">
           {/* Header + botão novo */}
           <div className="flex items-center justify-between">
             <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>
@@ -2205,9 +2205,10 @@ export default function AdminDashboard({
               ))}
             </div>
           )}
-        </div>
-      )}
+          </div>
+          )}
 
-    </div>
+        </div>
+      </div>
   )
 }
