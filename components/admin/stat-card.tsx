@@ -28,3 +28,4 @@ export function StatCard({ icon: Icon, label, value, sub, color, onClick, active
     </button>
   )
 }
+
