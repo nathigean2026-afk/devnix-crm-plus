@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import { pushSubscriptions, pushNotifications } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -14,8 +13,9 @@ webpush.setVapidDetails(
 )
 
 export async function POST(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user || session.user.role !== "admin") {
+  const jar = await cookies()
+  const adminSession = jar.get("admin_session")?.value
+  if (adminSession !== "admin-nathigean-001") {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   }
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       body: body.trim(),
       url: url ?? "/dashboard",
       type: type ?? "info",
-      sentBy: session.user.name ?? session.user.email ?? "admin",
+      sentBy: "admin",
       totalSent,
       totalFailed,
     })
