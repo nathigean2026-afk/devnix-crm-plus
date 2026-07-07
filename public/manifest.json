@@ -38,25 +38,18 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "1280x800",
+      "src": "/screenshots/mobile-dashboard.png",
+      "sizes": "390x844",
       "type": "image/png",
-      "label": "Dashboard — Visão geral do negócio",
-      "form_factor": "wide"
+      "label": "Dashboard — Visão geral do seu negócio",
+      "form_factor": "narrow"
     },
     {
-      "src": "/screenshots/clientes.png",
-      "sizes": "1280x800",
+      "src": "/screenshots/mobile-orcamentos.png",
+      "sizes": "390x844",
       "type": "image/png",
-      "label": "Clientes — Gestão de contatos",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshots/orcamentos.png",
-      "sizes": "1280x800",
-      "type": "image/png",
-      "label": "Orçamentos — Propostas profissionais",
-      "form_factor": "wide"
+      "label": "Orçamentos — Propostas profissionais em segundos",
+      "form_factor": "narrow"
     }
   ],
   "shortcuts": [
