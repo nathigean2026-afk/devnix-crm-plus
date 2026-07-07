@@ -1048,6 +1048,28 @@ export async function adminUpdateUser(userId: string, data: { name?: string; ema
   revalidatePath("/admin")
 }
 
+export async function adminChangePlan(userId: string, plan: "starter" | "business" | "enterprise") {
+  await db.update(businessProfile)
+    .set({ licensePlan: plan, updatedAt: new Date() })
+    .where(eq(businessProfile.userId, userId))
+  // Se o perfil não existe ainda, cria
+  const existing = await db.select().from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+  if (existing.length === 0) {
+    await db.insert(businessProfile).values({
+      id: crypto.randomUUID(),
+      userId,
+      name: "",
+      licensePlan: plan,
+    })
+  }
+  revalidatePath("/admin")
+}
+
+export async function adminClearUsedCodes() {
+  await db.delete(promoCodes).where(sql`"usedBy" IS NOT NULL`)
+  revalidatePath("/admin")
+}
+
 export async function adminSendPasswordReset(userId: string): Promise<string> {
   // Gera token temporário de 1 hora para redefinição de senha
   const token = crypto.randomUUID()
