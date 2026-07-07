@@ -15,6 +15,7 @@ import {
   adminChangePlan,
   adminClearUsedCodes,
   adminGetLogs,
+  adminGetStats,
 } from "@/lib/actions"
 import type { PatchNote } from "@/lib/db/schema"
 import { AdminTickets } from "@/components/admin/admin-tickets"
@@ -179,6 +180,23 @@ export default function AdminDashboard({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // E-mail do admin logado — usado nos logs de auditoria
+  const ADMIN_EMAIL = "suporte@elevanthe.com"
+
+  // Atualiza stats + logs direto do banco sem depender de router.refresh()
+  async function refreshAll() {
+    setIsRefreshing(true)
+    try {
+      const [freshStats, freshLogs] = await Promise.all([
+        adminGetStats(),
+        adminGetLogs(500),
+      ])
+      setStats(freshStats as unknown as StatsData)
+      setLogs(freshLogs)
+    } catch { /* silencioso */ }
+    finally { setIsRefreshing(false) }
+  }
   const [tab, setTab] = useState<Tab>("visao")
   const [darkMode, setDarkMode] = useState(true)
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
@@ -393,18 +411,11 @@ export default function AdminDashboard({
     const deletedId = editingUser.userId
     startTransition(async () => {
       try {
-        await adminDeleteUser(deletedId)
-        // Remove o usuário da lista local imediatamente, sem precisar de F5
-        setStats(prev => ({
-          ...prev,
-          licenseData: prev.licenseData.filter(u => u.userId !== deletedId),
-          totalUsers: prev.totalUsers - 1,
-          onlineSessions: prev.onlineSessions.filter(s => s.userId !== deletedId),
-        }))
+        await adminDeleteUser(deletedId, ADMIN_EMAIL)
         setEditingUser(null)
         setConfirmDelete(false)
         toast.success("Usuário excluído com sucesso.")
-        router.refresh()
+        await refreshAll()
       } catch {
         toast.error("Erro ao excluir usuário.")
       }
@@ -421,7 +432,6 @@ export default function AdminDashboard({
         toast.success(`Código ${promoForm.code.toUpperCase()} criado! (${formatDuration(durationMinutes)})`)
         setPromoForm({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
         setShowForm(false)
-        router.refresh()
       } catch (err) { toast.error(err instanceof Error ? err.message : "Erro ao criar código.") }
     })
   }
@@ -464,8 +474,15 @@ export default function AdminDashboard({
     if (!editingUser) return
     startTransition(async () => {
       try {
-        await adminChangePlan(editingUser.userId, plan)
+        await adminChangePlan(editingUser.userId, plan, ADMIN_EMAIL)
         setSelectedPlan(plan)
+        // Atualiza o plano imediatamente na lista local
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? { ...u, licensePlan: plan } : u
+          ),
+        }))
         toast.success(`Plano alterado para ${plan.charAt(0).toUpperCase() + plan.slice(1)}`)
       } catch {
         toast.error("Erro ao alterar plano")
@@ -481,10 +498,22 @@ export default function AdminDashboard({
           name: editForm.name,
           email: editForm.email,
           accessExpiresAt: editForm.accessExpiresAt || undefined,
-        })
+        }, ADMIN_EMAIL)
+        // Atualiza imediatamente na lista local
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? {
+              ...u,
+              profileName: editForm.name || u.profileName,
+              profileEmail: editForm.email || u.profileEmail,
+              accessExpiresAt: editForm.accessExpiresAt ? new Date(editForm.accessExpiresAt) : u.accessExpiresAt,
+            } : u
+          ),
+        }))
         toast.success("Dados atualizados!")
         setEditingUser(null)
-        router.refresh()
+        await refreshAll()
       } catch { toast.error("Erro ao atualizar usuário.") }
     })
   }
@@ -504,10 +533,17 @@ export default function AdminDashboard({
     if (!editingUser) return
     startTransition(async () => {
       try {
-        const newDate = await adminExtendLicense(editingUser.userId, extendDays)
+        const newDate = await adminExtendLicense(editingUser.userId, extendDays, ADMIN_EMAIL)
+        // Atualiza data na lista local imediatamente
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? { ...u, accessExpiresAt: new Date(newDate) } : u
+          ),
+        }))
         toast.success(`Licença estendida até ${formatDate(newDate)}`)
         setEditingUser(null)
-        router.refresh()
+        await refreshAll()
       } catch { toast.error("Erro ao estender licença.") }
     })
   }
@@ -517,10 +553,17 @@ export default function AdminDashboard({
     if (!confirm("Revogar acesso imediatamente?")) return
     startTransition(async () => {
       try {
-        await adminRevokeAccess(editingUser.userId)
+        await adminRevokeAccess(editingUser.userId, ADMIN_EMAIL)
+        // Atualiza data na lista local imediatamente
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? { ...u, accessExpiresAt: new Date(0) } : u
+          ),
+        }))
         toast.success("Acesso revogado.")
         setEditingUser(null)
-        router.refresh()
+        await refreshAll()
       } catch { toast.error("Erro ao revogar acesso.") }
     })
   }
@@ -677,7 +720,7 @@ export default function AdminDashboard({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setIsRefreshing(true); router.refresh(); setTimeout(() => setIsRefreshing(false), 1000) }}
+              onClick={() => refreshAll()}
               disabled={isRefreshing}
               className={cn(
                 "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors",
@@ -1939,12 +1982,7 @@ export default function AdminDashboard({
                   ))}
                 </div>
                 <button
-                  onClick={() => {
-                    startTransition(async () => {
-                      const fresh = await adminGetLogs(500)
-                      setLogs(fresh)
-                    })
-                  }}
+                  onClick={() => refreshAll()}
                   disabled={isPending}
                   className={cn("flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors",
                     darkMode ? "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70" : "border-slate-200 text-slate-500 hover:border-slate-300"
