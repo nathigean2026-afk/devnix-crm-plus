@@ -5,7 +5,6 @@ import "./globals.css"
 import { Toaster } from "sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ThemeProvider } from "@/components/theme-provider"
-import { PwaInstallPrompt } from "@/components/pwa-banner"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -127,7 +126,6 @@ export default function RootLayout({
             }}
           />
           {process.env.NODE_ENV === "production" && <Analytics />}
-          <PwaInstallPrompt />
         </ThemeProvider>
       </body>
     </html>

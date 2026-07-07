@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { PushNotificationToggle } from "@/components/push-permission-banner"
 
 interface LicenseInfo {
   isActive: boolean
@@ -334,6 +335,20 @@ function LicenseCard({
             onChange={v => !isStart && handleToggle("notifQuoteEnabled", v)}
             disabled={isStart || savingToggle}
           />
+        </div>
+
+        {/* Notificações push no navegador */}
+        <div className="flex flex-col gap-1.5 py-2 border-b border-border">
+          <p className="text-sm font-medium text-foreground flex items-center gap-2">
+            <Smartphone className="size-4 text-muted-foreground shrink-0" />
+            Notificações push no navegador
+          </p>
+          <p className="text-xs text-muted-foreground ml-6">
+            Receba alertas em tempo real mesmo quando o app estiver em segundo plano.
+          </p>
+          <div className="ml-6 mt-1">
+            <PushNotificationToggle />
+          </div>
         </div>
 
         {/* Notificações via WhatsApp — em desenvolvimento, bloqueado para todos */}
