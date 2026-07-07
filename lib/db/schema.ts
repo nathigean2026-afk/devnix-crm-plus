@@ -313,6 +313,34 @@ export const patchNotes = pgTable("patch_notes", {
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
 
+// ── Push Notifications ────────────────────────────────────────────────────────
+// Armazena as subscriptions Web Push de cada usuário (dispositivo)
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),    // chave pública do dispositivo
+  auth: text("auth").notNull(),         // segredo de autenticação
+  userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+// Histórico de notificações push enviadas pelo admin
+export const pushNotifications = pgTable("push_notifications", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  url: text("url").default("/dashboard"),
+  type: text("type").notNull().default("info"),     // info | warning | promo | maintenance
+  sentBy: text("sentBy").notNull(),                  // admin username
+  totalSent: integer("totalSent").notNull().default(0),
+  totalFailed: integer("totalFailed").notNull().default(0),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect
+export type PushNotification = typeof pushNotifications.$inferSelect
+
 // Configurações globais do SaaS (singleton — id fixo = 'singleton')
 export const saasConfig = pgTable("saas_config", {
   id: text("id").primaryKey().default("singleton"),
@@ -343,3 +371,5 @@ export type EmployeePermission = typeof employeePermissions.$inferSelect
 export type ActivityLog = typeof activityLog.$inferSelect
 export type SaasConfig = typeof saasConfig.$inferSelect
 export type PatchNote = typeof patchNotes.$inferSelect
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect
+export type PushNotificationRow = typeof pushNotifications.$inferSelect
