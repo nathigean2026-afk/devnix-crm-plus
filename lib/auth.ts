@@ -5,29 +5,29 @@ import { sendPasswordResetEmail } from "@/lib/email"
 const PRODUCTION_DOMAIN = "crm.elevanthe.com"
 
 const getBaseURL = () => {
-  // Prioridade: BETTER_AUTH_URL explícito e correto (não localhost)
+  // 1. Domínio de produção customizado tem prioridade máxima
+  if (process.env.VERCEL_ENV === "production") {
+    return `https://${PRODUCTION_DOMAIN}`
+  }
+  // 2. VERCEL_URL (branches/previews do Vercel)
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  // 3. URL de runtime do v0 (ex: vm-xxxx.vusercontent.net)
+  if (process.env.V0_RUNTIME_URL) return process.env.V0_RUNTIME_URL
+  // 4. BETTER_AUTH_URL explícito apenas se não for localhost
   const explicit = process.env.BETTER_AUTH_URL
   if (explicit && !explicit.includes("localhost") && !explicit.includes("127.0.0.1")) {
     return explicit
   }
-  // Domínio de produção customizado tem prioridade sobre VERCEL_URL
-  if (process.env.VERCEL_ENV === "production") {
-    return `https://${PRODUCTION_DOMAIN}`
-  }
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return process.env.V0_RUNTIME_URL ?? "http://localhost:3000"
+  // 5. Desenvolvimento local
+  return "http://localhost:3000"
 }
 
-// Detecta se está em produção real para configurar cookies corretamente
-const isProductionDomain = () => {
-  const base = getBaseURL()
-  return base.includes(PRODUCTION_DOMAIN)
-}
+// Cookies seguros em qualquer ambiente HTTPS (produção, preview Vercel, v0)
+const isHttps = () => getBaseURL().startsWith("https")
 
 const trustedOrigins = [
-  process.env.BETTER_AUTH_URL,
   process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : undefined,
@@ -35,11 +35,17 @@ const trustedOrigins = [
     ? `https://${process.env.VERCEL_URL}`
     : undefined,
   process.env.V0_RUNTIME_URL,
+  // BETTER_AUTH_URL apenas se não for localhost
+  process.env.BETTER_AUTH_URL &&
+  !process.env.BETTER_AUTH_URL.includes("localhost") &&
+  !process.env.BETTER_AUTH_URL.includes("127.0.0.1")
+    ? process.env.BETTER_AUTH_URL
+    : undefined,
   "http://localhost:3000",
   // Domínio de produção personalizado
   "https://crm.elevanthe.com",
   "https://devnix-crm-plus.vercel.app",
-  // Suporta wildcard nativo do Better Auth para o preview iframe da v0
+  // Wildcard para preview iframe da v0 e branches do Vercel
   "https://*.vusercontent.net",
   "https://*.vercel.app",
 ].filter(Boolean) as string[]
@@ -62,11 +68,10 @@ export const auth = betterAuth({
   },
   advanced: {
     defaultCookieAttributes: {
-      // SameSite=None + Secure apenas no domínio de produção real.
-      // Em qualquer outro ambiente (dev, preview Vercel, iframe v0) usa Lax
-      // para não bloquear cookies em contexto de terceiros.
-      sameSite: isProductionDomain() ? "none" : "lax",
-      secure: isProductionDomain(),
+      // SameSite=None + Secure em qualquer HTTPS (produção, preview Vercel e v0).
+      // Em HTTP (localhost dev) usa Lax — browsers rejeitam None sem Secure.
+      sameSite: isHttps() ? "none" : "lax",
+      secure: isHttps(),
     },
   },
 })
