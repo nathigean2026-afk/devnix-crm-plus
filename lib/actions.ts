@@ -327,6 +327,22 @@ export async function getQuotes() {
     .orderBy(desc(quotes.createdAt))
 }
 
+/** Retorna os primeiros IDs disponíveis para preview de documentos nas configurações */
+export async function getPreviewDocumentIds(): Promise<{
+  quoteId: string | null
+  serviceOrderId: string | null
+}> {
+  const { effectiveId } = await getEffectiveUserId()
+  const [firstQuote, firstOs] = await Promise.all([
+    db.select({ id: quotes.id }).from(quotes).where(eq(quotes.userId, effectiveId)).orderBy(desc(quotes.createdAt)).limit(1),
+    db.select({ id: serviceOrders.id }).from(serviceOrders).where(eq(serviceOrders.userId, effectiveId)).orderBy(desc(serviceOrders.createdAt)).limit(1),
+  ])
+  return {
+    quoteId: firstQuote[0]?.id ?? null,
+    serviceOrderId: firstOs[0]?.id ?? null,
+  }
+}
+
 export async function getNextQuoteNumber(userId: string) {
   const result = await db
     .select({ max: sql<number>`COALESCE(MAX(number), 0)` })

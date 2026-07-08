@@ -463,7 +463,7 @@ export default function AdminDashboard({
     setConfirmDelete(false)
     setEditForm({
       name: u.profileName || u.userName,
-      email: u.profileEmail || u.userEmail,
+      email: u.userEmail,
       accessExpiresAt: u.accessExpiresAt ? new Date(u.accessExpiresAt).toISOString().split("T")[0] : "",
     })
     const plan = (u.licensePlan ?? "starter").toLowerCase()
@@ -1046,7 +1046,7 @@ export default function AdminDashboard({
                                 </div>
                                 <div>
                                   <p className={cn("font-medium text-sm leading-none", darkMode ? "text-white" : "text-slate-800")}>{u.profileName || u.userName}</p>
-                                  <p className={cn("text-xs mt-0.5", darkMode ? "text-white/50" : "text-slate-400")}>{u.profileEmail || u.userEmail}</p>
+                                  <p className={cn("text-xs mt-0.5", darkMode ? "text-white/50" : "text-slate-400")}>{u.userEmail}</p>
                                 </div>
                               </div>
                             </td>

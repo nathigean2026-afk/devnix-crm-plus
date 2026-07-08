@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil, PenLine, CircleDot, CheckCircle2, XCircle, Clock, Ban } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil, PenLine, CircleDot, CheckCircle2, XCircle, Clock, Ban, ChevronDown } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -62,11 +62,28 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const [items, setItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [clientSearch, setClientSearch] = useState("")
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false)
+  const clientSearchRef = useRef<HTMLInputElement>(null)
   const prevStatusMapRef = useRef<Record<string, string>>(
     Object.fromEntries(initialQuotes.map(q => [q.id, q.status]))
   )
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  // Fecha dropdown de cliente ao clicar fora
+  useEffect(() => {
+    if (!clientDropdownOpen) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest("[data-client-dropdown]")) {
+        setClientDropdownOpen(false)
+        setClientSearch("")
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [clientDropdownOpen])
 
   // Sincroniza estado local quando o servidor retorna dados novos (ex: após polling)
   useEffect(() => {
@@ -472,22 +489,70 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Cliente *</Label>
-                <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v })}>
-                  <SelectTrigger className="bg-input border-border text-foreground w-full">
-                    <SelectValue>
-                      <span className={form.clientId ? "text-foreground" : "text-muted-foreground"}>
-                        {form.clientId
-                          ? clients.find((c) => c.id === form.clientId)?.name ?? "Selecione um cliente..."
-                          : "Selecione um cliente..."}
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Combobox de cliente com busca */}
+                <div className="relative" data-client-dropdown>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClientDropdownOpen(v => !v)
+                      setTimeout(() => clientSearchRef.current?.focus(), 50)
+                    }}
+                    className="flex items-center justify-between w-full h-9 px-3 rounded-md border border-border bg-input text-sm text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    <span className={form.clientId ? "text-foreground" : "text-muted-foreground"}>
+                      {form.clientId
+                        ? clients.find((c) => c.id === form.clientId)?.name ?? "Selecione um cliente..."
+                        : "Selecione um cliente..."}
+                    </span>
+                    <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-2" />
+                  </button>
+
+                  {clientDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg">
+                      {/* Campo de pesquisa */}
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+                        <Search className="size-3.5 text-muted-foreground shrink-0" />
+                        <input
+                          ref={clientSearchRef}
+                          type="text"
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          placeholder="Buscar cliente..."
+                          className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
+                        />
+                        {clientSearch && (
+                          <button type="button" onClick={() => setClientSearch("")}>
+                            <X className="size-3.5 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                      {/* Lista de clientes filtrados */}
+                      <div className="max-h-48 overflow-y-auto py-1">
+                        {clients
+                          .filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                          .map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setForm({ ...form, clientId: c.id })
+                                setClientDropdownOpen(false)
+                                setClientSearch("")
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                                form.clientId === c.id ? "text-primary font-medium" : "text-foreground"
+                              }`}
+                            >
+                              {c.name}
+                            </button>
+                          ))}
+                        {clients.filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                          <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-foreground text-sm">Válido até</Label>
