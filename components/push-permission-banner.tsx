@@ -63,27 +63,59 @@ async function subscribeUser(): Promise<"granted" | "denied" | "unsupported" | "
       return "error"
     }
 
-    // Verifica se já tem subscription
-    const existing = await registration.pushManager.getSubscription()
-    if (existing) {
-      await saveSubscription(existing)
-      return "granted"
+    // Pede permissão (se ainda não concedida)
+    if (Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission()
+      if (permission !== "granted") return "denied"
     }
 
-    // Pede permissão
-    const permission = await Notification.requestPermission()
-    if (permission !== "granted") return "denied"
+    const appKey = urlBase64ToUint8Array(vapidKey)
 
-    // Cria subscription
-    const sub = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    })
-    await saveSubscription(sub)
-    return "granted"
+    // Descarta subscription antiga: pode ter sido criada com outra chave VAPID,
+    // o que faz o navegador lançar "AbortError: Registration failed - push service error".
+    const existing = await registration.pushManager.getSubscription()
+    if (existing) {
+      const currentKey = existing.options?.applicationServerKey
+      const sameKey =
+        currentKey && arrayBuffersEqual(currentKey, appKey.buffer as ArrayBuffer)
+      if (sameKey) {
+        // Chave bate — apenas garante que está salva no banco
+        const ok = await saveSubscription(existing)
+        if (ok) return "granted"
+      }
+      // Chave diferente ou save falhou — descarta para recriar limpa
+      await existing.unsubscribe().catch(() => {})
+    }
+
+    // Cria nova subscription com retry (o push service às vezes é instável)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appKey,
+        })
+        await saveSubscription(sub)
+        return "granted"
+      } catch (err) {
+        if (attempt === 3) throw err
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+    }
+    return "error"
   } catch {
     return "error"
   }
+}
+
+// Compara dois ArrayBuffers byte a byte
+function arrayBuffersEqual(a: ArrayBuffer, b: ArrayBuffer): boolean {
+  if (a.byteLength !== b.byteLength) return false
+  const va = new Uint8Array(a)
+  const vb = new Uint8Array(b)
+  for (let i = 0; i < va.length; i++) {
+    if (va[i] !== vb[i]) return false
+  }
+  return true
 }
 
 type BannerState = "idle" | "loading" | "granted" | "denied" | "error" | "unsupported"
@@ -199,7 +231,8 @@ export function PushPermissionBanner() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">Não foi possível ativar</p>
                 <p className="text-xs text-white/50 mt-0.5">
-                  Verifique se seu navegador suporta notificações e tente novamente.
+                  Desative bloqueadores de anúncios/extensões de privacidade neste site e tente
+                  novamente. Eles podem bloquear o serviço de notificações.
                 </p>
               </div>
               <button onClick={handleDismiss} className="shrink-0 p-1.5 rounded-lg text-white/30 hover:text-white/60 transition-colors">
