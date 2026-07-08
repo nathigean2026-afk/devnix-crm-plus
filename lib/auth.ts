@@ -40,8 +40,11 @@ export const auth = betterAuth({
   },
   advanced: {
     defaultCookieAttributes: {
-      sameSite: "none",
-      secure: true,
+      // SameSite=None + Secure apenas no domínio de produção real.
+      // Em qualquer outro ambiente (dev, preview Vercel, iframe v0) usa Lax
+      // para não bloquear cookies em contexto de terceiros.
+      sameSite: process.env.BETTER_AUTH_URL === "https://crm.elevanthe.com" ? "none" : "lax",
+      secure: process.env.BETTER_AUTH_URL === "https://crm.elevanthe.com",
     },
   },
 })
