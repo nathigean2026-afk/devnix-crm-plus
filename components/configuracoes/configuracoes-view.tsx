@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone, Eye, EyeOff, KeyRound, Clock } from "lucide-react"
+import { Sun, Moon, Monitor, Building2, Shield, Palette, Upload, X, QrCode, BadgeCheck, Bell, Tag, Lock, FileText, MessageSquare, CheckCircle2, CalendarDays, AlignLeft, Smartphone, Eye, EyeOff, KeyRound, Clock, ExternalLink } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import Image from "next/image"
@@ -31,6 +31,7 @@ interface ConfiguracoesViewProps {
   license: LicenseInfo
   /** Quando true, oculta a seção de licença e planos (funcionários não podem gerenciar licença) */
   isEmployee?: boolean
+  previewIds?: { quoteId: string | null; serviceOrderId: string | null }
 }
 
 const pixTypeLabels: Record<string, string> = {
@@ -386,7 +387,7 @@ function LicenseCard({
   )
 }
 
-export function ConfiguracoesView({ user, profile, license, isEmployee = false }: ConfiguracoesViewProps) {
+export function ConfiguracoesView({ user, profile, license, isEmployee = false, previewIds }: ConfiguracoesViewProps) {
   const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -871,6 +872,79 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
               </>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Visualizar Documentos */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <Eye className="size-5 text-primary" />
+            <CardTitle className="text-foreground text-lg">Visualizar Documentos</CardTitle>
+          </div>
+          <CardDescription className="text-muted-foreground">
+            Veja como seus documentos ficam com a personalização atual — logo, cores e dados da empresa.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            {previewIds?.quoteId ? (
+              <a
+                href={`/orcamento/${previewIds.quoteId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/40 hover:bg-muted text-sm font-medium text-foreground transition-colors"
+              >
+                <FileText className="size-4 text-primary" />
+                Ver Orçamento
+                <ExternalLink className="size-3.5 text-muted-foreground" />
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground cursor-not-allowed">
+                <FileText className="size-4" />
+                Nenhum orçamento criado
+              </span>
+            )}
+
+            {previewIds?.serviceOrderId ? (
+              <a
+                href={`/ordem-servico/${previewIds.serviceOrderId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/40 hover:bg-muted text-sm font-medium text-foreground transition-colors"
+              >
+                <FileText className="size-4 text-primary" />
+                Ver Ordem de Serviço
+                <ExternalLink className="size-3.5 text-muted-foreground" />
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground cursor-not-allowed">
+                <FileText className="size-4" />
+                Nenhuma OS criada
+              </span>
+            )}
+
+            {previewIds?.serviceOrderId ? (
+              <a
+                href={`/recibo/${previewIds.serviceOrderId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/40 hover:bg-muted text-sm font-medium text-foreground transition-colors"
+              >
+                <FileText className="size-4 text-primary" />
+                Ver Recibo
+                <ExternalLink className="size-3.5 text-muted-foreground" />
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground cursor-not-allowed">
+                <FileText className="size-4" />
+                Nenhuma OS para recibo
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            Os documentos abrem em nova aba. Salve as configurações antes de visualizar para ver as alterações mais recentes.
+          </p>
         </CardContent>
       </Card>
 
