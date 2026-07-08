@@ -215,7 +215,7 @@ const FAQ: FAQEntry[] = [
     exclusive: ["esqueci a senha", "recuperar senha", "redefinir senha", "reset de senha", "nao consigo entrar", "nao lembro a senha"],
     keywords:  ["esqueci", "senha", "recuperar", "redefinir", "reset"],
     answer:
-      "Para redefinir sua senha:\n\n1. Na tela de login, clique em **\"Esqueci a senha\"**\n2. Digite o e-mail cadastrado na sua conta\n3. Acesse sua caixa de entrada e clique no link recebido\n4. Defina uma nova senha segura\n\nO link de redefinição expira em **1 hora**.\n\nNão chegou o e-mail? Verifique a pasta de spam. Se persistir, fale conosco: **suporte@elevanthe.com.br**",
+      "Para redefinir sua senha:\n\n1. Na tela de login, clique em **\"Esqueci a senha\"**\n2. Digite o e-mail cadastrado na sua conta\n3. Acesse sua caixa de entrada e clique no link recebido\n4. Defina uma nova senha segura\n\nO link de redefinição expira em **1 hora**.\n\nNão chegou o e-mail? Verifique a pasta de spam. Se persistir, fale conosco: **suporte@elevanthe.com**",
     suggestions: ["Como criar minha conta?", "Falar com suporte", "Quais planos existem?"],
   },
 
@@ -233,7 +233,7 @@ const FAQ: FAQEntry[] = [
     exclusive: ["cancelar", "cancelamento", "encerrar conta", "parar de usar", "desativar conta"],
     keywords:  ["cancelar", "cancelamento", "encerrar", "desativar"],
     answer:
-      "Você pode cancelar a qualquer momento, **sem multa e sem burocracia**:\n\n1. Acesse **Configurações > Minha Assinatura**\n2. Clique em **\"Cancelar plano\"**\n3. O acesso segue ativo até o fim do período já pago\n\nApós o cancelamento:\n- Seus dados ficam disponíveis por **30 dias** para exportação\n- Após esse prazo, são removidos permanentemente\n\nPrecisa de ajuda? **suporte@elevanthe.com.br**",
+      "Você pode cancelar a qualquer momento, **sem multa e sem burocracia**:\n\n1. Acesse **Configurações > Minha Assinatura**\n2. Clique em **\"Cancelar plano\"**\n3. O acesso segue ativo até o fim do período já pago\n\nApós o cancelamento:\n- Seus dados ficam disponíveis por **30 dias** para exportação\n- Após esse prazo, são removidos permanentemente\n\nPrecisa de ajuda? **suporte@elevanthe.com**",
     suggestions: ["Posso pausar meu plano?", "Como exportar meus dados?", "Falar com suporte"],
   },
 
@@ -251,7 +251,7 @@ const FAQ: FAQEntry[] = [
     exclusive: ["suporte", "ajuda", "atendimento", "falar com alguem", "humano", "contato"],
     keywords:  ["suporte", "ajuda", "atendimento", "falar", "humano", "contato", "problema", "bug"],
     answer:
-      "Nosso suporte está disponível por múltiplos canais:\n\n- **Chat ao vivo** — dentro da plataforma após login (seg–sex, 8h–18h)\n- **E-mail** — suporte@elevanthe.com.br _(resposta em até 4h úteis)_\n- **WhatsApp** — disponível para planos Pro e Business\n- **Central de ajuda** — help.elevanthe.com.br com tutoriais em vídeo\n\nClientes do plano **Business** têm suporte prioritário com atendimento dedicado.",
+      "Nosso suporte está disponível por múltiplos canais:\n\n- **Chat ao vivo** — dentro da plataforma após login (seg–sex, 8h–18h)\n- **E-mail** — suporte@elevanthe.com _(resposta em até 4h úteis)_\n- **WhatsApp** — disponível para planos Pro e Business\n- **Central de ajuda** — help.elevanthe.com.br com tutoriais em vídeo\n\nClientes do plano **Business** têm suporte prioritário com atendimento dedicado.",
     suggestions: ["Falar com humano", "Quais planos existem?", "Como criar minha conta?"],
   },
 ]
@@ -259,7 +259,7 @@ const FAQ: FAQEntry[] = [
 // ─── Fallback ─────────────────────────────────────────────────────────────────
 const FALLBACK = {
   answer:
-    "Não encontrei uma resposta exata para essa pergunta, mas nossa equipe pode te ajudar!\n\nEntre em contato:\n- **E-mail:** suporte@elevanthe.com.br\n- **Central de ajuda:** help.elevanthe.com.br\n\nOu escolha um dos tópicos abaixo:",
+    "Não encontrei uma resposta exata para essa pergunta, mas nossa equipe pode te ajudar!\n\nEntre em contato:\n- **E-mail:** suporte@elevanthe.com\n- **Central de ajuda:** help.elevanthe.com.br\n\nOu escolha um dos tópicos abaixo:",
   suggestions: ["Quanto custa?", "Quais funcionalidades tem?", "Como criar minha conta?", "Falar com suporte"],
 }
 
@@ -476,7 +476,7 @@ export function LoginChatWidget() {
                   </button>
                 </div>
                 <p className="text-[10px] text-muted-foreground/40 text-center mt-2">
-                  Elevanthe CRM &middot; suporte@elevanthe.com.br
+                  Elevanthe CRM &middot; suporte@elevanthe.com
                 </p>
               </div>
             </>

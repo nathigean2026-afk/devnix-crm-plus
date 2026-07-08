@@ -25,25 +25,42 @@ async function saveSubscription(sub: PushSubscription) {
 }
 
 async function doSubscribe(registration: ServiceWorkerRegistration) {
-  try {
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""
-    if (!vapidKey) return
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""
+  if (!vapidKey) return
 
-    // Se já tem subscription ativa, garante que está salva no banco
-    const existing = await registration.pushManager.getSubscription()
-    if (existing) {
-      await saveSubscription(existing)
-      return
+  const appKey = urlBase64ToUint8Array(vapidKey)
+
+  // Se já existe uma subscription, tenta salvá-la no banco.
+  // Caso esteja expirada ou inválida, descarta e cria uma nova.
+  const existing = await registration.pushManager.getSubscription()
+  if (existing) {
+    try {
+      const ok = await saveSubscription(existing)
+      if (ok) return
+    } catch {
+      // Segue para criar uma nova
     }
+    // Subscription rejeitada — descarta para criar uma nova limpa
+    await existing.unsubscribe().catch(() => {})
+  }
 
-    // Cria nova subscription com a chave VAPID (permissão já foi concedida)
-    const sub = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    })
-    await saveSubscription(sub)
-  } catch (err) {
-    console.error("[push-manager] doSubscribe:", err)
+  // Cria nova subscription, com retry em caso de erro transitório do push service
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appKey,
+      })
+      await saveSubscription(sub)
+      return
+    } catch (err) {
+      if (attempt === 2) {
+        console.error("[push-manager] doSubscribe falhou após 2 tentativas:", err)
+      } else {
+        // Aguarda 2s antes de tentar novamente
+        await new Promise((r) => setTimeout(r, 2000))
+      }
+    }
   }
 }
 

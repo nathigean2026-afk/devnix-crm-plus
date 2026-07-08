@@ -2274,7 +2274,7 @@ export async function getSaasConfig() {
   if (rows.length === 0) {
     // Cria o registro singleton se não existir
     await db.insert(saasConfig).values({ id: "singleton" }).onConflictDoNothing()
-    return { id: "singleton", maintenanceMode: false, supportEmail: "suporte@elevanthe.com.br", maxClientsStarter: 50, maxClientsProf: 300, maxOsStarter: 100, trialDays: 0, updatedAt: new Date() }
+    return { id: "singleton", maintenanceMode: false, supportEmail: "suporte@elevanthe.com", maxClientsStarter: 50, maxClientsProf: 300, maxOsStarter: 100, trialDays: 0, updatedAt: new Date() }
   }
   return rows[0]
 }
