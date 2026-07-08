@@ -187,7 +187,14 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         })
         if (error) throw new Error(error.message)
         toast.success("Bem-vindo de volta!")
-        await authClient.revokeOtherSessions().catch(() => {})
+        // Revoga outras sessões em background, sem bloquear o redirect.
+        // Ignoramos erros pois o cookie pode ainda não ter sido confirmado
+        // pelo browser neste ciclo de evento.
+        authClient.revokeOtherSessions().catch(() => {})
+        // Usa full page navigation para garantir que o cookie de sessão
+        // já esteja disponível quando o servidor renderizar o dashboard.
+        window.location.href = "/dashboard"
+        return
       }
       router.push("/dashboard")
       router.refresh()

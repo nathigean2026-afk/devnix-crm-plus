@@ -4,12 +4,24 @@ import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { DashboardChart } from "@/components/dashboard/dashboard-chart"
 import { RevenueGoalCard } from "@/components/dashboard/revenue-goal-card"
 import { BirthdayClientsCard } from "@/components/dashboard/birthday-clients-card"
+import { redirect } from "next/navigation"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Dashboard" }
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  let stats
+  try {
+    stats = await getDashboardStats()
+  } catch (err: unknown) {
+    // Sessão não encontrada — o layout já lida com o redirect, mas se por
+    // alguma condição de corrida no carregamento inicial a sessão não estiver
+    // pronta, redireciona de volta ao sign-in.
+    if (err instanceof Error && err.message === "Não autorizado") {
+      redirect("/sign-in")
+    }
+    throw err
+  }
 
   return (
     <div className="flex flex-col gap-6">
