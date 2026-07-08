@@ -7,13 +7,19 @@ import {
   adminDeletePatchNote,
 } from "@/lib/actions"
 
-async function checkAdminSession() {
+const ADMIN_TOKEN = "admin-nathigean-001"
+
+async function checkAdminSession(req?: NextRequest) {
+  // 1. Cookie (login normal)
   const cookieStore = await cookies()
   const session = cookieStore.get("admin_session")
-  if (!session?.value || session.value !== "admin-nathigean-001") {
-    return false
+  if (session?.value === ADMIN_TOKEN) return true
+  // 2. Header x-admin-token (fallback iframe/preview)
+  if (req) {
+    const header = req.headers.get("x-admin-token")
+    if (header === ADMIN_TOKEN) return true
   }
-  return true
+  return false
 }
 
 /** Mapeia os campos do tab (content) para o campo do banco (body) e vice-versa */
@@ -41,15 +47,15 @@ function fromDb(note: Record<string, unknown>) {
   }
 }
 
-export async function GET() {
-  if (!(await checkAdminSession()))
+export async function GET(req: NextRequest) {
+  if (!(await checkAdminSession(req)))
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   const notes = await adminGetPatchNotes()
   return NextResponse.json(notes.map(fromDb))
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await checkAdminSession()))
+  if (!(await checkAdminSession(req)))
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   const data = await req.json()
   await adminCreatePatchNote(toDb(data))
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!(await checkAdminSession()))
+  if (!(await checkAdminSession(req)))
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   const data = await req.json()
   const { id, ...rest } = data as { id: string; [k: string]: unknown }
@@ -68,7 +74,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!(await checkAdminSession()))
+  if (!(await checkAdminSession(req)))
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const id = searchParams.get("id")
