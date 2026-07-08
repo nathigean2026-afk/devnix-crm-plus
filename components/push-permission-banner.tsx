@@ -254,6 +254,7 @@ export function PushNotificationToggle() {
   const [granted, setGranted] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [activating, setActivating] = useState(false)
+  const [disabling, setDisabling] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -287,8 +288,6 @@ export function PushNotificationToggle() {
       // Deixa o estado, mostra mensagem ao usuário via estado
     }
   }
-
-  const [disabling, setDisabling] = useState(false)
 
   const handleDisable = async () => {
     setDisabling(true)
