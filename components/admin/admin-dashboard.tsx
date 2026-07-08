@@ -12,6 +12,10 @@ import {
   adminSendDirectMessage,
   adminSaveSaasConfig,
   adminGetPatchNotes, adminCreatePatchNote, adminUpdatePatchNote, adminDeletePatchNote,
+  adminChangePlan,
+  adminClearUsedCodes,
+  adminGetLogs,
+  adminGetStats,
 } from "@/lib/actions"
 import type { PatchNote } from "@/lib/db/schema"
 import { AdminTickets } from "@/components/admin/admin-tickets"
@@ -28,7 +32,7 @@ import {
   KeyRound, Ban, PlusCircle, ChevronDown, ChevronUp, Activity,
   DollarSign, Calendar, Globe, Monitor, Filter, Search, X, Send, Megaphone, Pencil,
   MessageCircle, Smartphone, QrCode, FlaskConical, Link2Off, Link2,
-  Bell, Users2, Radio, History,
+  Bell, Users2, Radio, History, ClipboardList, ShieldAlert,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -162,16 +166,37 @@ function parseIp(ip: string | null) {
   return clean
 }
 
-type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp" | "push"
+type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp" | "push" | "logs"
+
+type AdminLogRow = { id: string; adminEmail: string; action: string; description: string; targetUserId: string | null; targetUserEmail: string | null; meta: string | null; createdAt: Date }
 
 export default function AdminDashboard({
-  stats: initialStats, codes, tickets, initialSaasConfig,
+  stats: initialStats, codes, tickets, initialSaasConfig, initialLogs = [],
 }: {
   stats: StatsData; codes: PromoCode[]; tickets: TicketRow[]
   initialSaasConfig?: { maintenanceMode: boolean; supportEmail: string; maxClientsStarter: number; maxClientsProf: number; maxOsStarter: number; trialDays: number }
+  initialLogs?: AdminLogRow[]
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // E-mail do admin logado — usado nos logs de auditoria
+  const ADMIN_EMAIL = "suporte@elevanthe.com"
+
+  // Atualiza stats + logs direto do banco sem depender de router.refresh()
+  async function refreshAll() {
+    setIsRefreshing(true)
+    try {
+      const [freshStats, freshLogs] = await Promise.all([
+        adminGetStats(),
+        adminGetLogs(500),
+      ])
+      setStats(freshStats as unknown as StatsData)
+      setLogs(freshLogs)
+    } catch { /* silencioso */ }
+    finally { setIsRefreshing(false) }
+  }
   const [tab, setTab] = useState<Tab>("visao")
   const [darkMode, setDarkMode] = useState(true)
   const [promoForm, setPromoForm] = useState({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
@@ -180,10 +205,13 @@ export default function AdminDashboard({
   // Sincroniza localCodes quando o servidor devolve dados novos após router.refresh()
   useEffect(() => { setLocalCodes(codes) }, [codes])
   const [stats, setStats] = useState(initialStats)
+  const [logs, setLogs] = useState<AdminLogRow[]>(initialLogs)
+  const [logFilter, setLogFilter] = useState<string>("todos")
   const [userSearch, setUserSearch] = useState("")
   const [userFilter, setUserFilter] = useState<"todos" | "ativos" | "expirados" | "online">("todos")
   const [editingUser, setEditingUser] = useState<LicenseRow | null>(null)
   const [editForm, setEditForm] = useState({ name: "", email: "", accessExpiresAt: "" })
+  const [selectedPlan, setSelectedPlan] = useState<"starter" | "business" | "enterprise">("starter")
   const [extendDays, setExtendDays] = useState(30)
   const [resetLink, setResetLink] = useState<string | null>(null)
   const [geoData, setGeoData] = useState<Record<string, GeoInfo>>({})
@@ -191,6 +219,7 @@ export default function AdminDashboard({
   const [paymentsList, setPaymentsList] = useState<PaymentRow[]>([])
   const [paymentsLoading, setPaymentsLoading] = useState(false)
   const [paymentFilter, setPaymentFilter] = useState<"todos" | "approved" | "pending" | "rejected">("todos")
+  const [codigoFilter, setCodigoFilter] = useState<"todos" | "disponivel" | "usado" | "expirado">("todos")
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [saasConfig, setSaasConfig] = useState({
     maintenanceMode: initialSaasConfig?.maintenanceMode ?? false,
@@ -382,18 +411,11 @@ export default function AdminDashboard({
     const deletedId = editingUser.userId
     startTransition(async () => {
       try {
-        await adminDeleteUser(deletedId)
-        // Remove o usuário da lista local imediatamente, sem precisar de F5
-        setStats(prev => ({
-          ...prev,
-          licenseData: prev.licenseData.filter(u => u.userId !== deletedId),
-          totalUsers: prev.totalUsers - 1,
-          onlineSessions: prev.onlineSessions.filter(s => s.userId !== deletedId),
-        }))
+        await adminDeleteUser(deletedId, ADMIN_EMAIL)
         setEditingUser(null)
         setConfirmDelete(false)
         toast.success("Usuário excluído com sucesso.")
-        router.refresh()
+        await refreshAll()
       } catch {
         toast.error("Erro ao excluir usuário.")
       }
@@ -410,7 +432,6 @@ export default function AdminDashboard({
         toast.success(`Código ${promoForm.code.toUpperCase()} criado! (${formatDuration(durationMinutes)})`)
         setPromoForm({ code: "", planName: "Starter", days: 30, hours: 0, expiresAt: "" })
         setShowForm(false)
-        router.refresh()
       } catch (err) { toast.error(err instanceof Error ? err.message : "Erro ao criar código.") }
     })
   }
@@ -439,10 +460,33 @@ export default function AdminDashboard({
   function openEditUser(u: LicenseRow) {
     setEditingUser(u)
     setResetLink(null)
+    setConfirmDelete(false)
     setEditForm({
       name: u.profileName || u.userName,
       email: u.profileEmail || u.userEmail,
       accessExpiresAt: u.accessExpiresAt ? new Date(u.accessExpiresAt).toISOString().split("T")[0] : "",
+    })
+    const plan = (u.licensePlan ?? "starter").toLowerCase()
+    setSelectedPlan(plan === "business" ? "business" : plan === "enterprise" ? "enterprise" : "starter")
+  }
+
+  async function handleChangePlan(plan: "starter" | "business" | "enterprise") {
+    if (!editingUser) return
+    startTransition(async () => {
+      try {
+        await adminChangePlan(editingUser.userId, plan, ADMIN_EMAIL)
+        setSelectedPlan(plan)
+        // Atualiza o plano imediatamente na lista local
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? { ...u, licensePlan: plan } : u
+          ),
+        }))
+        toast.success(`Plano alterado para ${plan.charAt(0).toUpperCase() + plan.slice(1)}`)
+      } catch {
+        toast.error("Erro ao alterar plano")
+      }
     })
   }
 
@@ -454,10 +498,22 @@ export default function AdminDashboard({
           name: editForm.name,
           email: editForm.email,
           accessExpiresAt: editForm.accessExpiresAt || undefined,
-        })
+        }, ADMIN_EMAIL)
+        // Atualiza imediatamente na lista local
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? {
+              ...u,
+              profileName: editForm.name || u.profileName,
+              profileEmail: editForm.email || u.profileEmail,
+              accessExpiresAt: editForm.accessExpiresAt ? new Date(editForm.accessExpiresAt) : u.accessExpiresAt,
+            } : u
+          ),
+        }))
         toast.success("Dados atualizados!")
         setEditingUser(null)
-        router.refresh()
+        await refreshAll()
       } catch { toast.error("Erro ao atualizar usuário.") }
     })
   }
@@ -477,10 +533,17 @@ export default function AdminDashboard({
     if (!editingUser) return
     startTransition(async () => {
       try {
-        const newDate = await adminExtendLicense(editingUser.userId, extendDays)
+        const newDate = await adminExtendLicense(editingUser.userId, extendDays, ADMIN_EMAIL)
+        // Atualiza data na lista local imediatamente
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? { ...u, accessExpiresAt: new Date(newDate) } : u
+          ),
+        }))
         toast.success(`Licença estendida até ${formatDate(newDate)}`)
         setEditingUser(null)
-        router.refresh()
+        await refreshAll()
       } catch { toast.error("Erro ao estender licença.") }
     })
   }
@@ -490,10 +553,17 @@ export default function AdminDashboard({
     if (!confirm("Revogar acesso imediatamente?")) return
     startTransition(async () => {
       try {
-        await adminRevokeAccess(editingUser.userId)
+        await adminRevokeAccess(editingUser.userId, ADMIN_EMAIL)
+        // Atualiza data na lista local imediatamente
+        setStats(prev => ({
+          ...prev,
+          licenseData: prev.licenseData.map(u =>
+            u.userId === editingUser.userId ? { ...u, accessExpiresAt: new Date(0) } : u
+          ),
+        }))
         toast.success("Acesso revogado.")
         setEditingUser(null)
-        router.refresh()
+        await refreshAll()
       } catch { toast.error("Erro ao revogar acesso.") }
     })
   }
@@ -620,6 +690,7 @@ export default function AdminDashboard({
     { key: "push", label: "Push", icon: Bell },
     { key: "atualizacoes", label: "Atualizações", icon: Megaphone },
     { key: "configuracoes", label: "Configurações", icon: Globe },
+    { key: "logs", label: "Logs", icon: ClipboardList },
   ]
 
   return (
@@ -649,6 +720,19 @@ export default function AdminDashboard({
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => refreshAll()}
+              disabled={isRefreshing}
+              className={cn(
+                "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors",
+                darkMode ? "text-white/50 border-white/10 hover:border-white/20 hover:text-white/80" : "text-slate-500 border-slate-200 hover:border-slate-300",
+                isRefreshing && "opacity-60 cursor-not-allowed"
+              )}
+              title="Atualizar dados"
+            >
+              <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
+              <span className="hidden sm:inline">{isRefreshing ? "Atualizando..." : "Atualizar"}</span>
+            </button>
+            <button
               onClick={() => setDarkMode(d => !d)}
               className={cn(
                 "flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-colors",
@@ -674,38 +758,40 @@ export default function AdminDashboard({
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
           {/* Stats Cards */}
           <div className="grid gap-2 mb-6" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
-            <StatCard darkMode={darkMode} icon={UsersRound} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" />
-            <StatCard darkMode={darkMode} icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" />
-            <StatCard darkMode={darkMode} icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" />
+            <StatCard darkMode={darkMode} icon={UsersRound} label="Total usuários" value={stats.totalUsers} color="bg-blue-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("todos") }} active={tab === "usuarios" && userFilter === "todos"} />
+            <StatCard darkMode={darkMode} icon={CheckCircle2} label="Licenças ativas" value={stats.activeUsers} color="bg-emerald-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("ativos") }} active={tab === "usuarios" && userFilter === "ativos"} />
+            <StatCard darkMode={darkMode} icon={XCircle} label="Contas expiradas" value={stats.expiredUsers} color="bg-red-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("expirados") }} active={tab === "usuarios" && userFilter === "expirados"} />
             <StatCard darkMode={darkMode} icon={Wifi} label="Online agora" value={stats.onlineSessions.length} sub="últimos 15 min" color="bg-cyan-500/80" onClick={() => { handleTabChange("usuarios"); setUserFilter("online") }} active={tab === "usuarios" && userFilter === "online"} />
             <StatCard darkMode={darkMode} icon={LifeBuoy} label="Tickets abertos" value={stats.openTickets} color="bg-amber-500/80" onClick={() => handleTabChange("suporte")} active={tab === "suporte"} />
             <StatCard darkMode={darkMode} icon={DollarSign} label="Receita total" value={`R$ ${(stats.revenueStats.totalCents / 100).toFixed(2)}`} sub={`${stats.revenueStats.totalCount} pagamentos aprovados`} color="bg-emerald-600/80" onClick={() => handleTabChange("pagamentos")} active={tab === "pagamentos"} />
-            <StatCard darkMode={darkMode} icon={Tag} label="Códigos usados" value={`${stats.usedCodes}/${stats.totalCodes}`} color="bg-purple-500/80" />
+            <StatCard darkMode={darkMode} icon={Tag} label="Códigos usados" value={`${stats.usedCodes}/${stats.totalCodes}`} color="bg-purple-500/80" onClick={() => handleTabChange("codigos")} active={tab === "codigos"} />
           </div>
 
           {/* Tabs */}
-          <div className={cn(
-            "flex gap-0.5 rounded-xl p-1 mb-6 overflow-x-auto scrollbar-none border",
-            darkMode ? "bg-white/3 border-white/8" : "bg-slate-100/80 border-slate-200"
-          )}>
-            {TABS.map(t => (
-              <button
-                key={t.key}
-                onClick={() => handleTabChange(t.key)}
-                className={cn(
-                  "flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all shrink-0",
-                  tab === t.key
-                    ? "bg-primary text-white shadow-lg shadow-primary/20"
-                    : darkMode ? "text-white/40 hover:text-white/75 hover:bg-white/5" : "text-slate-500 hover:text-slate-700 hover:bg-white"
-                )}
-              >
-                <t.icon className="size-3.5 shrink-0" />
-                {t.label}
-              </button>
-            ))}
+          <div className="mb-6 w-full overflow-x-auto">
+            <div className={cn(
+              "inline-flex gap-0.5 rounded-xl p-1 border min-w-full",
+              darkMode ? "bg-white/3 border-white/8" : "bg-slate-100/80 border-slate-200"
+            )}>
+              {TABS.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => handleTabChange(t.key)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 text-xs px-2 py-2 rounded-lg font-medium whitespace-nowrap transition-all",
+                    tab === t.key
+                      ? "bg-primary text-white shadow-lg shadow-primary/20"
+                      : darkMode ? "text-white/40 hover:text-white/75 hover:bg-white/5" : "text-slate-500 hover:text-slate-700 hover:bg-white"
+                  )}
+                >
+                  <t.icon className="size-3.5 shrink-0" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* ── Tab: Visão Geral ── */}
+          {/* ── Tab: Visão Geral ─�� */}
           {tab === "visao" && (
             <div className="space-y-4">
               {/* Alertas de churn — expirando em breve */}
@@ -1030,11 +1116,49 @@ export default function AdminDashboard({
           {/* ── Tab: Códigos Promo ── */}
           {tab === "codigos" && (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>Códigos Promocionais</h2>
-                <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                  <Plus className="size-4" />Novo código
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Filtro por status */}
+                  <div className={cn("flex gap-0.5 p-0.5 rounded-lg border", darkMode ? "bg-white/3 border-white/8" : "bg-slate-100 border-slate-200")}>
+                    {([
+                      { key: "todos", label: "Todos" },
+                      { key: "disponivel", label: "Disponíveis" },
+                      { key: "usado", label: "Usados" },
+                      { key: "expirado", label: "Expirados" },
+                    ] as const).map(f => (
+                      <button key={f.key} onClick={() => setCodigoFilter(f.key)}
+                        className={cn("text-xs px-3 py-1.5 rounded-md transition-colors",
+                          codigoFilter === f.key
+                            ? "bg-primary text-white"
+                            : darkMode ? "text-white/40 hover:text-white/70" : "text-slate-500 hover:text-slate-700"
+                        )}>{f.label}</button>
+                    ))}
+                  </div>
+                  {/* Limpar usados */}
+                  <button
+                    onClick={async () => {
+                      if (!confirm("Apagar todos os códigos já utilizados? Esta ação não pode ser desfeita.")) return
+                      startTransition(async () => {
+                        try {
+                          await adminClearUsedCodes()
+                          setLocalCodes(prev => prev.filter(c => !c.usedBy))
+                          toast.success("Códigos usados removidos")
+                        } catch { toast.error("Erro ao limpar códigos") }
+                      })
+                    }}
+                    disabled={isPending}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors",
+                      darkMode ? "border-red-500/30 text-red-400 hover:bg-red-500/10" : "border-red-200 text-red-500 hover:bg-red-50"
+                    )}
+                  >
+                    <Trash2 className="size-3.5" />Limpar usados
+                  </button>
+                  <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
+                    <Plus className="size-4" />Novo código
+                  </button>
+                </div>
               </div>
 
               {showForm && (
@@ -1113,9 +1237,19 @@ export default function AdminDashboard({
                       </tr>
                     </thead>
                     <tbody>
-                      {localCodes.length === 0 ? (
-                        <tr><td colSpan={8} className={cn("text-center py-8 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhum código criado ainda.</td></tr>
-                      ) : localCodes.map((c) => {
+                      {(() => {
+                        const filtered = localCodes.filter(c => {
+                          if (codigoFilter === "todos") return true
+                          const isExpired = !!(c.expiresAt && new Date(c.expiresAt) < now)
+                          if (codigoFilter === "usado") return !!c.usedBy
+                          if (codigoFilter === "expirado") return !c.usedBy && isExpired
+                          if (codigoFilter === "disponivel") return !c.usedBy && !isExpired
+                          return true
+                        })
+                        if (filtered.length === 0) return (
+                          <tr><td colSpan={8} className={cn("text-center py-8 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>Nenhum código encontrado.</td></tr>
+                        )
+                        return filtered.map((c) => {
                         const expired = c.expiresAt && new Date(c.expiresAt) < now
                         return (
                           <tr key={c.id} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
@@ -1148,7 +1282,8 @@ export default function AdminDashboard({
                             </td>
                           </tr>
                         )
-                      })}
+                      })
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -1365,6 +1500,43 @@ export default function AdminDashboard({
                     <button onClick={handleExtendLicense} disabled={isPending} className="flex-1 bg-emerald-600/80 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
                       <PlusCircle className="size-4" />Adicionar dias
                     </button>
+                  </div>
+                </div>
+
+                <div className={cn("border-t", darkMode ? "border-white/10" : "border-slate-100")} />
+
+                {/* Plano */}
+                <div>
+                  <p className={cn("text-xs font-semibold uppercase tracking-wider mb-3", darkMode ? "text-white/40" : "text-slate-400")}>Plano da conta</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["starter", "business", "enterprise"] as const).map(plan => {
+                      const labels = { starter: "Starter", business: "Business", enterprise: "Enterprise" }
+                      const colors = {
+                        starter: "border-sky-500/50 bg-sky-500/10 text-sky-400",
+                        business: "border-violet-500/50 bg-violet-500/10 text-violet-400",
+                        enterprise: "border-amber-500/50 bg-amber-500/10 text-amber-400",
+                      }
+                      const isActive = selectedPlan === plan
+                      return (
+                        <button
+                          key={plan}
+                          onClick={() => handleChangePlan(plan)}
+                          disabled={isPending}
+                          className={cn(
+                            "py-2.5 rounded-lg border text-xs font-semibold transition-all",
+                            isActive
+                              ? colors[plan]
+                              : darkMode
+                                ? "border-white/10 text-white/30 hover:border-white/20 hover:text-white/60"
+                                : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {labels[plan]}
+                          {isActive && <span className="block text-[10px] mt-0.5 font-normal opacity-70">atual</span>}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -1765,6 +1937,120 @@ export default function AdminDashboard({
           patchNotesLoaded={patchNotesLoaded}
         />
       )}
+
+      {/* ── Tab: Logs ── */}
+      {tab === "logs" && (() => {
+        const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+          change_plan:     { label: "Plano alterado",     color: "bg-violet-500/20 text-violet-300 border-violet-500/30" },
+          extend_license:  { label: "Licença estendida",  color: "bg-green-500/20 text-green-300 border-green-500/30" },
+          revoke_access:   { label: "Acesso revogado",    color: "bg-red-500/20 text-red-400 border-red-500/30" },
+          delete_user:     { label: "Conta excluída",     color: "bg-red-600/20 text-red-400 border-red-600/30" },
+          update_user:     { label: "Dados editados",     color: "bg-sky-500/20 text-sky-300 border-sky-500/30" },
+          create_code:     { label: "Código criado",      color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
+          delete_code:     { label: "Código removido",    color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
+          clear_codes:     { label: "Códigos limpos",     color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
+          send_push:       { label: "Push enviado",       color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" },
+          save_config:     { label: "Config salva",       color: "bg-slate-500/20 text-slate-300 border-slate-500/30" },
+          send_message:    { label: "Mensagem enviada",   color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
+          create_patch:    { label: "Update criado",      color: "bg-teal-500/20 text-teal-300 border-teal-500/30" },
+          update_patch:    { label: "Update editado",     color: "bg-teal-500/20 text-teal-300 border-teal-500/30" },
+          delete_patch:    { label: "Update removido",    color: "bg-teal-500/20 text-teal-300 border-teal-500/30" },
+        }
+        const ACTION_FILTERS = [
+          { key: "todos",    label: "Todos" },
+          { key: "change_plan",    label: "Plano" },
+          { key: "extend_license", label: "Licença" },
+          { key: "revoke_access",  label: "Acesso" },
+          { key: "delete_user",    label: "Exclusões" },
+          { key: "update_user",    label: "Edições" },
+        ]
+        const filtered = logFilter === "todos" ? logs : logs.filter(l => l.action === logFilter)
+        return (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h2 className={cn("text-sm font-semibold uppercase tracking-wider", darkMode ? "text-white/70" : "text-slate-500")}>Log de Auditoria</h2>
+                <p className={cn("text-xs mt-0.5", darkMode ? "text-white/30" : "text-slate-400")}>Todas as ações realizadas no painel admin</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className={cn("flex gap-0.5 p-0.5 rounded-lg border", darkMode ? "bg-white/3 border-white/8" : "bg-slate-100 border-slate-200")}>
+                  {ACTION_FILTERS.map(f => (
+                    <button key={f.key} onClick={() => setLogFilter(f.key)}
+                      className={cn("text-xs px-3 py-1.5 rounded-md transition-colors",
+                        logFilter === f.key ? "bg-primary text-white" : darkMode ? "text-white/40 hover:text-white/70" : "text-slate-500 hover:text-slate-700"
+                      )}>{f.label}</button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => refreshAll()}
+                  disabled={isPending}
+                  className={cn("flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors",
+                    darkMode ? "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70" : "border-slate-200 text-slate-500 hover:border-slate-300"
+                  )}
+                >
+                  <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />Atualizar
+                </button>
+              </div>
+            </div>
+
+            <div className={cn("rounded-xl border overflow-hidden", darkMode ? "border-white/8" : "border-slate-200")}>
+              {/* Cabeçalho */}
+              <div className={cn("grid grid-cols-[140px_1fr_160px_130px] gap-4 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider border-b",
+                darkMode ? "bg-white/3 border-white/8 text-white/30" : "bg-slate-50 border-slate-200 text-slate-400")}>
+                <span>Admin</span>
+                <span>Acao</span>
+                <span>Conta afetada</span>
+                <span>Data / Hora</span>
+              </div>
+
+              {filtered.length === 0 ? (
+                <div className={cn("text-center py-12 text-sm", darkMode ? "text-white/30" : "text-slate-400")}>
+                  Nenhuma acao registrada ainda.
+                </div>
+              ) : filtered.map(log => {
+                const badge = ACTION_LABELS[log.action] || { label: log.action, color: "bg-white/10 text-white/50 border-white/10" }
+                const dt = new Date(log.createdAt)
+                const dateStr = `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`
+                const timeStr = `${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`
+                const isMain = log.adminEmail === "suporte@elevanthe.com"
+                return (
+                  <div key={log.id} className={cn(
+                    "grid grid-cols-[140px_1fr_160px_130px] gap-4 px-4 py-3 border-b text-xs items-start transition-colors",
+                    darkMode ? "border-white/5 hover:bg-white/2" : "border-slate-100 hover:bg-slate-50"
+                  )}>
+                    {/* Admin */}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isMain && <ShieldAlert className="size-3 text-amber-400 shrink-0" />}
+                      <span className={cn("truncate font-medium", darkMode ? "text-white/70" : "text-slate-700",
+                        isMain && "text-amber-400")}>{log.adminEmail}</span>
+                    </div>
+                    {/* Acao */}
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className={cn("inline-flex w-fit items-center px-2 py-0.5 rounded-md border text-[10px] font-semibold shrink-0", badge.color)}>
+                        {badge.label}
+                      </span>
+                      <span className={cn("text-xs leading-snug", darkMode ? "text-white/60" : "text-slate-600")}>{log.description}</span>
+                    </div>
+                    {/* Conta afetada */}
+                    <div className={cn("text-xs leading-snug truncate", darkMode ? "text-white/40" : "text-slate-500")}>
+                      {log.targetUserEmail || "—"}
+                    </div>
+                    {/* Data */}
+                    <div className={cn("text-xs tabular-nums", darkMode ? "text-white/30" : "text-slate-400")}>
+                      <span className="block">{dateStr}</span>
+                      <span className={cn("text-[10px]", darkMode ? "text-white/20" : "text-slate-300")}>{timeStr}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <p className={cn("text-[10px]", darkMode ? "text-white/20" : "text-slate-400")}>
+              Exibindo {filtered.length} de {logs.length} registros. A conta <strong className="text-amber-400">suporte@elevanthe.com</strong> e o admin principal.
+            </p>
+          </div>
+        )
+      })()}
 
       </div>
   )

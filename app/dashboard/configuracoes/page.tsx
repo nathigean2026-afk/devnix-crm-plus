@@ -7,7 +7,7 @@ import { getBusinessProfile, getUserLicense, getEmployeeData, getEffectiveUserId
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Configuracoes",
+  title: "Configurações",
 }
 
 export default async function ConfiguracoesPage() {

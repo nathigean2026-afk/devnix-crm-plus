@@ -1,6 +1,6 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { adminGetStats, adminGetPromoCodes, adminGetTickets, getSaasConfig } from "@/lib/actions"
+import { adminGetStats, adminGetPromoCodes, adminGetTickets, getSaasConfig, adminGetLogs } from "@/lib/actions"
 import AdminDashboard from "@/components/admin/admin-dashboard"
 
 export const dynamic = "force-dynamic"
@@ -21,12 +21,13 @@ export default async function AdminPage(props: { searchParams?: Promise<{ t?: st
     redirect("/admin/login")
   }
 
-  const [stats, codes, tickets, saasConfigData] = await Promise.all([
+  const [stats, codes, tickets, saasConfigData, logs] = await Promise.all([
     adminGetStats(),
     adminGetPromoCodes(),
     adminGetTickets(),
     getSaasConfig(),
+    adminGetLogs(500),
   ])
 
-  return <AdminDashboard stats={stats} codes={codes} tickets={tickets} initialSaasConfig={saasConfigData} />
+  return <AdminDashboard stats={stats} codes={codes} tickets={tickets} initialSaasConfig={saasConfigData} initialLogs={logs} />
 }

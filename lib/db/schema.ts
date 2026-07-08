@@ -341,6 +341,21 @@ export const pushNotifications = pgTable("push_notifications", {
 export type PushSubscription = typeof pushSubscriptions.$inferSelect
 export type PushNotification = typeof pushNotifications.$inferSelect
 
+// ── Admin Log ─────────────────────────────────────────────────────────────────
+// Registra todas as ações realizadas no painel admin para auditoria.
+export const adminLog = pgTable("admin_log", {
+  id: text("id").primaryKey(),
+  adminEmail: text("adminEmail").notNull(),   // quem executou a ação
+  action: text("action").notNull(),            // "change_plan" | "extend_license" | "revoke_access" | "delete_user" | "update_user" | "create_code" | "delete_code" | "clear_codes" | "send_push" | "save_config" | "send_message" | "create_patch" | "update_patch" | "delete_patch"
+  description: text("description").notNull(), // texto legível da ação
+  targetUserId: text("targetUserId"),          // usuário afetado (opcional)
+  targetUserEmail: text("targetUserEmail"),    // email do usuário afetado (snapshot)
+  meta: text("meta"),                          // JSON extra (ex: {from: "starter", to: "business"})
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export type AdminLog = typeof adminLog.$inferSelect
+
 // Configurações globais do SaaS (singleton — id fixo = 'singleton')
 export const saasConfig = pgTable("saas_config", {
   id: text("id").primaryKey().default("singleton"),

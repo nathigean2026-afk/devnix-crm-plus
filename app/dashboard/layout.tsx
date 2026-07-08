@@ -6,6 +6,7 @@ import { DashboardBreadcrumb } from "@/components/dashboard/breadcrumb"
 import { QuoteNotificationsProvider } from "@/components/dashboard/quote-notifications-provider"
 import { LicenseWatcher } from "@/components/dashboard/license-watcher"
 import { PushPermissionBanner } from "@/components/push-permission-banner"
+import { PwaInstallPrompt } from "@/components/pwa-banner"
 import { db } from "@/lib/db"
 import { user, employeePermissions } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -87,6 +88,7 @@ export default async function DashboardLayout({
         <main className="flex-1 overflow-auto p-4 md:p-6">
           <QuoteNotificationsProvider />
           <PushPermissionBanner />
+          <PwaInstallPrompt />
           {licenseExpiresAt && (
             <LicenseWatcher expiresAt={licenseExpiresAt.toISOString()} />
           )}

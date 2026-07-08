@@ -21,9 +21,9 @@ export function StatCard({ icon: Icon, label, value, sub, color, onClick, active
         <Icon className="size-3.5 text-white" />
       </div>
       <div className="min-w-0 w-full">
-        <p className={cn("text-lg font-bold leading-none tabular-nums truncate", darkMode ? "text-white" : "text-slate-800")}>{value}</p>
-        <p className={cn("text-[10px] mt-1 leading-snug truncate", darkMode ? "text-white/45" : "text-slate-500")}>{label}</p>
-        {sub && <p className={cn("text-[9px] mt-0.5 leading-tight truncate", darkMode ? "text-white/25" : "text-slate-400")}>{sub}</p>}
+        <p className={cn("text-lg font-bold leading-none tabular-nums break-words", darkMode ? "text-white" : "text-slate-800")}>{value}</p>
+        <p className={cn("text-[10px] mt-1 leading-snug break-words", darkMode ? "text-white/45" : "text-slate-500")}>{label}</p>
+        {sub && <p className={cn("text-[9px] mt-0.5 leading-tight break-words", darkMode ? "text-white/25" : "text-slate-400")}>{sub}</p>}
       </div>
     </button>
   )

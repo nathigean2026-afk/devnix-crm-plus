@@ -24,6 +24,8 @@ import {
   verification,
   saasConfig,
   patchNotes,
+  pushSubscriptions,
+  adminLog,
 } from "@/lib/db/schema"
 import { and, count, desc, eq, isNull, like, sql } from "drizzle-orm"
 import { sendQuoteResponseEmail } from "@/lib/email"
@@ -1037,14 +1039,80 @@ export async function adminGetPayments() {
     .limit(200)
 }
 
-export async function adminUpdateUser(userId: string, data: { name?: string; email?: string; accessExpiresAt?: string }) {
+export async function adminUpdateUser(userId: string, data: { name?: string; email?: string; accessExpiresAt?: string }, adminEmail?: string) {
   await db.update(user).set({
     ...(data.name ? { name: data.name } : {}),
     ...(data.email ? { email: data.email } : {}),
     ...(data.accessExpiresAt ? { accessExpiresAt: new Date(data.accessExpiresAt) } : {}),
     updatedAt: new Date(),
   }).where(eq(user.id, userId))
+  const targetUser = await db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1)
+  const parts: string[] = []
+  if (data.name) parts.push(`nome para "${data.name}"`)
+  if (data.email) parts.push(`email para "${data.email}"`)
+  if (data.accessExpiresAt) parts.push(`vencimento para ${data.accessExpiresAt}`)
+  await db.insert(adminLog).values({
+    id: crypto.randomUUID(),
+    adminEmail: adminEmail || "admin",
+    action: "update_user",
+    description: `Dados de "${targetUser[0]?.name || userId}" atualizados: ${parts.join(", ")}`,
+    targetUserId: userId,
+    targetUserEmail: targetUser[0]?.email || data.email || null,
+    createdAt: new Date(),
+  })
   revalidatePath("/admin")
+}
+
+export async function adminChangePlan(userId: string, plan: "starter" | "business" | "enterprise", adminEmail?: string) {
+  // Verifica primeiro se o perfil existe para fazer insert ou update correto
+  const existing = await db.select({ id: businessProfile.id, licensePlan: businessProfile.licensePlan })
+    .from(businessProfile).where(eq(businessProfile.userId, userId)).limit(1)
+
+  if (existing.length === 0) {
+    await db.insert(businessProfile).values({
+      id: crypto.randomUUID(),
+      userId,
+      name: "",
+      licensePlan: plan,
+    })
+  } else {
+    await db.update(businessProfile)
+      .set({ licensePlan: plan, updatedAt: new Date() })
+      .where(eq(businessProfile.userId, userId))
+  }
+
+  // Registra no log de admin
+  const targetUser = await db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1)
+  const targetName = targetUser[0]?.name || targetUser[0]?.email || userId
+  const oldPlan = existing[0]?.licensePlan || "—"
+  await db.insert(adminLog).values({
+    id: crypto.randomUUID(),
+    adminEmail: adminEmail || "admin",
+    action: "change_plan",
+    description: `Plano de "${targetName}" alterado de ${oldPlan} para ${plan}`,
+    targetUserId: userId,
+    targetUserEmail: targetUser[0]?.email || null,
+    meta: JSON.stringify({ from: oldPlan, to: plan }),
+    createdAt: new Date(),
+  })
+
+  revalidatePath("/admin")
+}
+
+export async function adminClearUsedCodes(adminEmail?: string) {
+  const deleted = await db.delete(promoCodes).where(sql`"usedBy" IS NOT NULL`)
+  await db.insert(adminLog).values({
+    id: crypto.randomUUID(),
+    adminEmail: adminEmail || "admin",
+    action: "clear_codes",
+    description: `Lista de códigos usados limpa`,
+    createdAt: new Date(),
+  })
+  revalidatePath("/admin")
+}
+
+export async function adminGetLogs(limit = 200): Promise<{ id: string; adminEmail: string; action: string; description: string; targetUserId: string | null; targetUserEmail: string | null; meta: string | null; createdAt: Date }[]> {
+  return db.select().from(adminLog).orderBy(desc(adminLog.createdAt)).limit(limit)
 }
 
 export async function adminSendPasswordReset(userId: string): Promise<string> {
@@ -1091,46 +1159,106 @@ export async function updatePasswordByToken(token: string, userId: string, newPa
   return { ok: true }
 }
 
-export async function adminExtendLicense(userId: string, days: number) {
-  const [u] = await db.select({ accessExpiresAt: user.accessExpiresAt }).from(user).where(eq(user.id, userId)).limit(1)
+export async function adminExtendLicense(userId: string, days: number, adminEmail?: string) {
+  const [u] = await db.select({ accessExpiresAt: user.accessExpiresAt, name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1)
   const now = new Date()
   const base = u?.accessExpiresAt && u.accessExpiresAt > now ? u.accessExpiresAt : now
   const newExpiry = new Date(base)
   newExpiry.setDate(newExpiry.getDate() + days)
   await db.update(user).set({ accessExpiresAt: newExpiry, updatedAt: new Date() }).where(eq(user.id, userId))
+  await db.insert(adminLog).values({
+    id: crypto.randomUUID(),
+    adminEmail: adminEmail || "admin",
+    action: "extend_license",
+    description: `Licença de "${u?.name || userId}" estendida em ${days} dias (vence em ${newExpiry.toLocaleDateString("pt-BR")})`,
+    targetUserId: userId,
+    targetUserEmail: u?.email || null,
+    meta: JSON.stringify({ days, newExpiry: newExpiry.toISOString() }),
+    createdAt: new Date(),
+  })
   revalidatePath("/admin")
   return newExpiry.toISOString()
 }
 
-export async function adminRevokeAccess(userId: string) {
+export async function adminRevokeAccess(userId: string, adminEmail?: string) {
+  const [u] = await db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1)
   await db.update(user).set({ accessExpiresAt: new Date(0), updatedAt: new Date() }).where(eq(user.id, userId))
+  await db.insert(adminLog).values({
+    id: crypto.randomUUID(),
+    adminEmail: adminEmail || "admin",
+    action: "revoke_access",
+    description: `Acesso de "${u?.name || userId}" (${u?.email || userId}) revogado imediatamente`,
+    targetUserId: userId,
+    targetUserEmail: u?.email || null,
+    createdAt: new Date(),
+  })
   revalidatePath("/admin")
 }
 
-export async function adminDeleteUser(userId: string) {
-  // Remove dados do usuário em ordem segura antes de deletar o registro principal.
-  // Tabelas com onDelete:"cascade" são limpas automaticamente (session, account, etc.)
-  // supportMessages não tem userId — deletar via ticketId dos tickets do usuário
+export async function adminDeleteUser(userId: string, adminEmail?: string) {
+  // Captura dados do usuário ANTES de deletar para registrar no log
+  const [targetUser] = await db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1)
+
+  // ── 1. Tabelas sem FK para user (deleção manual obrigatória) ────────────────
+
+  // supportMessages não tem userId: deleta via ticketId dos tickets do usuário
   await db.delete(supportMessages).where(
     sql`"ticketId" IN (SELECT id FROM support_tickets WHERE "userId" = ${userId})`
   )
   await db.delete(supportTickets).where(eq(supportTickets.userId, userId))
-  await db.delete(payments).where(eq(payments.userId, userId))
-  await db.delete(transactions).where(eq(transactions.userId, userId))
-  await db.delete(serviceOrderItems).where(
-    sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+
+  // activityLog não tem FK: deleta onde o usuário é dono ou funcionário
+  await db.delete(activityLog).where(
+    sql`"ownerId" = ${userId} OR "employeeId" = ${userId}`
   )
-  await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
+
+  // Itens de orçamento e ordem de serviço (FK para quote/serviceOrder, não para user)
   await db.delete(quoteItems).where(
     sql`"quoteId" IN (SELECT id FROM quotes WHERE "userId" = ${userId})`
   )
+  await db.delete(serviceOrderItems).where(
+    sql`"serviceOrderId" IN (SELECT id FROM service_orders WHERE "userId" = ${userId})`
+  )
+
+  // ── 2. Tabelas com userId direto ────────────────────────────────────────────
   await db.delete(quotes).where(eq(quotes.userId, userId))
+  await db.delete(serviceOrders).where(eq(serviceOrders.userId, userId))
+  await db.delete(transactions).where(eq(transactions.userId, userId))
   await db.delete(services).where(eq(services.userId, userId))
   await db.delete(clients).where(eq(clients.userId, userId))
-  await db.delete(employeePermissions).where(eq(employeePermissions.employeeId, userId))
-  await db.delete(employeeInvites).where(eq(employeeInvites.ownerId, userId))
+  await db.delete(payments).where(eq(payments.userId, userId))
   await db.delete(businessProfile).where(eq(businessProfile.userId, userId))
+
+  // Push subscriptions do dispositivo do usuário
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId))
+
+  // Vínculos de funcionário (como dono e como funcionário)
+  await db.delete(employeePermissions).where(
+    sql`"ownerId" = ${userId} OR "employeeId" = ${userId}`
+  )
+  await db.delete(employeeInvites).where(eq(employeeInvites.ownerId, userId))
+
+  // ── 3. Tabelas com onDelete:"cascade" (session, account, verification) ──────
+  // Serão limpas automaticamente pelo Postgres ao deletar o user,
+  // mas deletamos explicitamente para garantir consistência em ambientes sem FK enforcement.
+  await db.delete(session).where(eq(session.userId, userId))
+  await db.delete(account).where(eq(account.userId, userId))
+  await db.delete(verification).where(eq(verification.identifier, userId))
+
+  // ── 4. Registro principal ───────────────────────────────────────────────────
   await db.delete(user).where(eq(user.id, userId))
+
+  // Log após deletar (não usa userId pois o user já foi removido)
+  await db.insert(adminLog).values({
+    id: crypto.randomUUID(),
+    adminEmail: adminEmail || "admin",
+    action: "delete_user",
+    description: `Conta de "${targetUser?.name || userId}" (${targetUser?.email || userId}) excluída permanentemente`,
+    targetUserId: userId,
+    targetUserEmail: targetUser?.email || null,
+    createdAt: new Date(),
+  })
+
   revalidatePath("/admin")
 }
 
