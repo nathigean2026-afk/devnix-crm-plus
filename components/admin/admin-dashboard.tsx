@@ -223,7 +223,7 @@ export default function AdminDashboard({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [saasConfig, setSaasConfig] = useState({
     maintenanceMode: initialSaasConfig?.maintenanceMode ?? false,
-    supportEmail: initialSaasConfig?.supportEmail ?? "suporte@elevanthe.com.br",
+    supportEmail: initialSaasConfig?.supportEmail ?? "suporte@elevanthe.com",
     maxClientsStarter: initialSaasConfig?.maxClientsStarter ?? 50,
     maxClientsProf: initialSaasConfig?.maxClientsProf ?? 300,
     maxOsStarter: initialSaasConfig?.maxOsStarter ?? 100,

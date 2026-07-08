@@ -360,7 +360,7 @@ export type AdminLog = typeof adminLog.$inferSelect
 export const saasConfig = pgTable("saas_config", {
   id: text("id").primaryKey().default("singleton"),
   maintenanceMode: boolean("maintenanceMode").notNull().default(false),
-  supportEmail: text("supportEmail").notNull().default("suporte@elevanthe.com.br"),
+  supportEmail: text("supportEmail").notNull().default("suporte@elevanthe.com"),
   maxClientsStarter: integer("maxClientsStarter").notNull().default(50),
   maxClientsProf: integer("maxClientsProf").notNull().default(300),
   maxOsStarter: integer("maxOsStarter").notNull().default(100),
