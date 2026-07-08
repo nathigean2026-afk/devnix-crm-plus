@@ -1,14 +1,9 @@
 "use client"
 
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile"
 import { useTheme } from "next-themes"
-import { useState, useEffect, useRef, useImperativeHandle, forwardRef, lazy, Suspense } from "react"
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react"
 import { ShieldAlert } from "lucide-react"
-import type { TurnstileInstance } from "@marsidev/react-turnstile"
-
-// Importação lazy para evitar ChunkLoadError com Turbopack
-const Turnstile = lazy(() =>
-  import("@marsidev/react-turnstile").then((m) => ({ default: m.Turnstile }))
-)
 
 export interface TurnstileWidgetRef {
   reset: () => void
@@ -68,20 +63,18 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetPro
 
     return (
       <div className="flex justify-center my-2">
-        <Suspense fallback={<div className="h-[65px] w-[300px] rounded bg-muted/30 animate-pulse" />}>
-          <Turnstile
-            ref={turnstileRef}
-            siteKey={siteKey}
-            onSuccess={onSuccess}
-            onExpire={onExpire}
-            onError={onError}
-            options={{
-              theme: resolvedTheme === "dark" ? "dark" : "light",
-              language: "pt-br",
-              size: "normal",
-            }}
-          />
-        </Suspense>
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={siteKey}
+          onSuccess={onSuccess}
+          onExpire={onExpire}
+          onError={onError}
+          options={{
+            theme: resolvedTheme === "dark" ? "dark" : "light",
+            language: "pt-br",
+            size: "normal",
+          }}
+        />
       </div>
     )
   }

@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { ScreenshotCarousel } from "@/components/screenshot-carousel"
 import Image from "next/image"
 import Link from "next/link"
-import dynamic from "next/dynamic"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
@@ -26,13 +25,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// Turnstile carregado de forma lazy — o script Cloudflare não bloqueia FCP/LCP
-const TurnstileWidget = dynamic(
-  () => import("@/components/turnstile-widget").then((m) => ({ default: m.TurnstileWidget })),
-  { ssr: false, loading: () => <div className="h-[65px]" aria-hidden /> }
-)
-
-import type { TurnstileWidgetRef } from "@/components/turnstile-widget"
+import { TurnstileWidget, type TurnstileWidgetRef } from "@/components/turnstile-widget"
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up"
