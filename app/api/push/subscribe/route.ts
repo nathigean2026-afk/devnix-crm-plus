@@ -16,10 +16,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { endpoint, keys } = body
 
-    console.log("[push/subscribe] userId:", session.user.id, "endpoint:", endpoint?.slice(0, 60))
-
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      console.error("[push/subscribe] Campos ausentes — endpoint:", !!endpoint, "p256dh:", !!keys?.p256dh, "auth:", !!keys?.auth)
       return NextResponse.json({ error: "Subscription inválida" }, { status: 400 })
     }
 
@@ -35,7 +32,6 @@ export async function POST(req: NextRequest) {
         .update(pushSubscriptions)
         .set({ userId: session.user.id, p256dh: keys.p256dh, auth: keys.auth })
         .where(eq(pushSubscriptions.endpoint, endpoint))
-      console.log("[push/subscribe] Subscription atualizada para userId:", session.user.id)
       return NextResponse.json({ ok: true, action: "updated" })
     }
 
@@ -47,8 +43,6 @@ export async function POST(req: NextRequest) {
       auth: keys.auth,
       userAgent: req.headers.get("user-agent") ?? undefined,
     })
-    console.log("[push/subscribe] Nova subscription salva para userId:", session.user.id)
-
     return NextResponse.json({ ok: true, action: "subscribed" })
   } catch (err) {
     console.error("[push/subscribe] Erro:", err)
