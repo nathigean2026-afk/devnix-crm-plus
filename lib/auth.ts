@@ -54,6 +54,12 @@ export const auth = betterAuth({
       await sendPasswordResetEmail({ to: user.email, resetLink: url })
     },
   },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    },
+  },
   advanced: {
     defaultCookieAttributes: {
       // SameSite=None + Secure apenas no domínio de produção real.
