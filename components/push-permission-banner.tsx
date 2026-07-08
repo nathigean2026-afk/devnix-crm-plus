@@ -216,6 +216,7 @@ export function PushPermissionBanner() {
                 <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
                   Receba alertas de manutenção, novidades e avisos importantes do sistema em tempo real.
                 </p>
+
                 <div className="flex items-center gap-2 mt-3">
                   <button
                     onClick={handleActivate}
