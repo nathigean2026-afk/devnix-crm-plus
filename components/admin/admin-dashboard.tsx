@@ -572,7 +572,7 @@ export default function AdminDashboard({
     const search = userSearch.toLowerCase()
     const matchSearch = !search ||
       (u.profileName || u.userName).toLowerCase().includes(search) ||
-      (u.profileEmail || u.userEmail).toLowerCase().includes(search)
+      (u.userEmail).toLowerCase().includes(search)
     const days = daysLeft(u.accessExpiresAt)
     const isOnline = onlineUserIds.has(u.userId)
     const matchFilter =
@@ -625,7 +625,7 @@ export default function AdminDashboard({
       const status = active ? `Ativo (${timeLeftLabel(u.accessExpiresAt)})` : u.accessExpiresAt ? "Expirado" : "Sem licença"
       return [
         `"${u.profileName || u.userName}"`,
-        `"${u.profileEmail || u.userEmail}"`,
+        `"${u.userEmail}"`,
         u.licensePlan ?? "starter",
         formatDate(u.userCreatedAt),
         formatDate(u.accessExpiresAt),
@@ -808,7 +808,7 @@ export default function AdminDashboard({
                       <div key={u.userId} className={cn("flex items-center justify-between rounded-lg p-2.5 gap-3", darkMode ? "bg-white/4" : "bg-white")}>
                         <div className="min-w-0">
                           <p className={cn("text-sm font-medium truncate", darkMode ? "text-white" : "text-slate-800")}>{u.profileName || u.userName}</p>
-                          <p className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{u.profileEmail || u.userEmail}</p>
+                          <p className={cn("text-xs", darkMode ? "text-white/50" : "text-slate-400")}>{u.userEmail}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-xs text-amber-400 font-bold">{timeLeftLabel(u.accessExpiresAt)}</span>
@@ -882,7 +882,7 @@ export default function AdminDashboard({
                       return (
                         <tr key={u.userId} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
                           <td className={cn("py-2.5 pr-4 font-medium", darkMode ? "text-white" : "text-slate-800")}>{u.profileName || u.userName}</td>
-                          <td className={cn("py-2.5 pr-4 text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{u.profileEmail || u.userEmail}</td>
+                          <td className={cn("py-2.5 pr-4 text-xs", darkMode ? "text-white/60" : "text-slate-500")}>{u.userEmail}</td>
                           <td className="py-2.5 pr-4">
                             <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full capitalize">{u.licensePlan ?? "starter"}</span>
                           </td>
@@ -932,7 +932,7 @@ export default function AdminDashboard({
                         <tr key={u.userId} className={cn("border-b transition-colors", darkMode ? "border-white/5 hover:bg-white/3" : "border-slate-50 hover:bg-slate-50")}>
                           <td className={cn("px-4 py-3 font-medium", darkMode ? "text-white" : "text-slate-800")}>
                             <div>{u.profileName || u.userName}</div>
-                            <div className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{u.profileEmail || u.userEmail}</div>
+                            <div className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{u.userEmail}</div>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full capitalize">{u.licensePlan ?? "starter"}</span>
@@ -1389,7 +1389,7 @@ export default function AdminDashboard({
                               {matchUser ? (matchUser.profileName || matchUser.userName) : s.userId.slice(0, 8)}
                             </p>
                             <p className={cn("text-xs truncate", darkMode ? "text-white/40" : "text-slate-400")}>
-                              {matchUser ? (matchUser.profileEmail || matchUser.userEmail) : ""}
+                              {matchUser ? (matchUser.userEmail ?? "") : ""}
                             </p>
                           </div>
                           <div className={cn("text-right space-y-0.5", darkMode ? "text-white/40" : "text-slate-400")}>
@@ -1454,7 +1454,7 @@ export default function AdminDashboard({
                   </div>
                   <div>
                     <p className={cn("font-semibold text-sm", darkMode ? "text-white" : "text-slate-800")}>{editingUser.profileName || editingUser.userName}</p>
-                    <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{editingUser.profileEmail || editingUser.userEmail}</p>
+                    <p className={cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")}>{editingUser.userEmail}</p>
                   </div>
                 </div>
                 <button onClick={() => { setEditingUser(null); setResetLink(null); setConfirmDelete(false) }} className={cn("p-1 rounded-lg", darkMode ? "hover:bg-white/10 text-white/50" : "hover:bg-slate-100 text-slate-400")}>
@@ -1859,7 +1859,7 @@ export default function AdminDashboard({
             <div className={cn("flex items-center justify-between px-5 py-4 border-b", darkMode ? "border-white/8" : "border-slate-100")}>
               <div>
                 <p className={cn("font-semibold text-sm", darkMode ? "text-white" : "text-slate-800")}>Mensagem para {broadcastUser.profileName || broadcastUser.userName}</p>
-                <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{broadcastUser.profileEmail || broadcastUser.userEmail}</p>
+                <p className={cn("text-xs mt-0.5", darkMode ? "text-white/40" : "text-slate-400")}>{broadcastUser.userEmail}</p>
               </div>
               <button onClick={() => setBroadcastUser(null)} className={cn("text-xs border rounded-lg px-2.5 py-1.5 transition-colors", darkMode ? "text-white/40 border-white/10 hover:text-white/70" : "text-slate-400 border-slate-200")}>
                 Fechar

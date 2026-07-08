@@ -3,7 +3,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { ConfiguracoesView } from "@/components/configuracoes/configuracoes-view"
 import { EmployeeManager } from "@/components/configuracoes/employee-manager"
-import { getBusinessProfile, getUserLicense, getEmployeeData, getEffectiveUserId, getPreviewDocumentIds } from "@/lib/actions"
+import { getBusinessProfile, getUserLicense, getEmployeeData, getEffectiveUserId } from "@/lib/actions"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -23,12 +23,11 @@ export default async function ConfiguracoesPage() {
     // Segue como prestador
   }
 
-  const [profile, license, employeeData, previewIds] = await Promise.all([
+  const [profile, license, employeeData] = await Promise.all([
     getBusinessProfile(),
     getUserLicense(),
     // Funcionários não gerenciam funcionários — não precisamos carregar esses dados
     isEmployee ? Promise.resolve(null) : getEmployeeData(),
-    getPreviewDocumentIds().catch(() => ({ quoteId: null, serviceOrderId: null })),
   ])
 
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
@@ -36,7 +35,7 @@ export default async function ConfiguracoesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ConfiguracoesView user={session.user} profile={profile} license={license} isEmployee={isEmployee} previewIds={previewIds} />
+      <ConfiguracoesView user={session.user} profile={profile} license={license} isEmployee={isEmployee} />
       {/* Funcionários não gerenciam outros funcionários */}
       {!isEmployee && (
         <div className="max-w-3xl">

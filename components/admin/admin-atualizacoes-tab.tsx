@@ -27,6 +27,12 @@ const TYPE_LABELS: Record<PatchNote["type"], { label: string; color: string }> =
   breaking:    { label: "Atencao",     color: "bg-amber-500/15 text-amber-400" },
 }
 
+function getAdminToken(): string {
+  if (typeof window === "undefined") return ""
+  const params = new URLSearchParams(window.location.search)
+  return params.get("t") ?? ""
+}
+
 export function AdminAtualizacoesTab({ darkMode, patchNotesList, setPatchNotesList, patchNotesLoaded }: Props) {
   const [form, setForm] = useState<Partial<PatchNote>>({ type: "feature" })
   const [editing, setEditing] = useState<string | null>(null)
@@ -46,7 +52,8 @@ export function AdminAtualizacoesTab({ darkMode, patchNotesList, setPatchNotesLi
     try {
       const res = await fetch("/api/admin/patch-notes", {
         method: editing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-token": getAdminToken() },
+        credentials: "include",
         body: JSON.stringify(editing ? { ...form, id: editing } : form),
       })
       if (res.ok) {
@@ -62,7 +69,11 @@ export function AdminAtualizacoesTab({ darkMode, patchNotesList, setPatchNotesLi
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/admin/patch-notes?id=${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/admin/patch-notes?id=${id}`, {
+      method: "DELETE",
+      headers: { "x-admin-token": getAdminToken() },
+      credentials: "include",
+    })
     if (res.ok) {
       const updated: PatchNote[] = await res.json()
       setPatchNotesList(updated)
