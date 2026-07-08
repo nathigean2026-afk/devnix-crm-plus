@@ -16,19 +16,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { endpoint, keys } = body
 
+    console.log("[push/subscribe] userId:", session.user.id, "endpoint:", endpoint?.slice(0, 60))
+
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      console.error("[push/subscribe] Campos ausentes — endpoint:", !!endpoint, "p256dh:", !!keys?.p256dh, "auth:", !!keys?.auth)
       return NextResponse.json({ error: "Subscription inválida" }, { status: 400 })
     }
 
-    // Upsert — se endpoint já existe, atualiza; senão insere
+    // Upsert real: se o endpoint já existe, atualiza userId e chaves (caso tenham mudado)
     const existing = await db
-      .select()
+      .select({ id: pushSubscriptions.id })
       .from(pushSubscriptions)
       .where(eq(pushSubscriptions.endpoint, endpoint))
       .limit(1)
 
     if (existing.length > 0) {
-      return NextResponse.json({ ok: true, action: "already_exists" })
+      await db
+        .update(pushSubscriptions)
+        .set({ userId: session.user.id, p256dh: keys.p256dh, auth: keys.auth })
+        .where(eq(pushSubscriptions.endpoint, endpoint))
+      console.log("[push/subscribe] Subscription atualizada para userId:", session.user.id)
+      return NextResponse.json({ ok: true, action: "updated" })
     }
 
     await db.insert(pushSubscriptions).values({
@@ -39,10 +47,11 @@ export async function POST(req: NextRequest) {
       auth: keys.auth,
       userAgent: req.headers.get("user-agent") ?? undefined,
     })
+    console.log("[push/subscribe] Nova subscription salva para userId:", session.user.id)
 
     return NextResponse.json({ ok: true, action: "subscribed" })
   } catch (err) {
-    console.error("[push/subscribe]", err)
+    console.error("[push/subscribe] Erro:", err)
     return NextResponse.json({ error: "Erro ao salvar subscription" }, { status: 500 })
   }
 }

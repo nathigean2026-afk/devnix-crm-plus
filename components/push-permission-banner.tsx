@@ -216,6 +216,7 @@ export function PushPermissionBanner() {
                 <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
                   Receba alertas de manutenção, novidades e avisos importantes do sistema em tempo real.
                 </p>
+
                 <div className="flex items-center gap-2 mt-3">
                   <button
                     onClick={handleActivate}
@@ -287,9 +288,33 @@ export function PushNotificationToggle() {
     }
   }
 
-  const handleDisable = () => {
-    localStorage.setItem("push-permission-dismissed", "1")
-    setDismissed(true)
+  const [disabling, setDisabling] = useState(false)
+
+  const handleDisable = async () => {
+    setDisabling(true)
+    try {
+      // 1. Remove a subscription do navegador
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        // Remove do banco primeiro
+        await fetch("/api/push/subscribe", {
+          method: "DELETE",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        })
+        // Depois cancela no navegador
+        await sub.unsubscribe()
+      }
+    } catch {
+      // Mesmo com erro, atualiza o estado local
+    } finally {
+      localStorage.removeItem("push-permission-granted")
+      localStorage.setItem("push-permission-dismissed", "1")
+      setGranted(false)
+      setDisabling(false)
+    }
   }
 
   if (granted && Notification.permission === "granted") {
@@ -301,9 +326,10 @@ export function PushNotificationToggle() {
         </p>
         <button
           onClick={handleDisable}
-          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+          disabled={disabling}
+          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50 disabled:cursor-wait"
         >
-          Desativar
+          {disabling ? "Desativando..." : "Desativar"}
         </button>
       </div>
     )
