@@ -181,25 +181,25 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
         {/* ── Header com cor de destaque ── */}
         <div className="px-7 py-7 text-white print:px-6" style={{ backgroundColor: accentColor }}>
           <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="size-28 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex items-start gap-3 flex-1 min-w-0 overflow-hidden">
+              <div className="size-16 sm:size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                 <Image
                   src={branding.logo}
                   alt={branding.name}
-                  width={112}
-                  height={112}
+                  width={80}
+                  height={80}
                   className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
-                  style={{ width: 112, height: "auto" }}
+                  style={{ width: 80, height: "auto" }}
                 />
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-0.5">
                   {branding.name}
                 </p>
                 {branding.document && (
                   <p className="text-white/50 text-[10px] mb-0.5">{branding.document}</p>
                 )}
-                <h1 className="text-xl font-bold leading-snug break-words">{quote.title}</h1>
+                <h1 className="text-lg sm:text-xl font-bold leading-snug" style={{ overflowWrap: "anywhere" }}>{quote.title}</h1>
               </div>
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
@@ -350,7 +350,7 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Condições de pagamento</p>
                   {Number(quote.cashPrice) > 0 && (
                     <div className="flex justify-between items-center rounded-lg bg-green-50 border border-green-100 px-3 py-2">
-                      <span className="text-sm text-slate-600 font-medium">A vista / Pix</span>
+                      <span className="text-sm text-slate-600 font-medium">À vista / Pix</span>
                       <span className="text-sm font-bold text-green-700">{formatCurrency(quote.cashPrice ?? 0)}</span>
                     </div>
                   )}
