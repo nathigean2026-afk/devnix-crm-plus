@@ -47,6 +47,7 @@ export function AdminAtualizacoesTab({ darkMode, patchNotesList, setPatchNotesLi
       const res = await fetch("/api/admin/patch-notes", {
         method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(editing ? { ...form, id: editing } : form),
       })
       if (res.ok) {
@@ -62,7 +63,7 @@ export function AdminAtualizacoesTab({ darkMode, patchNotesList, setPatchNotesLi
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(`/api/admin/patch-notes?id=${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/admin/patch-notes?id=${id}`, { method: "DELETE", credentials: "include" })
     if (res.ok) {
       const updated: PatchNote[] = await res.json()
       setPatchNotesList(updated)
