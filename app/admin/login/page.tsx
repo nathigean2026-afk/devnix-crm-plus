@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Shield, User, Lock, Eye, EyeOff, ArrowRight, Activity } from "lucide-react"
-import { TurnstileWidget } from "@/components/turnstile-widget"
+import { TurnstileWidget, type TurnstileWidgetRef } from "@/components/turnstile-widget"
 import { useTurnstile } from "@/hooks/use-turnstile"
 import Image from "next/image"
 
@@ -12,6 +12,7 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const turnstileRef = useRef<TurnstileWidgetRef>(null)
 
   const {
     isVerified: turnstileVerified,
@@ -21,13 +22,22 @@ export default function AdminLoginPage() {
     handleExpire: onTurnstileExpire,
     handleError: onTurnstileError,
     verifyToken,
+    reset: resetTurnstile,
   } = useTurnstile()
+
+  function resetChallenge() {
+    resetTurnstile()
+    turnstileRef.current?.reset()
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
     const tokenValid = await verifyToken()
-    if (!tokenValid) return
+    if (!tokenValid) {
+      resetChallenge()
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch("/api/admin/login", {
@@ -38,11 +48,13 @@ export default function AdminLoginPage() {
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? "Credenciais inválidas.")
+        resetChallenge()
         return
       }
       window.location.href = `/admin?t=${data.token ?? ""}`
     } catch {
       setError("Erro de conexão. Tente novamente.")
+      resetChallenge()
     } finally {
       setLoading(false)
     }
@@ -177,6 +189,7 @@ export default function AdminLoginPage() {
 
               {/* Cloudflare Turnstile */}
               <TurnstileWidget
+                ref={turnstileRef}
                 onSuccess={onTurnstileSuccess}
                 onExpire={onTurnstileExpire}
                 onError={onTurnstileError}
