@@ -206,28 +206,28 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
         {/* ── Header com cor de destaque ── */}
         <div className="px-8 py-7 text-white print:px-6" style={{ backgroundColor: accentColor }}>
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="size-28 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+              <div className="size-16 sm:size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                 <Image
                   src={branding.logo}
                   alt={branding.name}
-                  width={112}
-                  height={112}
-                  style={{ width: 112, height: "auto" }}
+                  width={80}
+                  height={80}
+                  style={{ width: 80, height: "auto" }}
                   className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
                 />
               </div>
-              <div>
+              <div className="min-w-0 overflow-hidden">
                 <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-0.5">Prestador</p>
-                <h1 className="text-xl font-bold leading-tight">{branding.name}</h1>
+                <h1 className="text-lg sm:text-xl font-bold leading-tight" style={{ overflowWrap: "anywhere" }}>{branding.name}</h1>
                 {branding.document && (
                   <p className="text-white/60 text-xs mt-0.5">{branding.document}</p>
                 )}
               </div>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-white/60 text-xs uppercase tracking-widest mb-1">Ordem de Serviço</p>
-              <p className="text-4xl font-black tabular-nums leading-none">
+              <p className="text-white/60 text-xs uppercase tracking-widest mb-1">Ordem de Servico</p>
+              <p className="text-3xl sm:text-4xl font-black tabular-nums leading-none">
                 {`#${String(order.number).padStart(4, "0")}`}
               </p>
               <div className="flex items-center justify-end gap-1.5 mt-2">

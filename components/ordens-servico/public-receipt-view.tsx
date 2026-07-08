@@ -30,9 +30,10 @@ function formatDateLong(dateStr: string | Date | null | undefined): string {
 function getBranding(profile: BusinessProfile | null | undefined) {
   const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
   return {
-    name: (isPaid && profile?.name) ? profile.name : "Elevanthe CRM",
-    logo: profile?.logo ? profile.logo : "/elevanthe-logo-neon.png",
-    document: (isPaid && profile?.document) ? profile.document : null,
+    name:        (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
+    logo:        profile?.logo                 ? profile.logo     : "/elevanthe-logo-neon.png",
+    document:    (isPaid && profile?.document) ? profile.document : null,
+    accentColor: profile?.docAccentColor ?? "#059669",
     isPaid,
   }
 }
@@ -41,6 +42,7 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
   const profile = order.profile
   const client = order.client
   const branding = getBranding(profile)
+  const accentColor = branding.accentColor
 
   const handleShareWhatsApp = () => {
     const url = window.location.href
@@ -91,22 +93,22 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
 
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden print:shadow-none print:rounded-none">
 
-          {/* Header verde de confirmação */}
-          <div className="bg-emerald-600 px-8 py-6 text-white">
+          {/* Header com cor de destaque do prestador */}
+          <div className="px-8 py-6 text-white" style={{ backgroundColor: accentColor }}>
             <div className="flex items-center gap-3 mb-4">
               <CheckCircle2 className="size-8 text-white" />
               <div>
                 <h1 className="text-xl font-bold">Recibo de Pagamento</h1>
-                <p className="text-emerald-100 text-sm">Serviço realizado com sucesso</p>
+                <p className="text-white/70 text-sm">Serviço realizado com sucesso</p>
               </div>
             </div>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-emerald-200 text-xs uppercase tracking-wide">Número da OS</p>
+                <p className="text-white/60 text-xs uppercase tracking-wide">Numero da OS</p>
                 <p className="text-3xl font-bold tabular-nums">#{String(order.number).padStart(4, "0")}</p>
               </div>
               <div className="text-right">
-                <p className="text-emerald-200 text-xs uppercase tracking-wide">Total Pago</p>
+                <p className="text-white/60 text-xs uppercase tracking-wide">Total Pago</p>
                 <p className="text-3xl font-bold">{formatCurrency(order.total)}</p>
               </div>
             </div>
@@ -220,7 +222,7 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
                 )}
                 <div className="flex justify-between font-bold text-lg text-gray-900 border-t border-gray-200 pt-2 mt-1">
                   <span>Total Pago</span>
-                  <span className="text-emerald-600">{formatCurrency(order.total)}</span>
+                  <span style={{ color: accentColor }}>{formatCurrency(order.total)}</span>
                 </div>
               </div>
             </div>
@@ -236,10 +238,11 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
             {/* Rodapé */}
             <div className="border-t border-gray-100 pt-4 text-center">
               <p className="text-xs text-gray-400">
-                Recibo gerado por <span className="font-medium text-emerald-600">{profile?.name || "Elevanthe CRM"}</span>
+                Recibo gerado por{" "}
+                <span className="font-medium" style={{ color: accentColor }}>{profile?.name || "Elevanthe CRM"}</span>
                 {profile?.email && <> &bull; {profile.email}</>}
               </p>
-              <p className="text-xs text-gray-300 mt-1">Este documento serve como comprovante de prestação de serviço</p>
+              <p className="text-xs text-gray-300 mt-1">Este documento serve como comprovante de prestacao de servico</p>
             </div>
           </div>
         </div>
