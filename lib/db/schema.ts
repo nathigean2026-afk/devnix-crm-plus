@@ -73,7 +73,8 @@ export const clients = pgTable("clients", {
   city: text("city"),
   state: text("state"),
   notes: text("notes"),
-  birthdate: date("birthdate"), // data de nascimento para aniversariantes
+  birthdate: date("birthdate"),           // data de nascimento para aniversariantes
+  birthdaySentAt: timestamp("birthdaySentAt"), // última vez que enviou parabéns via WhatsApp
   status: text("status").notNull().default("ativo"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
@@ -104,6 +105,7 @@ export const quotes = pgTable("quotes", {
   internalNotes: text("internalNotes"),
   rejectionReason: text("rejectionReason"),
   respondedAt: timestamp("respondedAt"),
+  wappSentAt: timestamp("wappSentAt"),   // última vez que enviou por WhatsApp
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull().default("0"),
   discount: numeric("discount", { precision: 10, scale: 2 }).notNull().default("0"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull().default("0"),
@@ -211,6 +213,7 @@ export const serviceOrders = pgTable("service_orders", {
   notes: text("notes"),
   internalNotes: text("internalNotes"),
   completedAt: timestamp("completedAt"),
+  wappSentAt: timestamp("wappSentAt"),   // última vez que enviou por WhatsApp
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })

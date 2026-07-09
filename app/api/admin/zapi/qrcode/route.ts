@@ -30,7 +30,7 @@ export async function GET() {
     return NextResponse.json({ status: res.status, data })
   } catch (err) {
     return NextResponse.json(
-      { error: "Falha ao buscar QR Code", detail: String(err) },
+      { error: "Falha ao buscar QR Code" },
       { status: 500 }
     )
   }

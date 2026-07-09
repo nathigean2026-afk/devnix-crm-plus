@@ -4,7 +4,13 @@ import { NextRequest, NextResponse } from "next/server"
 const geoCache = new Map<string, { city: string; region: string; isp: string; country: string; lat: number; lon: number; ts: number }>()
 const CACHE_TTL = 30 * 60 * 1000 // 30 min
 
+const ADMIN_TOKEN = process.env.ADMIN_SECRET ?? "admin-nathigean-001"
+
 export async function POST(req: NextRequest) {
+  const auth = req.headers.get("x-admin-token")
+  if (auth !== ADMIN_TOKEN) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
   const { ips } = await req.json() as { ips: string[] }
   if (!Array.isArray(ips) || ips.length === 0) {

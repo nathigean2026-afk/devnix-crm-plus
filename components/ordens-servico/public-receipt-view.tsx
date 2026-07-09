@@ -3,6 +3,7 @@
 import type { ServiceOrder, ServiceOrderItem, Client, BusinessProfile } from "@/lib/db/schema"
 import Image from "next/image"
 import { Building2, Phone, Mail, MapPin, Printer, CheckCircle2, MessageCircle, Send } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 
 interface PublicReceiptViewProps {
   order: ServiceOrder & {
@@ -67,7 +68,9 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
       <div className="max-w-2xl mx-auto">
 
         {/* Botões de ação - apenas na tela */}
-        <div className="flex items-center justify-end gap-2 mb-4 print:hidden">
+        <div className="flex items-center justify-between gap-2 mb-4 print:hidden">
+          <BackButton />
+          <div className="flex items-center gap-2">
           <button
             onClick={handleShareWhatsApp}
             className="flex items-center gap-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 transition-colors font-medium"
@@ -89,6 +92,7 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
             <Printer className="size-4" />
             Imprimir / PDF
           </button>
+          </div>
         </div>
 
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden print:shadow-none print:rounded-none">

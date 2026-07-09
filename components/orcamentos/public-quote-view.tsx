@@ -7,6 +7,7 @@ import {
   MessageCircle, CheckCircle, XCircle, AlertCircle,
   Loader2, ArrowLeft, FileCheck, ThumbsUp, ThumbsDown, Clock,
 } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 import { useState } from "react"
 import { respondQuote } from "@/lib/actions"
 
@@ -152,9 +153,13 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
 
       {/* Barra de ações */}
       <div className="max-w-2xl mx-auto flex items-center justify-between mb-5 print:hidden">
-        <div className="flex items-center gap-1.5 text-sm text-slate-500">
-          <FileCheck className="size-4" />
-          <span>Orçamento {`#${String(quote.number).padStart(4, "0")}`}</span>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <span className="text-slate-300 select-none">|</span>
+          <div className="flex items-center gap-1.5 text-sm text-slate-500">
+            <FileCheck className="size-4" />
+            <span>Orçamento {`#${String(quote.number).padStart(4, "0")}`}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

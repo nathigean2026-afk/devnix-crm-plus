@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createQuote, updateQuote, updateQuoteStatus, deleteQuote, getQuoteWithItems } from "@/lib/actions"
+import { createQuote, updateQuote, updateQuoteStatus, deleteQuote, getQuoteWithItems, markWappSent } from "@/lib/actions"
 import type { Client, Quote, Service } from "@/lib/db/schema"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil, PenLine, CircleDot, CheckCircle2, XCircle, Clock, Ban, ChevronDown } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, FileText, X, ExternalLink, MessageCircle, Mail, Send, Pencil, PenLine, CircleDot, CheckCircle2, XCircle, Clock, Ban, ChevronDown, Check, StickyNote } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -186,6 +186,10 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
     const text = `Olá${client ? ` ${client.name}` : ""}! Segue seu orçamento *#${String(q.number).padStart(4, "0")} — ${q.title}*\nTotal: ${formatCurrency(q.total)}\n\nAcesse aqui: ${url}`
     const phone = getClientPhone(q)
     window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
+    // Grava tag de enviado no banco
+    markWappSent("quote", q.id).catch(() => {})
+    // Atualiza lista local para exibir tag imediatamente
+    setQuotes(prev => prev.map(item => item.id === q.id ? { ...item, wappSentAt: new Date() } as any : item))
   }
   function handleShareEmail(q: Quote) {
     const email = getClientEmail(q)
@@ -389,6 +393,16 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                       <TableCell className="font-medium text-foreground">
                         <div className="flex flex-col gap-0.5">
                           <span>{q.title}</span>
+                          {q.internalNotes && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5 cursor-pointer"
+                              title={`Nota interna: ${q.internalNotes}`}
+                              onClick={(e) => { e.stopPropagation(); handleEdit(q.id) }}
+                            >
+                              <StickyNote className="size-2.5" />
+                              Nota interna
+                            </span>
+                          )}
                           {isRecusado && (q as Quote & { rejectionReason?: string }).rejectionReason && (
                             <span className="text-xs text-red-400 font-normal">
                               Motivo: {(q as Quote & { rejectionReason?: string }).rejectionReason}
@@ -404,7 +418,7 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                       <TableCell className="text-muted-foreground hidden md:table-cell">{getClientName(q.clientId)}</TableCell>
                       <TableCell className="font-semibold text-foreground">{formatCurrency(q.total)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={`${sc.color} flex items-center gap-1`}>
                             <StatusIconQ className="size-3 shrink-0" />
                             {sc.label}
@@ -413,6 +427,12 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                             <span className="relative flex size-2">
                               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />
                               <span className={`relative inline-flex rounded-full size-2 ${isAprovado ? "bg-green-400" : "bg-red-400"}`} />
+                            </span>
+                          )}
+                          {(q as any).wappSentAt && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-500/10 border border-green-500/20 rounded-full px-2 py-0.5" title={`Enviado por WhatsApp em ${new Date((q as any).wappSentAt).toLocaleString("pt-BR")}`}>
+                              <Check className="size-2.5" />
+                              Enviado
                             </span>
                           )}
                         </div>
@@ -796,8 +816,12 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
                 <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="bg-input border-border text-foreground resize-none" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="text-foreground text-sm">Notas internas</Label>
-                <Textarea value={form.internalNotes} onChange={(e) => setForm({ ...form, internalNotes: e.target.value })} rows={3} className="bg-input border-border text-foreground resize-none" />
+                <Label className="text-sm flex items-center gap-1.5 text-amber-600">
+                  <StickyNote className="size-3.5" />
+                  Notas internas
+                  <span className="text-[10px] font-normal text-muted-foreground">(somente sua equipe vê)</span>
+                </Label>
+                <Textarea value={form.internalNotes} onChange={(e) => setForm({ ...form, internalNotes: e.target.value })} rows={3} className="bg-amber-500/5 border-amber-500/30 text-foreground resize-none" placeholder="Observações que o cliente não verá..." />
               </div>
             </div>
 

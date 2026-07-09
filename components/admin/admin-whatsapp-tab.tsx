@@ -148,8 +148,48 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
   const label = cn("text-xs", darkMode ? "text-white/40" : "text-slate-400")
   const title = cn("text-sm font-semibold", darkMode ? "text-white/80" : "text-slate-700")
 
+  const humanSessions = sessions.filter(s => s.humanMode)
+
   return (
     <div className="space-y-4">
+
+      {/* Banner de alerta — aparece quando alguém pediu atendente humano */}
+      {humanSessions.length > 0 && (
+        <div
+          className={cn(
+            "rounded-xl border px-4 py-3 flex items-start gap-3",
+            darkMode
+              ? "border-amber-500/30 bg-amber-500/10"
+              : "border-amber-400/40 bg-amber-50"
+          )}
+        >
+          <AlertCircle className="size-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className={cn("text-sm font-semibold", darkMode ? "text-amber-400" : "text-amber-700")}>
+              {humanSessions.length === 1
+                ? "1 pessoa aguarda atendimento humano"
+                : `${humanSessions.length} pessoas aguardam atendimento humano`}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-1.5">
+              {humanSessions.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { setView("conversas"); setSelectedSession(s) }}
+                  className={cn(
+                    "text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors",
+                    darkMode
+                      ? "border-amber-500/30 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+                      : "border-amber-400/40 bg-amber-100 text-amber-800 hover:bg-amber-200"
+                  )}
+                >
+                  {s.name ?? s.phone.slice(-8)} — {s.lastMessage ? s.lastMessage.slice(0, 30) : "Sem mensagem"}...
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Abas internas */}
       <div className="flex gap-1">
         {(["status", "conversas"] as const).map(v => (

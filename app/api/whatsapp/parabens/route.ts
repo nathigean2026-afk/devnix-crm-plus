@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { db } from "@/lib/db"
 import { clients, businessProfile } from "@/lib/db/schema"
-import { eq, and } from "drizzle-orm"
+import { eq, and, sql } from "drizzle-orm"
 import { sendWhatsApp, msgParabensAniversario } from "@/lib/whatsapp"
 
 /**
@@ -52,11 +52,30 @@ export async function POST(req: NextRequest) {
     providerName: profile?.name ?? "nossa equipe",
   })
 
+  // Verifica se já enviou parabéns hoje para este cliente
+  if (client.birthdaySentAt) {
+    const sentDate = new Date(client.birthdaySentAt)
+    const today = new Date()
+    const sameDay =
+      sentDate.getUTCDate() === today.getUTCDate() &&
+      sentDate.getUTCMonth() === today.getUTCMonth() &&
+      sentDate.getUTCFullYear() === today.getUTCFullYear()
+    if (sameDay) {
+      return NextResponse.json({ ok: true, alreadySent: true, sentTo: client.name })
+    }
+  }
+
   const ok = await sendWhatsApp(client.phone, msg)
 
   if (!ok) {
     return NextResponse.json({ error: "Falha ao enviar mensagem. Verifique o número cadastrado." }, { status: 500 })
   }
+
+  // Grava timestamp do envio para evitar duplicatas
+  await db
+    .update(clients)
+    .set({ birthdaySentAt: new Date() })
+    .where(eq(clients.id, clientId))
 
   return NextResponse.json({ ok: true, sentTo: client.name })
 }

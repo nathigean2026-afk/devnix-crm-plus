@@ -18,7 +18,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { PushNotificationToggle } from "@/components/push-permission-banner"
-import { ChatbotConfigTab } from "@/components/configuracoes/chatbot-config-tab"
 
 interface LicenseInfo {
   isActive: boolean
@@ -1183,24 +1182,6 @@ export function ConfiguracoesView({ user, profile, license, isEmployee = false }
           </div>
         </CardContent>
       </Card>
-
-      {/* Chatbot WhatsApp */}
-      {!isEmployee && (
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="size-5 text-primary" />
-              <CardTitle className="text-foreground text-lg">Chatbot WhatsApp</CardTitle>
-            </div>
-            <CardDescription className="text-muted-foreground">
-              Crie um menu automático para atender seus clientes via WhatsApp 24h.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChatbotConfigTab profile={profile} />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Licença */}
       {!isEmployee && <LicenseCard license={license} profile={profile} />}

@@ -5,6 +5,7 @@ import type { ServiceOrder, ServiceOrderItem, Client, BusinessProfile } from "@/
 import Image from "next/image"
 import QRCode from "qrcode"
 import { Building2, Phone, Mail, Globe, MapPin, QrCode, Printer, MessageCircle } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 
 interface PublicServiceOrderViewProps {
   order: ServiceOrder & {
@@ -177,9 +178,13 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
     <div className="min-h-screen bg-[#f1f5f9] py-8 px-4 print:py-0 print:px-0 print:bg-white font-sans">
       {/* Barra de ações */}
       <div className="max-w-3xl mx-auto flex items-center justify-between mb-5 print:hidden">
-        <div className="flex items-center gap-1.5 text-sm text-slate-500">
-          <Building2 className="size-4" />
-          <span>Ordem de Serviço {`#${String(order.number).padStart(4, "0")}`}</span>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <span className="text-slate-300 select-none">|</span>
+          <div className="flex items-center gap-1.5 text-sm text-slate-500">
+            <Building2 className="size-4" />
+            <span>Ordem de Serviço {`#${String(order.number).padStart(4, "0")}`}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

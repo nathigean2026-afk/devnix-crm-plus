@@ -30,7 +30,7 @@ export async function POST() {
     return NextResponse.json({ status: res.status, data })
   } catch (err) {
     return NextResponse.json(
-      { error: "Falha ao desconectar", detail: String(err) },
+      { error: "Falha ao desconectar" },
       { status: 500 }
     )
   }

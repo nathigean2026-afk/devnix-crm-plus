@@ -2218,6 +2218,19 @@ export async function getBirthdayClients() {
   })
 }
 
+// ── Marcar envio WhatsApp ─────────────────────────────────────────────────────
+/** Grava o timestamp de envio via WhatsApp em orçamento ou OS */
+export async function markWappSent(type: "quote" | "service_order", id: string) {
+  const { effectiveId } = await getEffectiveUserId()
+  if (type === "quote") {
+    await db.update(quotes).set({ wappSentAt: new Date() } as any)
+      .where(and(eq(quotes.id, id), eq(quotes.userId, effectiveId)))
+  } else {
+    await db.update(serviceOrders).set({ wappSentAt: new Date() } as any)
+      .where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
+  }
+}
+
 // ── Clientes Inativos ─────────────────────────────────────────────────────────
 // Retorna clientes ativos cuja última OS ou orçamento foi criado há mais de
 // `days` dias. Também inclui clientes sem nenhuma OS/orçamento (data = null).

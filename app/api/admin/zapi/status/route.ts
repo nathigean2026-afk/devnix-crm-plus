@@ -28,9 +28,9 @@ export async function GET() {
 
     const data = await res.json()
     return NextResponse.json({ status: res.status, data })
-  } catch (err) {
+  } catch {
     return NextResponse.json(
-      { error: "Falha ao conectar com a Z-API", detail: String(err) },
+      { error: "Falha ao conectar com a Z-API" },
       { status: 500 }
     )
   }

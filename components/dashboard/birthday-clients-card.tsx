@@ -18,15 +18,27 @@ function isToday(birthdate: string): boolean {
   return d.getUTCDate() === now.getDate() && (d.getUTCMonth() + 1) === (now.getMonth() + 1)
 }
 
+// Verifica se já foi enviado parabéns hoje para este cliente
+function sentToday(birthdaySentAt: Date | string | null | undefined): boolean {
+  if (!birthdaySentAt) return false
+  const sent = new Date(birthdaySentAt)
+  const now = new Date()
+  return (
+    sent.getUTCDate() === now.getUTCDate() &&
+    sent.getUTCMonth() === now.getUTCMonth() &&
+    sent.getUTCFullYear() === now.getUTCFullYear()
+  )
+}
+
 // Botão de parabéns: envia via API (Wame) com fallback para WhatsApp Web
 function BirthdayButton({ client, today }: { client: Client; today: boolean }) {
   const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState(false)
+  // Inicializa com o estado persistido no banco (enviado hoje = já aparece como enviado)
+  const [sent, setSent] = useState(() => sentToday(client.birthdaySentAt))
 
   const handleSend = async () => {
+    if (sent) return // já enviou hoje — bloqueia
     setSending(true)
-    setError(false)
     try {
       const res = await fetch("/api/whatsapp/parabens", {
         method: "POST",
@@ -35,12 +47,9 @@ function BirthdayButton({ client, today }: { client: Client; today: boolean }) {
       })
       if (res.ok) {
         setSent(true)
-        setTimeout(() => setSent(false), 4000)
       } else {
         // Fallback: abre WhatsApp Web
         openWhatsAppWeb(client)
-        setError(true)
-        setTimeout(() => setError(false), 3000)
       }
     } catch {
       openWhatsAppWeb(client)
@@ -71,9 +80,10 @@ function BirthdayButton({ client, today }: { client: Client; today: boolean }) {
         size="sm"
         disabled
         className="h-7 px-2.5 bg-green-600/20 text-green-500 shrink-0 gap-1 text-xs border border-green-600/30"
+        title="Mensagem de parabéns já enviada hoje"
       >
         <Check className="size-3" />
-        Enviado!
+        Enviado hoje
       </Button>
     )
   }

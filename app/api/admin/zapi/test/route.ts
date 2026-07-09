@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: res.status, data })
   } catch (err) {
     return NextResponse.json(
-      { error: "Falha ao enviar mensagem de teste", detail: String(err) },
+      { error: "Falha ao enviar mensagem de teste" },
       { status: 500 }
     )
   }
