@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
         resetChallenge()
         return
       }
-      window.location.href = `/admin?t=${data.token ?? ""}`
+      window.location.href = "/admin"
     } catch {
       setError("Erro de conexão. Tente novamente.")
       resetChallenge()

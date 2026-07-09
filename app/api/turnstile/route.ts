@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
 
     const secretKey = process.env.TURNSTILE_SECRET_KEY
     const isDev = process.env.NODE_ENV === "development"
+    // Libera em dev, sem chave, ou em deploys de preview (não-produção)
+    const isPreview = process.env.VERCEL_ENV !== "production"
 
-    // Em desenvolvimento ou sem chave configurada: libera sem chamar a API do Cloudflare
-    if (!secretKey || isDev || token === "dev-bypass-token") {
+    if (!secretKey || isDev || isPreview || token === "dev-bypass-token") {
       return NextResponse.json({ success: true })
     }
 
