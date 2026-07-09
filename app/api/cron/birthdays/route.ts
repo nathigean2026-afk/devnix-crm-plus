@@ -13,7 +13,8 @@ import { sendWhatsApp, msgAniversariantesDiario } from "@/lib/whatsapp"
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET
   const auth = req.headers.get("authorization")
-  if (secret && auth !== `Bearer ${secret}`) {
+  // CRON_SECRET é obrigatório — sem ele, a rota fica bloqueada por segurança
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

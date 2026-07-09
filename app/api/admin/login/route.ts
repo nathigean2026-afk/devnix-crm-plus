@@ -26,10 +26,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 })
   }
 
+  const adminSecret = process.env.ADMIN_SECRET
+  if (!adminSecret) {
+    return NextResponse.json({ error: "Configuração de servidor ausente." }, { status: 500 })
+  }
   const isProd = process.env.NODE_ENV === "production"
-  // Retorna o token no JSON para fallback via query string em ambientes de preview
-  const res = NextResponse.json({ ok: true, token: "admin-nathigean-001" })
-  res.cookies.set("admin_session", "admin-nathigean-001", {
+  // NUNCA retornar o token no JSON — apenas setar via cookie httpOnly
+  const res = NextResponse.json({ ok: true })
+  res.cookies.set("admin_session", adminSecret, {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? "none" : "lax",

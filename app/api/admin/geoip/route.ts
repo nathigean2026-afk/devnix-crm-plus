@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
+import { verifyAdminSession } from "@/lib/admin-auth"
 
 // Cache simples em memória para evitar chamadas repetidas ao ip-api
 const geoCache = new Map<string, { city: string; region: string; isp: string; country: string; lat: number; lon: number; ts: number }>()
 const CACHE_TTL = 30 * 60 * 1000 // 30 min
 
-const ADMIN_TOKEN = process.env.ADMIN_SECRET ?? "admin-nathigean-001"
-
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get("x-admin-token")
-  if (auth !== ADMIN_TOKEN) {
+  if (!(await verifyAdminSession(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import {
   adminGetPatchNotes,
   adminCreatePatchNote,
   adminUpdatePatchNote,
   adminDeletePatchNote,
 } from "@/lib/actions"
+import { verifyAdminSession } from "@/lib/admin-auth"
 
-const ADMIN_TOKEN = "admin-nathigean-001"
-
-async function checkAdminSession(req?: NextRequest) {
-  // 1. Cookie (login normal)
-  const cookieStore = await cookies()
-  const session = cookieStore.get("admin_session")
-  if (session?.value === ADMIN_TOKEN) return true
-  // 2. Header x-admin-token (fallback iframe/preview)
-  if (req) {
-    const header = req.headers.get("x-admin-token")
-    if (header === ADMIN_TOKEN) return true
-  }
-  return false
+async function checkAdminSession(req: NextRequest) {
+  return verifyAdminSession(req)
 }
 
 /** Mapeia os campos do tab (content) para o campo do banco (body) e vice-versa */
