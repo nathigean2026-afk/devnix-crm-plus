@@ -75,7 +75,7 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
     setLoadingSessions(true)
     try {
       const res = await fetch("/api/whatsapp/sessions", {
-        headers: { "x-admin-token": "admin-nathigean-001" },
+        credentials: "same-origin",
       })
       const data = await res.json()
       setSessions(data.sessions ?? [])
@@ -90,7 +90,7 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
     setLoadingMsgs(true)
     try {
       const res = await fetch(`/api/whatsapp/human-mode?sessionId=${sessionId}`, {
-        headers: { "x-admin-token": "admin-nathigean-001" },
+        credentials: "same-origin",
       })
       const data = await res.json()
       setMessages(data.messages ?? [])
@@ -117,7 +117,8 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
     const newMode = !session.humanMode
     await fetch("/api/whatsapp/human-mode", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-token": "admin-nathigean-001" },
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({ sessionId: session.id, humanMode: newMode }),
     })
     setSessions(prev => prev.map(s => s.id === session.id ? { ...s, humanMode: newMode } : s))
@@ -132,8 +133,9 @@ export function AdminWhatsappTab({ darkMode, zapiStatus, zapiLoading, loadZapiSt
     try {
       await fetch("/api/whatsapp/human-mode", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": "admin-nathigean-001" },
-        body: JSON.stringify({ sessionId: selectedSession.id, text: replyText.trim() }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ sessionId: selectedSession.id, text: replyText.trim() }),
       })
       setReplyText("")
       await loadMessages(selectedSession.id)
