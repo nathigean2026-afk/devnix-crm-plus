@@ -138,34 +138,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ ok: true })
 
-    // Log completo para debugar formato real da Wame
-    console.log("[v0] webhook payload completo:", JSON.stringify(body, null, 2))
-
-    // Wame envia eventos de varios tipos — so processa mensagens de texto recebidas
-    const event = body.event ?? body.type
-    console.log("[v0] event:", event)
-
-    if (event !== "message" && event !== "messages.upsert" && event !== "onmessage") {
-      console.log("[v0] evento ignorado:", event)
-      return NextResponse.json({ ok: true })
-    }
-
+    // Aceita qualquer evento — extrai phone e texto de todos os formatos possiveis da Wame
     const data = body.data ?? body
+
+    // Ignora eventos que nao sao mensagens recebidas
+    const event = body.event ?? body.type ?? ""
+    const isOutbound = data.fromMe === true || data.key?.fromMe === true
+    if (isOutbound) return NextResponse.json({ ok: true })
+
+    // Extrai campos tentando todos os formatos conhecidos da Wame API
     const rawPhone: string =
-      data.from ?? data.key?.remoteJid ?? data.sender ?? data.phone ?? ""
+      data.from ?? data.key?.remoteJid ?? data.sender ?? data.phone ?? body.phone ?? body.from ?? ""
     const incomingText: string =
-      data.body ?? data.message?.conversation ?? data.text ?? data.content ?? ""
+      data.body ?? data.message?.conversation ?? data.message?.extendedTextMessage?.text ?? data.text ?? data.content ?? body.body ?? body.text ?? ""
     const contactName: string | null =
-      data.pushName ?? data.notifyName ?? data.name ?? null
+      data.pushName ?? data.notifyName ?? data.name ?? body.pushName ?? null
 
-    console.log("[v0] phone:", rawPhone, "| text:", incomingText, "| name:", contactName)
-
+    // Ignora eventos sem telefone ou texto (status, presenca, etc)
     if (!rawPhone || !incomingText) return NextResponse.json({ ok: true })
-
-    // Ignora mensagens enviadas pelo proprio numero (outbound)
-    if (data.fromMe === true || data.key?.fromMe === true) {
-      return NextResponse.json({ ok: true })
-    }
 
     const phone = normalizePhone(rawPhone)
 
