@@ -790,6 +790,7 @@ export async function upsertBusinessProfile(data: {
   quoteDefaultValidity?: number
   quoteWhatsappTemplate?: string
   docFooter?: string
+  wappNotifBirthday?: boolean
   // Chatbot WhatsApp Fase 2
   chatbotEnabled?: boolean
   chatbotNome?: string

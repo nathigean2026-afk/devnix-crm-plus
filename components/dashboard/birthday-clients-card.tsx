@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getBirthdayClients } from "@/lib/actions"
 import type { Client } from "@/lib/db/schema"
-import { Cake, MessageCircle, Loader2, PartyPopper } from "lucide-react"
+import { Cake, MessageCircle, Loader2, PartyPopper, Check, ExternalLink } from "lucide-react"
 
 function formatDay(birthdate: string): string {
   const d = new Date(birthdate)
@@ -18,9 +18,91 @@ function isToday(birthdate: string): boolean {
   return d.getUTCDate() === now.getDate() && (d.getUTCMonth() + 1) === (now.getMonth() + 1)
 }
 
-function sendBirthdayWhatsApp(client: Client) {
+// Botão de parabéns: envia via API (Wame) com fallback para WhatsApp Web
+function BirthdayButton({ client, today }: { client: Client; today: boolean }) {
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState(false)
+
+  const handleSend = async () => {
+    setSending(true)
+    setError(false)
+    try {
+      const res = await fetch("/api/whatsapp/parabens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+      if (res.ok) {
+        setSent(true)
+        setTimeout(() => setSent(false), 4000)
+      } else {
+        // Fallback: abre WhatsApp Web
+        openWhatsAppWeb(client)
+        setError(true)
+        setTimeout(() => setError(false), 3000)
+      }
+    } catch {
+      openWhatsAppWeb(client)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (!client.phone) {
+    // Sem telefone: abre WhatsApp Web sem número (só a mensagem)
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => openWhatsAppWeb(client)}
+        className="h-7 px-2.5 border-border text-muted-foreground hover:bg-muted shrink-0 gap-1 text-xs"
+        title="Telefone não cadastrado — abre WhatsApp Web"
+      >
+        <ExternalLink className="size-3" />
+        Parabéns
+      </Button>
+    )
+  }
+
+  if (sent) {
+    return (
+      <Button
+        size="sm"
+        disabled
+        className="h-7 px-2.5 bg-green-600/20 text-green-500 shrink-0 gap-1 text-xs border border-green-600/30"
+      >
+        <Check className="size-3" />
+        Enviado!
+      </Button>
+    )
+  }
+
+  return (
+    <Button
+      size="sm"
+      onClick={handleSend}
+      disabled={sending}
+      className={
+        today
+          ? "h-7 px-2.5 bg-green-600 hover:bg-green-700 text-white shrink-0 gap-1 text-xs"
+          : "h-7 px-2.5 border-border text-foreground hover:bg-muted shrink-0 gap-1 text-xs"
+      }
+      variant={today ? "default" : "outline"}
+    >
+      {sending ? (
+        <Loader2 className="size-3 animate-spin" />
+      ) : (
+        <MessageCircle className={`size-3 ${today ? "" : "text-green-500"}`} />
+      )}
+      {sending ? "Enviando..." : "Parabéns"}
+    </Button>
+  )
+}
+
+function openWhatsAppWeb(client: Client) {
   const firstName = client.name.split(" ")[0]
-  const msg = `Feliz aniversário, ${firstName}! 🎉 Desejamos um dia incrível e muito sucesso. Obrigado por confiar em nossos serviços!`
+  const msg = `Feliz Aniversário, ${firstName}! Desejamos um dia incrível e muito sucesso. Obrigado por confiar em nossos serviços!`
   const phone = client.phone?.replace(/\D/g, "") ?? ""
   const url = phone
     ? `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`
@@ -46,12 +128,12 @@ export function BirthdayClientsCard() {
 
   const months = [
     "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-    "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+    "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
   ]
   const currentMonthName = months[new Date().getMonth()]
 
   const todayBirthdays = clients.filter(c => c.birthdate && isToday(c.birthdate))
-  const restBirthdays = clients.filter(c => !c.birthdate || !isToday(c.birthdate))
+  const restBirthdays  = clients.filter(c => !c.birthdate || !isToday(c.birthdate))
 
   return (
     <Card className="bg-card border-border">
@@ -80,7 +162,7 @@ export function BirthdayClientsCard() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {/* Aniversariantes de hoje */}
+            {/* Aniversariantes de hoje — destaque */}
             {todayBirthdays.map(client => (
               <div
                 key={client.id}
@@ -96,16 +178,7 @@ export function BirthdayClientsCard() {
                   </div>
                   <p className="text-[11px] text-pink-400 font-medium">Hoje!</p>
                 </div>
-                {client.phone && (
-                  <Button
-                    size="sm"
-                    onClick={() => sendBirthdayWhatsApp(client)}
-                    className="h-7 px-2.5 bg-green-600 hover:bg-green-700 text-white shrink-0 gap-1 text-xs"
-                  >
-                    <MessageCircle className="size-3" />
-                    Parabenizar
-                  </Button>
-                )}
+                <BirthdayButton client={client} today />
               </div>
             ))}
 
@@ -124,17 +197,7 @@ export function BirthdayClientsCard() {
                     {client.birthdate ? formatDay(client.birthdate) : ""}
                   </p>
                 </div>
-                {client.phone && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => sendBirthdayWhatsApp(client)}
-                    className="h-7 px-2.5 border-border text-foreground hover:bg-muted shrink-0 gap-1 text-xs"
-                  >
-                    <MessageCircle className="size-3 text-green-500" />
-                    Parabéns
-                  </Button>
-                )}
+                <BirthdayButton client={client} today={false} />
               </div>
             ))}
           </div>

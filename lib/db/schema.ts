@@ -158,8 +158,9 @@ export const businessProfile = pgTable("business_profile", {
   notifAlertEnabled: boolean("notifAlertEnabled").notNull().default(false),
   notifQuoteEnabled: boolean("notifQuoteEnabled").notNull().default(true),
   whatsappPhone: text("whatsappPhone"), // número para notificações via Wame API
-  wappNotifQuote: boolean("wappNotifQuote").notNull().default(true),    // notif WhatsApp: orçamento aprovado/recusado
-  wappNotifLicense: boolean("wappNotifLicense").notNull().default(true), // notif WhatsApp: plano expirando
+  wappNotifQuote: boolean("wappNotifQuote").notNull().default(true),       // notif WhatsApp: orçamento aprovado/recusado
+  wappNotifLicense: boolean("wappNotifLicense").notNull().default(true),   // notif WhatsApp: plano expirando
+  wappNotifBirthday: boolean("wappNotifBirthday").notNull().default(true), // notif WhatsApp: aniversariantes diário
   licensePlan: text("licensePlan").default("starter"),
   docAccentColor: text("docAccentColor").default("#1d4ed8"), // cor de destaque dos documentos públicos
   quoteDefaultValidity: integer("quoteDefaultValidity").default(30), // validade padrão de orçamentos em dias

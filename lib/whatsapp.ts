@@ -51,23 +51,52 @@ export async function sendWhatsApp(phone: string, message: string): Promise<bool
 
 // ── Templates de mensagem ─────────────────────────────────────────────────────
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.elevanthe.com"
+
+/** Envia orçamento para o cliente aprovar/recusar pelo WhatsApp */
+export function msgOrcamentoEnviado(opts: {
+  clientName: string
+  quoteTitle: string
+  quoteNumber: number
+  total: number
+  providerName: string
+  quoteId: string
+}) {
+  const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(opts.total)
+  const link = `${BASE_URL}/orcamento/${opts.quoteId}`
+  return (
+    `Olá, *${opts.clientName}*! 👋\n\n` +
+    `*${opts.providerName}* enviou um orçamento para você:\n\n` +
+    `📋 *${opts.quoteTitle}* (#${String(opts.quoteNumber).padStart(4, "0")})\n` +
+    `💰 Valor total: *${valor}*\n\n` +
+    `Acesse o link abaixo para ver todos os detalhes e *aprovar ou recusar* com um clique:\n` +
+    `👉 ${link}\n\n` +
+    `_Em caso de dúvidas, responda esta mensagem._`
+  )
+}
+
+/** Notifica o prestador que um orçamento foi aprovado pelo cliente */
 export function msgOrcamentoAprovado(opts: {
   clientName: string
   quoteTitle: string
   quoteNumber: number
   total: number
+  quoteId?: string
 }) {
   const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(opts.total)
+  const link = opts.quoteId ? `\n\n🔗 ${BASE_URL}/dashboard/orcamentos` : ""
   return (
     `*Elevanthe CRM* ✅\n\n` +
-    `*Orcamento aprovado!*\n` +
-    `Cliente: ${opts.clientName}\n` +
-    `Orcamento: ${opts.quoteTitle} (#${String(opts.quoteNumber).padStart(4, "0")})\n` +
-    `Valor: ${valor}\n\n` +
-    `Acesse o sistema para acompanhar a Ordem de Servico gerada automaticamente.`
+    `*Orçamento aprovado!*\n\n` +
+    `👤 Cliente: ${opts.clientName}\n` +
+    `📋 Orçamento: ${opts.quoteTitle} (#${String(opts.quoteNumber).padStart(4, "0")})\n` +
+    `💰 Valor: ${valor}\n\n` +
+    `Uma Ordem de Serviço foi gerada automaticamente no sistema.` +
+    link
   )
 }
 
+/** Notifica o prestador que um orçamento foi recusado pelo cliente */
 export function msgOrcamentoRecusado(opts: {
   clientName: string
   quoteTitle: string
@@ -76,20 +105,59 @@ export function msgOrcamentoRecusado(opts: {
 }) {
   return (
     `*Elevanthe CRM* ❌\n\n` +
-    `*Orcamento recusado*\n` +
-    `Cliente: ${opts.clientName}\n` +
-    `Orcamento: ${opts.quoteTitle} (#${String(opts.quoteNumber).padStart(4, "0")})\n` +
-    (opts.rejectionReason ? `Motivo: ${opts.rejectionReason}\n` : "") +
-    `\nAcesse o sistema para mais detalhes.`
+    `*Orçamento recusado*\n\n` +
+    `👤 Cliente: ${opts.clientName}\n` +
+    `📋 Orçamento: ${opts.quoteTitle} (#${String(opts.quoteNumber).padStart(4, "0")})\n` +
+    (opts.rejectionReason ? `💬 Motivo: ${opts.rejectionReason}\n` : "") +
+    `\n🔗 ${BASE_URL}/dashboard/orcamentos`
   )
 }
 
+/** Alerta ao prestador sobre plano expirando */
 export function msgPlanoExpirando(opts: { daysLeft: number; providerName: string }) {
   const dias = opts.daysLeft === 1 ? "1 dia" : `${opts.daysLeft} dias`
   return (
     `*Elevanthe CRM* ⚠️\n\n` +
-    `Ola, ${opts.providerName}!\n\n` +
-    `Seu plano expira em *${dias}*. Renove agora para continuar usando todos os recursos do sistema sem interrupcao.\n\n` +
-    `Acesse: https://crm.elevanthe.com/dashboard/configuracoes`
+    `Olá, *${opts.providerName}*!\n\n` +
+    `Seu plano expira em *${dias}*. Renove agora para continuar usando todos os recursos sem interrupção.\n\n` +
+    `🔗 ${BASE_URL}/dashboard/configuracoes`
+  )
+}
+
+/** Mensagem diária de aniversariantes para o prestador */
+export function msgAniversariantesDiario(opts: {
+  providerName: string
+  aniversariantes: Array<{ name: string; phone?: string | null }>
+}) {
+  const { providerName, aniversariantes } = opts
+  if (aniversariantes.length === 0) return null
+
+  const lista = aniversariantes
+    .map((c, i) => `${i + 1}. ${c.name}${c.phone ? ` — ${c.phone}` : ""}`)
+    .join("\n")
+
+  const plural = aniversariantes.length === 1
+    ? "1 cliente faz aniversário"
+    : `${aniversariantes.length} clientes fazem aniversário`
+
+  return (
+    `*Elevanthe CRM* 🎂\n\n` +
+    `Bom dia, *${providerName}*!\n\n` +
+    `Hoje *${plural}*:\n\n` +
+    lista +
+    `\n\n💡 Acesse o CRM para enviar mensagens de parabéns!\n` +
+    `🔗 ${BASE_URL}/dashboard`
+  )
+}
+
+/** Mensagem de parabéns do prestador para o cliente aniversariante */
+export function msgParabensAniversario(opts: {
+  clientName: string
+  providerName: string
+}) {
+  return (
+    `🎂 *Feliz Aniversário, ${opts.clientName}!*\n\n` +
+    `A equipe da *${opts.providerName}* deseja a você um dia muito especial, cheio de alegria e realizações!\n\n` +
+    `Que este novo ano de vida traga muitas conquistas. 🎉`
   )
 }
