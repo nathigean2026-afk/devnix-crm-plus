@@ -370,6 +370,33 @@ export const saasConfig = pgTable("saas_config", {
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
 
+// ── Chatbot Central Elevanthe ─────────────────────────────────────────────────
+// Armazena o estado de cada conversa recebida no numero da Elevanthe.
+// Prestadores cadastrados sao identificados e ignorados (nao entram aqui).
+export const chatbotSessions = pgTable("chatbot_sessions", {
+  id: text("id").primaryKey(),
+  phone: text("phone").notNull().unique(),           // numero normalizado (5587...)
+  name: text("name"),                                // nome do contato (vindo do Wame)
+  step: text("step").notNull().default("welcome"),   // etapa atual do menu
+  lastMessage: text("lastMessage"),                  // ultima mensagem recebida
+  lastReply: text("lastReply"),                      // ultima resposta enviada
+  messageCount: integer("messageCount").notNull().default(0),
+  humanMode: boolean("humanMode").notNull().default(false), // admin assumiu conversa
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const chatbotMessages = pgTable("chatbot_messages", {
+  id: text("id").primaryKey(),
+  sessionId: text("sessionId").notNull(),
+  direction: text("direction").notNull(), // "in" | "out"
+  text: text("text").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export type ChatbotSession = typeof chatbotSessions.$inferSelect
+export type ChatbotMessage = typeof chatbotMessages.$inferSelect
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect
 export type Client = typeof clients.$inferSelect
