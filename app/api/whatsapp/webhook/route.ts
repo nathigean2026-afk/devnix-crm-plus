@@ -138,23 +138,32 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ ok: true })
 
-    // Aceita qualquer evento — extrai phone e texto de todos os formatos possiveis da Wame
     const data = body.data ?? body
 
-    // Ignora eventos que nao sao mensagens recebidas
-    const event = body.event ?? body.type ?? ""
-    const isOutbound = data.fromMe === true || data.key?.fromMe === true
+    // Formato real confirmado pela Wame:
+    // { instance, type: "message", data: { phoneNumber, msgContent: { conversation }, pushName, me, ... } }
+    // Ignora eventos que nao sao mensagens (presence, connection, etc.)
+    const type = body.type ?? body.event ?? ""
+    if (type !== "message") return NextResponse.json({ ok: true })
+
+    // Ignora mensagens enviadas pelo proprio numero
+    const isOutbound = data.me === true || data.fromMe === true || data.key?.fromMe === true
     if (isOutbound) return NextResponse.json({ ok: true })
 
-    // Extrai campos tentando todos os formatos conhecidos da Wame API
+    // Extrai campos no formato real da Wame
     const rawPhone: string =
-      data.from ?? data.key?.remoteJid ?? data.sender ?? data.phone ?? body.phone ?? body.from ?? ""
-    const incomingText: string =
-      data.body ?? data.message?.conversation ?? data.message?.extendedTextMessage?.text ?? data.text ?? data.content ?? body.body ?? body.text ?? ""
-    const contactName: string | null =
-      data.pushName ?? data.notifyName ?? data.name ?? body.pushName ?? null
+      data.phoneNumber ??                          // formato Wame real
+      data.from ?? data.sender ?? data.phone ?? ""  // fallbacks
 
-    // Ignora eventos sem telefone ou texto (status, presenca, etc)
+    const incomingText: string =
+      data.msgContent?.conversation ??             // formato Wame real
+      data.msgContent?.extendedTextMessage?.text ?? // imagem com legenda
+      data.body ?? data.text ?? data.message?.conversation ?? ""
+
+    const contactName: string | null =
+      data.pushName ?? data.notifyName ?? data.name ?? null
+
+    // Ignora eventos sem telefone ou texto
     if (!rawPhone || !incomingText) return NextResponse.json({ ok: true })
 
     const phone = normalizePhone(rawPhone)
