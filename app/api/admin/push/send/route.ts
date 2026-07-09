@@ -4,8 +4,12 @@ import { pushSubscriptions, pushNotifications } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import webpush from "web-push"
 import { nanoid } from "nanoid"
+import { verifyAdminSession } from "@/lib/admin-auth"
 
 export async function POST(req: NextRequest) {
+  if (!(await verifyAdminSession(req))) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
+  }
   const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const vapidPrivate = process.env.VAPID_PRIVATE_KEY
   if (!vapidPublic || !vapidPrivate) {

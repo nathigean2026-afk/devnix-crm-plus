@@ -76,8 +76,6 @@ async function activateLicense(payment: Awaited<ReturnType<Payment["get"]>>) {
     .set({ expiresLicenseAt: newExpiry, updatedAt: new Date() })
     .where(eq(payments.mpPaymentId, paymentId))
 
-  console.log(`[MP Webhook] Licenca ativada para ${userId} ate ${newExpiry.toISOString()} via ${paymentMethod}`)
-
   // Envia email de confirmacao de compra
   try {
     const [userData] = await db

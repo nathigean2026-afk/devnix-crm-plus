@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import { supportMessages, supportTickets } from "@/lib/db/schema"
 import { and, eq, gt } from "drizzle-orm"
+import { verifyAdminSession } from "@/lib/admin-auth"
 
-async function checkAdmin() {
-  const jar = await cookies()
-  return jar.get("admin_session")?.value === "authenticated"
+async function checkAdmin(req: NextRequest) {
+  return verifyAdminSession(req)
 }
 
 export async function GET(request: NextRequest) {
-  if (!(await checkAdmin())) {
+  if (!(await checkAdmin(request))) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   }
 
