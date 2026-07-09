@@ -41,12 +41,14 @@ export async function GET(req: NextRequest) {
       accessExpiresAt: user.accessExpiresAt,
       whatsappPhone: businessProfile.whatsappPhone,
       profileName: businessProfile.name,
+      wappNotifLicense: businessProfile.wappNotifLicense,
     })
     .from(user)
     .innerJoin(businessProfile, eq(businessProfile.userId, user.id))
     .where(
       and(
         isNotNull(businessProfile.whatsappPhone),
+        eq(businessProfile.wappNotifLicense, true),
         sql`DATE(${user.accessExpiresAt}) IN (${targets7}::date, ${targets1}::date)`
       )
     )

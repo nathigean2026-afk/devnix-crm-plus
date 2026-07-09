@@ -587,8 +587,8 @@ export async function respondQuote(
       }
     }
 
-    // Notifica via WhatsApp se tiver número cadastrado (todos os planos com WhatsApp configurado)
-    if (profile?.whatsappPhone) {
+    // Notifica via WhatsApp se tiver número cadastrado e notificação de orçamento ativada
+    if (profile?.whatsappPhone && profile?.wappNotifQuote !== false) {
       try {
         const [clientRow] = await db
           .select({ name: clients.name })
@@ -785,6 +785,8 @@ export async function upsertBusinessProfile(data: {
   notifQuoteEnabled?: boolean
   docAccentColor?: string
   whatsappPhone?: string
+  wappNotifQuote?: boolean
+  wappNotifLicense?: boolean
   quoteDefaultValidity?: number
   quoteWhatsappTemplate?: string
   docFooter?: string
@@ -1242,7 +1244,7 @@ export async function adminDeleteUser(userId: string, adminEmail?: string) {
   await db.delete(account).where(eq(account.userId, userId))
   await db.delete(verification).where(eq(verification.identifier, userId))
 
-  // ── 4. Registro principal ───────────────────────────────────────────────────
+  // ── 4. Registro principal ──────────────────────��────────────────────────────
   await db.delete(user).where(eq(user.id, userId))
 
   // Log após deletar (não usa userId pois o user já foi removido)
