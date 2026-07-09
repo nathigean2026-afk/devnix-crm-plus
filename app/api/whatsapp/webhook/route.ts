@@ -21,6 +21,75 @@ async function isPrestador(phone: string): Promise<boolean> {
   return rows.length > 0
 }
 
+// ── Busca prestador com chatbot ativo pelo numero da instancia ────────────────
+// Usado quando cada prestador tiver instancia propria (Fase 2 completa).
+// Com numero compartilhado, retorna null (usa menu da Elevanthe).
+async function getPrestadorChatbot(instancePhone: string) {
+  // Quando o prestador tiver numero proprio, a instancia dele vai ter um phone diferente.
+  // Por enquanto retornamos null (numero compartilhado da Elevanthe).
+  return null
+}
+
+// ── Engine chatbot do prestador (menu dinamico configurado no CRM) ─────────────
+function processMenuPrestador(
+  step: string,
+  incomingText: string,
+  firstName: string,
+  config: {
+    nome: string
+    saudacao: string
+    horario: string
+    contato: string
+    opcoes: Array<{ id: string; titulo: string; resposta: string }>
+  }
+): { reply: string; nextStep: string } {
+  const normalized = incomingText.trim().toLowerCase()
+  const { nome, saudacao, horario, contato, opcoes } = config
+
+  const buildPrestadorMenu = () => {
+    const linhas = opcoes.map((o, i) => `${i + 1} - ${o.titulo}`).join("\n")
+    return {
+      reply:
+        `Olá, *${firstName}*! ${saudacao}\n\n` +
+        `Responda com o *número* da opção:\n\n` +
+        linhas +
+        `\n\nDigite *menu* para ver as opções novamente.`,
+      nextStep: "awaiting_choice",
+    }
+  }
+
+  if (normalized === "menu" || normalized === "0") return buildPrestadorMenu()
+
+  if (step === "welcome" || step === "menu") return buildPrestadorMenu()
+
+  if (step === "awaiting_choice") {
+    const idx = parseInt(normalized) - 1
+    const found = opcoes[idx]
+    if (found) {
+      return {
+        reply:
+          found.resposta +
+          `\n\n_Horário: ${horario || "Seg–Sex, 8h–18h"}_` +
+          (contato ? `\nContato: ${contato}` : "") +
+          `\n\nDigite *menu* para ver as opções.`,
+        nextStep: "done",
+      }
+    }
+    return {
+      reply:
+        `Não entendi. Responda com o *número* da opção:\n\n` +
+        opcoes.map((o, i) => `${i + 1} - ${o.titulo}`).join("\n") +
+        `\n\nOu digite *menu* para reiniciar.`,
+      nextStep: "awaiting_choice",
+    }
+  }
+
+  return {
+    reply: `Digite *menu* para ver as opções disponíveis.`,
+    nextStep: step,
+  }
+}
+
 // ── Engine de menu ────────────────────────────────────────────────────────────
 async function processMenu(
   step: string,

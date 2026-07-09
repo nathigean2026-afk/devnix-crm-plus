@@ -165,6 +165,14 @@ export const businessProfile = pgTable("business_profile", {
   quoteDefaultValidity: integer("quoteDefaultValidity").default(30), // validade padrão de orçamentos em dias
   quoteWhatsappTemplate: text("quoteWhatsappTemplate"), // template de mensagem ao enviar orçamento
   docFooter: text("docFooter"), // rodapé personalizado nos documentos (Business+)
+  // Chatbot WhatsApp do prestador (Fase 2)
+  chatbotEnabled: boolean("chatbotEnabled").notNull().default(false),
+  chatbotNome: text("chatbotNome"),           // nome exibido no menu ("Assistência do João")
+  chatbotNicho: text("chatbotNicho"),         // nicho: "assistencia" | "barbearia" | "estetica" | "outros"
+  chatbotMenu: text("chatbotMenu"),           // JSON: array de { id, titulo, resposta }
+  chatbotSaudacao: text("chatbotSaudacao"),   // mensagem de boas-vindas personalizada
+  chatbotHorario: text("chatbotHorario"),     // ex: "Seg–Sex, 8h–18h"
+  chatbotContato: text("chatbotContato"),     // email ou tel de contato do prestador
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })

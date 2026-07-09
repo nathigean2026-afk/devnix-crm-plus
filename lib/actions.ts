@@ -790,6 +790,14 @@ export async function upsertBusinessProfile(data: {
   quoteDefaultValidity?: number
   quoteWhatsappTemplate?: string
   docFooter?: string
+  // Chatbot WhatsApp Fase 2
+  chatbotEnabled?: boolean
+  chatbotNome?: string
+  chatbotNicho?: string
+  chatbotMenu?: string
+  chatbotSaudacao?: string
+  chatbotHorario?: string
+  chatbotContato?: string
 }) {
   const { effectiveId, isEmployee } = await getEffectiveUserId()
   if (isEmployee) throw new Error("Funcionários não podem editar os dados da empresa.")
