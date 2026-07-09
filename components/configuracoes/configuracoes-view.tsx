@@ -393,7 +393,7 @@ function LicenseCard({
               {whatsappSaved ? "Salvo!" : savingWhatsapp ? "Salvando..." : "Salvar numero"}
             </Button>
           </div>
-          {/* Preferencias de notificação WhatsApp */}
+          {/* Preferencias de notificacao WhatsApp */}
           <div className={cn("flex flex-col gap-3", !whatsappPhone && "opacity-50 pointer-events-none")}>
             <div className="flex items-center justify-between gap-3">
               <div>
