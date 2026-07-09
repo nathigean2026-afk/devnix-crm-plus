@@ -351,33 +351,31 @@ function LicenseCard({
           </div>
         </div>
 
-        {/* Notificações via WhatsApp — em desenvolvimento, bloqueado para todos */}
-        <div className="pt-2 border-t border-border mt-2 opacity-60 pointer-events-none select-none">
+        {/* Notificações via WhatsApp */}
+        <div className="pt-2 border-t border-border mt-2">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="size-4 text-green-500 shrink-0" />
             <p className="text-sm font-medium text-foreground">Receba notificações no seu WhatsApp</p>
-            <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/25">
-              <Clock className="size-2.5" />Em breve
-            </span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo. Disponível em breve para planos Business e Enterprise.
+            Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo.
           </p>
           <div className="flex gap-2 items-center">
             <Input
-              value=""
+              value={whatsappPhone}
+              onChange={e => setWhatsappPhone(e.target.value)}
               placeholder="(11) 99999-9999"
               className="bg-input border-border text-sm max-w-64"
               type="tel"
-              readOnly
             />
             <Button
               type="button"
               size="sm"
-              disabled
+              onClick={handleSaveWhatsapp}
+              disabled={savingWhatsapp}
               className="shrink-0"
             >
-              Salvar
+              {whatsappSaved ? "Salvo!" : savingWhatsapp ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </div>
