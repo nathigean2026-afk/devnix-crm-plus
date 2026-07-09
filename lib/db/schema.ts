@@ -157,7 +157,9 @@ export const businessProfile = pgTable("business_profile", {
   logo: text("logo"),
   notifAlertEnabled: boolean("notifAlertEnabled").notNull().default(false),
   notifQuoteEnabled: boolean("notifQuoteEnabled").notNull().default(true),
-  whatsappPhone: text("whatsappPhone"), // número para notificações via Z-API
+  whatsappPhone: text("whatsappPhone"), // número para notificações via Wame API
+  wappNotifQuote: boolean("wappNotifQuote").notNull().default(true),    // notif WhatsApp: orçamento aprovado/recusado
+  wappNotifLicense: boolean("wappNotifLicense").notNull().default(true), // notif WhatsApp: plano expirando
   licensePlan: text("licensePlan").default("starter"),
   docAccentColor: text("docAccentColor").default("#1d4ed8"), // cor de destaque dos documentos públicos
   quoteDefaultValidity: integer("quoteDefaultValidity").default(30), // validade padrão de orçamentos em dias
@@ -367,6 +369,33 @@ export const saasConfig = pgTable("saas_config", {
   trialDays: integer("trialDays").notNull().default(0),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
+
+// ── Chatbot Central Elevanthe ─────────────────────────────────────────────────
+// Armazena o estado de cada conversa recebida no numero da Elevanthe.
+// Prestadores cadastrados sao identificados e ignorados (nao entram aqui).
+export const chatbotSessions = pgTable("chatbot_sessions", {
+  id: text("id").primaryKey(),
+  phone: text("phone").notNull().unique(),           // numero normalizado (5587...)
+  name: text("name"),                                // nome do contato (vindo do Wame)
+  step: text("step").notNull().default("welcome"),   // etapa atual do menu
+  lastMessage: text("lastMessage"),                  // ultima mensagem recebida
+  lastReply: text("lastReply"),                      // ultima resposta enviada
+  messageCount: integer("messageCount").notNull().default(0),
+  humanMode: boolean("humanMode").notNull().default(false), // admin assumiu conversa
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
+
+export const chatbotMessages = pgTable("chatbot_messages", {
+  id: text("id").primaryKey(),
+  sessionId: text("sessionId").notNull(),
+  direction: text("direction").notNull(), // "in" | "out"
+  text: text("text").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export type ChatbotSession = typeof chatbotSessions.$inferSelect
+export type ChatbotMessage = typeof chatbotMessages.$inferSelect
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type User = typeof user.$inferSelect

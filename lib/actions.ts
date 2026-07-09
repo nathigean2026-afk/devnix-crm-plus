@@ -497,36 +497,17 @@ export async function updateQuoteStatus(id: string, status: string) {
 }
 
 /**
- * Envia mensagem WhatsApp ao prestador via Z-API.
- * As credenciais (ZAPI_INSTANCE_ID e ZAPI_TOKEN) ficam apenas no servidor.
+ * Envia mensagem WhatsApp ao prestador via Wame API.
+ * As credenciais (WAME_API_KEY e WAME_INSTANCE_ID) ficam apenas no servidor.
  * O número de destino é o whatsappPhone cadastrado pelo prestador.
  * Falha silenciosamente — nunca bloqueia o fluxo principal.
  */
 async function sendWhatsAppNotification(phone: string, message: string) {
   try {
-    const instanceId = process.env.ZAPI_INSTANCE_ID
-    const token = process.env.ZAPI_TOKEN
-    const clientToken = process.env.ZAPI_CLIENT_TOKEN
-
-    if (!instanceId || !token) return // credenciais não configuradas
-
-    // Normaliza o número: remove caracteres não numéricos, garante DDI 55
-    const digits = phone.replace(/\D/g, "")
-    const normalized = digits.startsWith("55") ? digits : `55${digits}`
-
-    await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(clientToken ? { "Client-Token": clientToken } : {}),
-        },
-        body: JSON.stringify({ phone: normalized, message }),
-      }
-    )
+    const { sendWhatsApp } = await import("@/lib/whatsapp")
+    await sendWhatsApp(phone, message)
   } catch {
-    // Falha silenciosamente — log não deve quebrar o fluxo principal
+    // Falha silenciosamente — não deve quebrar o fluxo principal
   }
 }
 
@@ -606,8 +587,8 @@ export async function respondQuote(
       }
     }
 
-    // Notifica via WhatsApp apenas se tiver plano Business+ e número cadastrado
-    if (hasBusinessPlus && profile?.whatsappPhone) {
+    // Notifica via WhatsApp se tiver número cadastrado e notificação de orçamento ativada
+    if (profile?.whatsappPhone && profile?.wappNotifQuote !== false) {
       try {
         const [clientRow] = await db
           .select({ name: clients.name })
@@ -616,11 +597,11 @@ export async function respondQuote(
           .limit(1)
 
         const clientName = clientRow?.name ?? "Um cliente"
-        const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(quote.total))
+        const { msgOrcamentoAprovado, msgOrcamentoRecusado } = await import("@/lib/whatsapp")
 
         const msg = decision === "aprovado"
-          ? `*Elevanthe CRM*\n\n${clientName} *aprovou* seu orçamento *${quote.title}* (#${quote.number}) no valor de ${valor}.\n\nAcesse o sistema para acompanhar.`
-          : `*Elevanthe CRM*\n\n${clientName} *recusou* seu orçamento *${quote.title}* (#${quote.number}).${rejectionReason ? `\n\nMotivo: ${rejectionReason}` : ""}\n\nAcesse o sistema para mais detalhes.`
+          ? msgOrcamentoAprovado({ clientName, quoteTitle: quote.title, quoteNumber: quote.number, total: Number(quote.total) })
+          : msgOrcamentoRecusado({ clientName, quoteTitle: quote.title, quoteNumber: quote.number, rejectionReason })
 
         await sendWhatsAppNotification(profile.whatsappPhone, msg)
       } catch {
@@ -804,6 +785,8 @@ export async function upsertBusinessProfile(data: {
   notifQuoteEnabled?: boolean
   docAccentColor?: string
   whatsappPhone?: string
+  wappNotifQuote?: boolean
+  wappNotifLicense?: boolean
   quoteDefaultValidity?: number
   quoteWhatsappTemplate?: string
   docFooter?: string
@@ -1261,7 +1244,7 @@ export async function adminDeleteUser(userId: string, adminEmail?: string) {
   await db.delete(account).where(eq(account.userId, userId))
   await db.delete(verification).where(eq(verification.identifier, userId))
 
-  // ── 4. Registro principal ───────────────────────────────────────────────────
+  // ── 4. Registro principal ──────────────────────��────────────────────────────
   await db.delete(user).where(eq(user.id, userId))
 
   // Log após deletar (não usa userId pois o user já foi removido)

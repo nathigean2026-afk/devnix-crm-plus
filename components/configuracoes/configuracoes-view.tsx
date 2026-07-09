@@ -137,6 +137,8 @@ function LicenseCard({
   const [whatsappPhone, setWhatsappPhone] = useState(profile?.whatsappPhone ?? "")
   const [savingWhatsapp, setSavingWhatsapp] = useState(false)
   const [whatsappSaved, setWhatsappSaved] = useState(false)
+  const [wappNotifQuote, setWappNotifQuote] = useState(profile?.wappNotifQuote ?? true)
+  const [wappNotifLicense, setWappNotifLicense] = useState(profile?.wappNotifLicense ?? true)
 
   const { expiresAt, daysLeft, isActive } = license
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
@@ -161,6 +163,19 @@ function LicenseCard({
       else setQuoteNotifEnabled(!value)
     } finally {
       setSavingToggle(false)
+    }
+  }
+
+  async function handleToggleWapp(field: "wappNotifQuote" | "wappNotifLicense", value: boolean) {
+    if (field === "wappNotifQuote") setWappNotifQuote(value)
+    else setWappNotifLicense(value)
+    try {
+      await upsertBusinessProfile({ [field]: value })
+      toast.success("Preferencia salva.")
+    } catch {
+      toast.error("Erro ao salvar preferencia.")
+      if (field === "wappNotifQuote") setWappNotifQuote(!value)
+      else setWappNotifLicense(!value)
     }
   }
 
@@ -351,34 +366,58 @@ function LicenseCard({
           </div>
         </div>
 
-        {/* Notificações via WhatsApp — em desenvolvimento, bloqueado para todos */}
-        <div className="pt-2 border-t border-border mt-2 opacity-60 pointer-events-none select-none">
+        {/* Notificações via WhatsApp */}
+        <div className="pt-2 border-t border-border mt-2">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="size-4 text-green-500 shrink-0" />
-            <p className="text-sm font-medium text-foreground">Receba notificações no seu WhatsApp</p>
-            <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/25">
-              <Clock className="size-2.5" />Em breve
-            </span>
+            <p className="text-sm font-medium text-foreground">Notificacoes no WhatsApp</p>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Quando um cliente aprovar ou recusar um orçamento, você recebe uma mensagem instantânea no número abaixo. Disponível em breve para planos Business e Enterprise.
+            Cadastre seu numero e escolha quais avisos quer receber diretamente no WhatsApp.
           </p>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center mb-4">
             <Input
-              value=""
+              value={whatsappPhone}
+              onChange={e => setWhatsappPhone(e.target.value)}
               placeholder="(11) 99999-9999"
               className="bg-input border-border text-sm max-w-64"
               type="tel"
-              readOnly
             />
             <Button
               type="button"
               size="sm"
-              disabled
+              onClick={handleSaveWhatsapp}
+              disabled={savingWhatsapp}
               className="shrink-0"
             >
-              Salvar
+              {whatsappSaved ? "Salvo!" : savingWhatsapp ? "Salvando..." : "Salvar numero"}
             </Button>
+          </div>
+          {/* Preferencias de notificacao WhatsApp */}
+          <div className={cn("flex flex-col gap-3", !whatsappPhone && "opacity-50 pointer-events-none")}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-foreground">Orcamentos aprovados ou recusados</p>
+                <p className="text-[11px] text-muted-foreground">Aviso quando um cliente responder seu orcamento.</p>
+              </div>
+              <Toggle
+                checked={wappNotifQuote}
+                onChange={v => handleToggleWapp("wappNotifQuote", v)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-foreground">Plano expirando</p>
+                <p className="text-[11px] text-muted-foreground">Lembrete 7 dias e 1 dia antes do vencimento.</p>
+              </div>
+              <Toggle
+                checked={wappNotifLicense}
+                onChange={v => handleToggleWapp("wappNotifLicense", v)}
+              />
+            </div>
+            {!whatsappPhone && (
+              <p className="text-[11px] text-muted-foreground">Salve seu numero acima para ativar as preferencias.</p>
+            )}
           </div>
         </div>
       </CardContent>
