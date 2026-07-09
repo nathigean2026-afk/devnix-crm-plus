@@ -19,25 +19,21 @@ function normalizePhone(phone: string): string {
  * Retorna true se enviou com sucesso, false se falhou.
  */
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
-  if (!WAME_API_KEY || !WAME_INSTANCE_ID) {
-    console.warn("[whatsapp] WAME_API_KEY ou WAME_INSTANCE_ID não configurado.")
+  if (!WAME_API_KEY) {
+    console.warn("[whatsapp] WAME_API_KEY não configurado.")
     return false
   }
 
   try {
     const normalized = normalizePhone(phone)
-    const url = `${WAME_SERVER}/message/sendText/${WAME_INSTANCE_ID}`
+    // Formato confirmado pela documentação: POST /{key}/message/text
+    // com body { to: "<número>", text: "<mensagem>" }
+    const url = `${WAME_SERVER}/${WAME_API_KEY}/message/text`
 
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": WAME_API_KEY,
-      },
-      body: JSON.stringify({
-        number: normalized,
-        text: message,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: normalized, text: message }),
     })
 
     if (!res.ok) {
