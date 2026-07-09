@@ -37,12 +37,14 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetPro
         onSuccess("dev-bypass-token")
         return
       }
+      // Se o widget não carregar em 5s (bloqueador, DNS fail, etc.), libera com bypass
       const timer = setTimeout(() => {
         if (typeof window !== "undefined" && !(window as any).turnstile) {
           setBlocked(true)
-          onError?.()
+          // Passa um token de fallback para não bloquear o login
+          onSuccess("widget-unavailable-bypass")
         }
-      }, 4000)
+      }, 5000)
       return () => clearTimeout(timer)
     }, [isDev, onSuccess, onError])
 
@@ -68,7 +70,11 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetPro
           siteKey={siteKey}
           onSuccess={onSuccess}
           onExpire={onExpire}
-          onError={onError}
+          onError={() => {
+            // Se o widget reportar erro (DNS fail, bloqueador), libera com bypass
+            setBlocked(true)
+            onSuccess("widget-unavailable-bypass")
+          }}
           options={{
             theme: resolvedTheme === "dark" ? "dark" : "light",
             language: "pt-br",

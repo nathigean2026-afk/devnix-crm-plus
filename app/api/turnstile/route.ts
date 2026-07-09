@@ -13,10 +13,12 @@ export async function POST(req: NextRequest) {
 
     const secretKey = process.env.TURNSTILE_SECRET_KEY
     const isDev = process.env.NODE_ENV === "development"
-    // Libera em dev, sem chave, ou em deploys de preview (não-produção)
     const isPreview = process.env.VERCEL_ENV !== "production"
 
-    if (!secretKey || isDev || isPreview || token === "dev-bypass-token") {
+    // Libera tokens de bypass (widget indisponível, dev, sem chave, preview)
+    const isBypassToken = token === "dev-bypass-token" || token === "widget-unavailable-bypass"
+
+    if (!secretKey || isDev || isPreview || isBypassToken) {
       return NextResponse.json({ success: true })
     }
 
@@ -30,10 +32,17 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-real-ip")
     if (ip) formData.append("remoteip", ip)
 
-    const response = await fetch(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      { method: "POST", body: formData }
-    )
+    let response: Response
+    try {
+      response = await fetch(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        { method: "POST", body: formData, signal: AbortSignal.timeout(5000) }
+      )
+    } catch (fetchErr) {
+      // Se o Cloudflare não responder (DNS fail, timeout), fail-open e loga
+      console.error("[Turnstile] API do Cloudflare indisponível:", fetchErr)
+      return NextResponse.json({ success: true })
+    }
 
     const result = await response.json()
 
