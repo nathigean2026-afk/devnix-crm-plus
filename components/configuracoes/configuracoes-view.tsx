@@ -171,9 +171,9 @@ function LicenseCard({
     else setWappNotifLicense(value)
     try {
       await upsertBusinessProfile({ [field]: value })
-      toast.success("Preferencia salva.")
+      toast.success("Preferência salva.")
     } catch {
-      toast.error("Erro ao salvar preferencia.")
+      toast.error("Erro ao salvar preferência.")
       if (field === "wappNotifQuote") setWappNotifQuote(!value)
       else setWappNotifLicense(!value)
     }
@@ -370,55 +370,73 @@ function LicenseCard({
         <div className="pt-2 border-t border-border mt-2">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="size-4 text-green-500 shrink-0" />
-            <p className="text-sm font-medium text-foreground">Notificacoes no WhatsApp</p>
-          </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            Cadastre seu numero e escolha quais avisos quer receber diretamente no WhatsApp.
-          </p>
-          <div className="flex gap-2 items-center mb-4">
-            <Input
-              value={whatsappPhone}
-              onChange={e => setWhatsappPhone(e.target.value)}
-              placeholder="(11) 99999-9999"
-              className="bg-input border-border text-sm max-w-64"
-              type="tel"
-            />
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSaveWhatsapp}
-              disabled={savingWhatsapp}
-              className="shrink-0"
-            >
-              {whatsappSaved ? "Salvo!" : savingWhatsapp ? "Salvando..." : "Salvar numero"}
-            </Button>
-          </div>
-          {/* Preferencias de notificacao WhatsApp */}
-          <div className={cn("flex flex-col gap-3", !whatsappPhone && "opacity-50 pointer-events-none")}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium text-foreground">Orcamentos aprovados ou recusados</p>
-                <p className="text-[11px] text-muted-foreground">Aviso quando um cliente responder seu orcamento.</p>
-              </div>
-              <Toggle
-                checked={wappNotifQuote}
-                onChange={v => handleToggleWapp("wappNotifQuote", v)}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium text-foreground">Plano expirando</p>
-                <p className="text-[11px] text-muted-foreground">Lembrete 7 dias e 1 dia antes do vencimento.</p>
-              </div>
-              <Toggle
-                checked={wappNotifLicense}
-                onChange={v => handleToggleWapp("wappNotifLicense", v)}
-              />
-            </div>
-            {!whatsappPhone && (
-              <p className="text-[11px] text-muted-foreground">Salve seu numero acima para ativar as preferencias.</p>
+            <p className="text-sm font-medium text-foreground">Notificações no WhatsApp</p>
+            {isStart && (
+              <span className="inline-flex items-center gap-1 text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5 ml-1">
+                <Lock className="size-3" />
+                Business+
+              </span>
             )}
           </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Cadastre seu número e escolha quais avisos quer receber diretamente no WhatsApp.
+          </p>
+
+          {isStart ? (
+            <PlanGate
+              locked={true}
+              planRequired="Business"
+              featureName="Notificações no WhatsApp"
+              featureBenefit="Receba avisos de orçamentos aprovados, recusados e alertas de licença diretamente no seu WhatsApp."
+            />
+          ) : (
+            <>
+              <div className="flex gap-2 items-center mb-4">
+                <Input
+                  value={whatsappPhone}
+                  onChange={e => setWhatsappPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="bg-input border-border text-sm max-w-64"
+                  type="tel"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSaveWhatsapp}
+                  disabled={savingWhatsapp}
+                  className="shrink-0"
+                >
+                  {whatsappSaved ? "Salvo!" : savingWhatsapp ? "Salvando..." : "Salvar número"}
+                </Button>
+              </div>
+              {/* Preferências de notificação WhatsApp */}
+              <div className={cn("flex flex-col gap-3", !whatsappPhone && "opacity-50 pointer-events-none")}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">Orçamentos aprovados ou recusados</p>
+                    <p className="text-[11px] text-muted-foreground">Aviso quando um cliente responder seu orçamento.</p>
+                  </div>
+                  <Toggle
+                    checked={wappNotifQuote}
+                    onChange={v => handleToggleWapp("wappNotifQuote", v)}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">Plano expirando</p>
+                    <p className="text-[11px] text-muted-foreground">Lembrete 7 dias e 1 dia antes do vencimento.</p>
+                  </div>
+                  <Toggle
+                    checked={wappNotifLicense}
+                    onChange={v => handleToggleWapp("wappNotifLicense", v)}
+                  />
+                </div>
+                {!whatsappPhone && (
+                  <p className="text-[11px] text-muted-foreground">Salve seu número acima para ativar as preferências.</p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

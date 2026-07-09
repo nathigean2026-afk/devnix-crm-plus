@@ -110,14 +110,23 @@ const featureGroups = [
     ],
   },
   {
-    label: "Marca própria",
+    label: "Marca própria nos documentos",
     icon: Palette,
     rows: [
       { name: "Logo nos documentos e PDFs", start: false, business: true, enterprise: true },
       { name: "Nome da empresa nos documentos", start: false, business: true, enterprise: true },
       { name: "CNPJ no cabeçalho dos documentos", start: false, business: true, enterprise: true },
       { name: "Cor de destaque personalizada", start: false, business: true, enterprise: true },
-      { name: "Notificações de resposta de orçamento", start: false, business: true, enterprise: true },
+    ],
+  },
+  {
+    label: "Notificações WhatsApp",
+    icon: MessageSquare,
+    rows: [
+      { name: "Número de WhatsApp cadastrado", start: false, business: true, enterprise: true },
+      { name: "Aviso de orçamento aprovado ou recusado", start: false, business: true, enterprise: true },
+      { name: "Alerta de licença expirando", start: false, business: true, enterprise: true },
+      { name: "Parabéns de aniversário para clientes", start: false, business: true, enterprise: true },
     ],
   },
   {
