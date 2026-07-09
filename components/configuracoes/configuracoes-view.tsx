@@ -400,9 +400,9 @@ function LicenseCard({
                 <p className="text-xs font-medium text-foreground">Orcamentos aprovados ou recusados</p>
                 <p className="text-[11px] text-muted-foreground">Aviso quando um cliente responder seu orcamento.</p>
               </div>
-              <Switch
+              <Toggle
                 checked={wappNotifQuote}
-                onCheckedChange={v => handleToggleWapp("wappNotifQuote", v)}
+                onChange={v => handleToggleWapp("wappNotifQuote", v)}
               />
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -410,9 +410,9 @@ function LicenseCard({
                 <p className="text-xs font-medium text-foreground">Plano expirando</p>
                 <p className="text-[11px] text-muted-foreground">Lembrete 7 dias e 1 dia antes do vencimento.</p>
               </div>
-              <Switch
+              <Toggle
                 checked={wappNotifLicense}
-                onCheckedChange={v => handleToggleWapp("wappNotifLicense", v)}
+                onChange={v => handleToggleWapp("wappNotifLicense", v)}
               />
             </div>
             {!whatsappPhone && (
