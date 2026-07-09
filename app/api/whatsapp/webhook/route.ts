@@ -153,24 +153,26 @@ async function processMenu(
       if (normalized === "3" || normalized.includes("crm") || normalized.includes("conhecer") || normalized.includes("sistema") || normalized.includes("plano")) {
         return {
           reply:
-            `🚀 *Elevanthe CRM — Sistema Completo para Prestadores de Serviço*\n\n` +
+            `*Elevanthe CRM — Sistema para Prestadores de Serviço*\n\n` +
             `Tudo que sua empresa precisa em um só lugar:\n\n` +
-            `✅ Gestão de clientes e histórico de serviços\n` +
-            `✅ Orçamentos digitais com link de aprovação\n` +
-            `✅ Ordens de serviço e recibos\n` +
-            `✅ Controle financeiro e relatórios\n` +
-            `✅ Notificações automáticas via WhatsApp\n` +
-            `✅ Agenda e controle de compromissos\n` +
-            `✅ Acesso pelo celular ou computador\n\n` +
-            `💰 *Nossos Planos:*\n\n` +
-            `📦 *Starter — R$ 7/mês*\n` +
-            `Ideal para autônomos e pequenos negócios\n\n` +
-            `📦 *Profissional — R$ 19/mês*\n` +
-            `Para empresas em crescimento\n\n` +
-            `📦 *Premium — R$ 34/mês*\n` +
-            `Recursos completos + suporte prioritário\n\n` +
-            `🎯 *Sem taxa de adesão. Sem fidelidade. Comece hoje.*\n\n` +
-            `🌐 Acesse agora: https://crm.elevanthe.com\n\n` +
+            `- Clientes, OS e orçamentos ilimitados\n` +
+            `- Orçamentos digitais com link de aprovação pelo cliente\n` +
+            `- Ordens de serviço e recibos\n` +
+            `- Financeiro completo (receitas e despesas)\n` +
+            `- Relatórios e gráficos de desempenho\n` +
+            `- Catálogo de serviços\n` +
+            `- Pagamento via Pix integrado\n` +
+            `- Notificações de resposta de orçamento via WhatsApp\n` +
+            `- Acesso pelo celular ou computador\n\n` +
+            `*Planos disponíveis:*\n\n` +
+            `*Start — R$ 7* (pagamento único)\n` +
+            `7 dias de acesso completo. Ideal para testar antes de assinar.\n\n` +
+            `*Business — R$ 30/mês*\n` +
+            `Acesso completo + logo e marca própria nos documentos + notificações + suporte prioritário.\n\n` +
+            `*Enterprise — R$ 280/ano* (~R$ 23/mês)\n` +
+            `Tudo do Business + 1 funcionário auxiliar incluso + permissões por módulo + suporte VIP.\n\n` +
+            `Sem taxa de adesão. Cancele quando quiser.\n\n` +
+            `Acesse e crie sua conta: https://crm.elevanthe.com\n\n` +
             `Digite *4* para falar com um consultor ou *menu* para voltar ao início.`,
           nextStep: "done",
         }
@@ -240,7 +242,7 @@ async function processMenu(
     case "human_requested": {
       return {
         reply:
-          `Olá novamente! 😊\n\n` +
+          `Olá novamente!\n\n` +
           `Posso ajudar com mais alguma coisa?\n\n` +
           `Digite *menu* para ver todas as opções.`,
         nextStep: step,
@@ -255,14 +257,14 @@ async function processMenu(
 function buildMenu(firstName: string): { reply: string; nextStep: string } {
   return {
     reply:
-      `Olá, *${firstName}*! 👋 Seja bem-vindo(a) à *Elevanthe Tecnologia*.\n\n` +
+      `Olá, *${firstName}*! Seja bem-vindo(a) à *Elevanthe Tecnologia*.\n\n` +
       `Somos especializados em soluções digitais para prestadores de serviço.\n\n` +
-      `Como posso te ajudar hoje? Responda com o *número* da opção:\n\n` +
-      `1️⃣ - Solicitar orçamento\n` +
-      `2️⃣ - Suporte técnico\n` +
-      `3️⃣ - Conhecer o Elevanthe CRM\n` +
-      `4️⃣ - Falar com um atendente\n` +
-      `5️⃣ - Trabalhe conosco / Parcerias\n\n` +
+      `Como posso te ajudar? Responda com o *número* da opção:\n\n` +
+      `1 - Solicitar orçamento\n` +
+      `2 - Suporte técnico\n` +
+      `3 - Conhecer o Elevanthe CRM e planos\n` +
+      `4 - Falar com um atendente\n` +
+      `5 - Trabalhe conosco / Parcerias\n\n` +
       `_Atendimento automático 24h. Para falar com um humano, digite 4._`,
     nextStep: "awaiting_choice",
   }
