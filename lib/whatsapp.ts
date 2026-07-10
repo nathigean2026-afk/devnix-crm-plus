@@ -19,8 +19,8 @@ function normalizePhone(phone: string): string {
  * Retorna true se enviou com sucesso, false se falhou.
  */
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
-  if (!WAME_API_KEY) {
-    console.warn("[whatsapp] WAME_API_KEY não configurado.")
+  if (!WAME_API_KEY || WAME_API_KEY.trim() === "") {
+    console.warn("[whatsapp] WAME_API_KEY não configurado ou vazio. Configure em Settings > Vars.")
     return false
   }
 
