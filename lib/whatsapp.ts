@@ -36,12 +36,13 @@ export async function sendWhatsApp(phone: string, message: string): Promise<bool
       body: JSON.stringify({ to: normalized, text: message }),
     })
 
+    const responseText = await res.text().catch(() => "")
     if (!res.ok) {
-      const body = await res.text().catch(() => "")
-      console.error(`[whatsapp] Erro ${res.status}: ${body}`)
+      console.error(`[whatsapp] Erro ${res.status} para ${url}: ${responseText}`)
       return false
     }
 
+    console.log(`[whatsapp] Enviado com sucesso para ${normalized}: ${responseText.slice(0, 100)}`)
     return true
   } catch (err) {
     console.error("[whatsapp] Falha ao enviar mensagem:", err)
