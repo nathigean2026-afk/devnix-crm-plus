@@ -177,6 +177,8 @@ export const businessProfile = pgTable("business_profile", {
   chatbotSaudacao: text("chatbotSaudacao"),   // mensagem de boas-vindas personalizada
   chatbotHorario: text("chatbotHorario"),     // ex: "Seg–Sex, 8h–18h"
   chatbotContato: text("chatbotContato"),     // email ou tel de contato do prestador
+  whatsappVerifiedAt: timestamp("whatsappVerifiedAt"),  // quando o número foi verificado via OTP
+  whatsappChangedAt: timestamp("whatsappChangedAt"),    // quando foi trocado (cooldown 2 dias)
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 })
@@ -338,6 +340,17 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   p256dh: text("p256dh").notNull(),    // chave pública do dispositivo
   auth: text("auth").notNull(),         // segredo de autenticação
   userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+// ── WhatsApp OTP ──────────────────────────────────────────────────────────────
+// Códigos de verificação enviados para confirmar o número de WhatsApp do prestador
+export const whatsappOtp = pgTable("whatsapp_otp", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull(),
+  phone: text("phone").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 

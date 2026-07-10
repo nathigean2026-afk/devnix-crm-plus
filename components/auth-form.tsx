@@ -22,6 +22,12 @@ import {
   User,
   Sun,
   Moon,
+  MessageCircle,
+  ExternalLink,
+  ChevronDown,
+  LayoutDashboard,
+  FileText,
+  Headphones,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -295,22 +301,61 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         />
 
         {/* Top bar */}
-        <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-black/[0.07] dark:border-white/[0.05]">
+        <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-black/[0.07] dark:border-white/[0.05]">
           {/* Logo mobile */}
           <div className="lg:hidden">
-            <ThemedLogo className="h-8 w-auto" />
+            <ThemedLogo className="h-7 w-auto" />
           </div>
           <div className="hidden lg:block" />
 
-          <div className="flex items-center gap-2.5">
-            <ThemeToggleButton />
+          {/* Menu de navegação */}
+          <nav className="flex items-center gap-1 flex-wrap justify-end" aria-label="Navegação principal">
             <Link
-              href={isSignIn ? "/sign-up" : "/sign-in"}
-              className="text-xs transition-colors border rounded-full px-4 py-1.5 font-medium text-black/50 hover:text-black border-black/10 hover:border-black/25 hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:border-white/10 dark:hover:border-white/25 dark:hover:bg-white/5"
+              href="/sign-up"
+              className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5"
             >
-              {isSignIn ? "Criar conta grátis" : "Já tenho conta"}
+              Criar conta grátis
             </Link>
-          </div>
+            <button
+              type="button"
+              onClick={() => setShowIntro(true)}
+              className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5"
+            >
+              Ver demonstração
+            </button>
+            <Link
+              href="/planos/publico"
+              className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5"
+            >
+              Planos e preços
+            </Link>
+            <Link
+              href="/suporte"
+              className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5"
+            >
+              Suporte
+            </Link>
+            <a
+              href="https://wa.me/55"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5 flex items-center gap-1"
+            >
+              <MessageCircle className="size-3.5" />
+              WhatsApp
+            </a>
+            <a
+              href="https://www.elevanthe.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5 flex items-center gap-1"
+            >
+              <ExternalLink className="size-3" />
+              elevanthe.com
+            </a>
+            <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
+            <ThemeToggleButton />
+          </nav>
         </div>
 
         {/* Form centralizado */}
@@ -532,21 +577,12 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
               </p>
 
               <div className="mt-5 text-center flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowIntro(true)}
-                  className="text-xs transition-colors inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer text-black/30 dark:text-white/22"
-                >
-                  Ver demonstração sem cadastro
-                  <ArrowRight className="size-3" />
-                </button>
-                <Link
-                  href="/planos/publico"
-                  className="text-xs transition-colors inline-flex items-center gap-1.5 font-semibold hover:underline text-black/50 dark:text-white/45"
-                >
-                  Ver planos e preços
-                  <ArrowRight className="size-3" />
-                </Link>
+                <p className="text-[11px] text-black/30 dark:text-white/25 leading-relaxed max-w-[300px]">
+                  Ao criar uma conta ou efetuar login, você concorda com os{" "}
+                  <Link href="/termos" className="underline hover:text-black/50 dark:hover:text-white/45 transition-colors">
+                    Termos de Uso e Política de Reembolso
+                  </Link>.
+                </p>
               </div>
             </div>
 

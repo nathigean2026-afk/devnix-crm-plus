@@ -139,6 +139,14 @@ function LicenseCard({
   const [whatsappSaved, setWhatsappSaved] = useState(false)
   const [wappNotifQuote, setWappNotifQuote] = useState(profile?.wappNotifQuote ?? true)
   const [wappNotifLicense, setWappNotifLicense] = useState(profile?.wappNotifLicense ?? true)
+  // OTP verification flow
+  const [otpStep, setOtpStep] = useState<"idle" | "pending" | "cooldown">("idle")
+  const [otpCode, setOtpCode] = useState("")
+  const [otpError, setOtpError] = useState("")
+  const [otpVerified, setOtpVerified] = useState(!!(profile?.whatsappVerifiedAt))
+  const [verifiedPhone, setVerifiedPhone] = useState(profile?.whatsappPhone ?? "")
+  const [cooldownHours, setCooldownHours] = useState(0)
+  const [confirmingOtp, setConfirmingOtp] = useState(false)
 
   const { expiresAt, daysLeft, isActive } = license
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
@@ -179,6 +187,63 @@ function LicenseCard({
     }
   }
 
+  async function handleSendOtp() {
+    const digits = whatsappPhone.replace(/\D/g, "")
+    if (digits.length < 10) { toast.error("Informe o número com DDD (ex: 11999990000)"); return }
+    setSavingWhatsapp(true)
+    setOtpError("")
+    try {
+      const res = await fetch("/api/whatsapp/verify-phone/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: digits }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setOtpStep("pending")
+        toast.success("Código enviado! Verifique seu WhatsApp.")
+      } else if (data.reason === "cooldown") {
+        setCooldownHours(data.hoursLeft ?? 48)
+        setOtpStep("cooldown")
+      } else {
+        toast.error(data.error ?? "Erro ao enviar código. Tente novamente.")
+      }
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.")
+    } finally {
+      setSavingWhatsapp(false)
+    }
+  }
+
+  async function handleConfirmOtp() {
+    if (!otpCode.trim()) { setOtpError("Digite o código recebido."); return }
+    setConfirmingOtp(true)
+    setOtpError("")
+    try {
+      const res = await fetch("/api/whatsapp/verify-phone/confirm-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: otpCode.trim() }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setOtpStep("idle")
+        setOtpCode("")
+        setOtpVerified(true)
+        setVerifiedPhone(data.phone)
+        setWhatsappPhone(data.phone)
+        toast.success("Número verificado com sucesso!")
+      } else {
+        setOtpError(data.error ?? "Código inválido ou expirado.")
+      }
+    } catch {
+      setOtpError("Erro de conexão. Tente novamente.")
+    } finally {
+      setConfirmingOtp(false)
+    }
+  }
+
+  // Mantido para compatibilidade com toggles que ainda salvam via upsertBusinessProfile
   async function handleSaveWhatsapp() {
     setSavingWhatsapp(true)
     try {
@@ -391,26 +456,77 @@ function LicenseCard({
             />
           ) : (
             <>
-              <div className="flex gap-2 items-center mb-4">
-                <Input
-                  value={whatsappPhone}
-                  onChange={e => setWhatsappPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  className="bg-input border-border text-sm max-w-64"
-                  type="tel"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSaveWhatsapp}
-                  disabled={savingWhatsapp}
-                  className="shrink-0"
-                >
-                  {whatsappSaved ? "Salvo!" : savingWhatsapp ? "Salvando..." : "Salvar número"}
-                </Button>
-              </div>
+              {/* Número verificado */}
+              {otpVerified && verifiedPhone ? (
+                <div className="flex items-center gap-2 mb-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    Número verificado: <span className="font-mono">{verifiedPhone}</span>
+                  </span>
+                  <button
+                    onClick={() => { setOtpVerified(false); setOtpStep("idle"); setWhatsappPhone("") }}
+                    className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    type="button"
+                  >
+                    Alterar
+                  </button>
+                </div>
+              ) : otpStep === "cooldown" ? (
+                <div className="flex items-center gap-2 mb-3 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                  <Clock className="size-4 text-amber-500 shrink-0" />
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    Você só pode alterar o número após <strong>{cooldownHours}h</strong> (limite de segurança de 2 dias).
+                  </span>
+                </div>
+              ) : otpStep === "pending" ? (
+                <div className="flex flex-col gap-2 mb-4">
+                  <p className="text-xs text-muted-foreground">
+                    Um código de 6 dígitos foi enviado para <strong>{whatsappPhone}</strong>. Digite-o abaixo:
+                  </p>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={otpCode}
+                      onChange={e => { setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setOtpError("") }}
+                      placeholder="000000"
+                      maxLength={6}
+                      className="bg-input border-border text-sm max-w-36 font-mono tracking-widest text-center"
+                      inputMode="numeric"
+                    />
+                    <Button type="button" size="sm" onClick={handleConfirmOtp} disabled={confirmingOtp} className="shrink-0">
+                      {confirmingOtp ? "Verificando..." : "Confirmar"}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => { setOtpStep("idle"); setOtpCode(""); setOtpError("") }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  {otpError && <p className="text-xs text-destructive">{otpError}</p>}
+                </div>
+              ) : (
+                <div className="flex gap-2 items-center mb-4">
+                  <Input
+                    value={whatsappPhone}
+                    onChange={e => setWhatsappPhone(e.target.value)}
+                    placeholder="(11) 99999-9999"
+                    className="bg-input border-border text-sm max-w-64"
+                    type="tel"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSendOtp}
+                    disabled={savingWhatsapp}
+                    className="shrink-0"
+                  >
+                    {savingWhatsapp ? "Enviando..." : "Verificar número"}
+                  </Button>
+                </div>
+              )}
               {/* Preferências de notificação WhatsApp */}
-              <div className={cn("flex flex-col gap-3", !whatsappPhone && "opacity-50 pointer-events-none")}>
+              <div className={cn("flex flex-col gap-3", !otpVerified && "opacity-50 pointer-events-none")}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium text-foreground">Orçamentos aprovados ou recusados</p>
@@ -431,8 +547,8 @@ function LicenseCard({
                     onChange={v => handleToggleWapp("wappNotifLicense", v)}
                   />
                 </div>
-                {!whatsappPhone && (
-                  <p className="text-[11px] text-muted-foreground">Salve seu número acima para ativar as preferências.</p>
+                {!otpVerified && (
+                  <p className="text-[11px] text-muted-foreground">Verifique seu número acima para ativar as notificações.</p>
                 )}
               </div>
             </>
