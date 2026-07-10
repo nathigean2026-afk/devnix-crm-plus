@@ -112,7 +112,7 @@ function ThemedLogo({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  if (!mounted) return <div className={cn("opacity-0", className)} style={{ height: 40, width: 200 }} />
+  if (!mounted) return <div className={cn("opacity-0", className)} />
 
   const isDark = resolvedTheme === "dark"
 
@@ -301,15 +301,15 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
         />
 
         {/* Top bar */}
-        <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-black/[0.07] dark:border-white/[0.05]">
+        <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-black/[0.07] dark:border-white/[0.05]">
           {/* Logo mobile */}
           <div className="lg:hidden">
-            <ThemedLogo className="h-7 w-auto" />
+            <ThemedLogo className="h-8 w-auto" />
           </div>
           <div className="hidden lg:block" />
 
           {/* Menu de navegação */}
-          <nav className="flex items-center gap-1 flex-wrap justify-end" aria-label="Navegação principal">
+          <div className="flex items-center gap-2.5">
             <Link
               href="/sign-up"
               className="text-xs font-medium transition-colors px-3 py-1.5 rounded-full text-black/55 hover:text-black hover:bg-black/5 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/5"
@@ -355,7 +355,7 @@ export function AuthForm({ mode, kicked }: AuthFormProps) {
             </a>
             <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-0.5" />
             <ThemeToggleButton />
-          </nav>
+          </div>
         </div>
 
         {/* Form centralizado */}
