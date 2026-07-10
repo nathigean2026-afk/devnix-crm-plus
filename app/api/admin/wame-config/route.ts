@@ -17,9 +17,17 @@ export async function GET() {
 
   if (key) {
     try {
-      const res = await fetch(`${server}/${key}/instance`, { method: "GET" })
+      // Testa enviando para um número inválido — se retornar 400/422 a instância está viva;
+      // 404 significa chave errada; network error significa servidor incorreto
+      const res = await fetch(`${server}/${key}/message/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: "0000000000", text: "ping" }),
+      })
       const body = await res.text()
-      testResult = { ok: res.ok, status: res.status, body: body.slice(0, 200) }
+      // 200 (enviou), 400/422 (instância ok mas número inválido) = instância conectada
+      const instanceAlive = res.status === 200 || res.status === 400 || res.status === 422
+      testResult = { ok: instanceAlive, status: res.status, body: body.slice(0, 200) }
     } catch (e) {
       testResult = { ok: false, body: String(e) }
     }
@@ -44,12 +52,17 @@ export async function POST(req: NextRequest) {
 
   const wameServer = (server ?? "https://us.api-wa.me").trim()
 
-  // Testa a chave antes de salvar
+  // Testa a chave antes de salvar (número 0 retorna 400/422 se instância está viva)
   let testResult: { ok: boolean; status?: number; body?: string } = { ok: false }
   try {
-    const res = await fetch(`${wameServer}/${key.trim()}/instance`, { method: "GET" })
+    const res = await fetch(`${wameServer}/${key.trim()}/message/text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: "0000000000", text: "ping" }),
+    })
     const body = await res.text()
-    testResult = { ok: res.ok, status: res.status, body: body.slice(0, 300) }
+    const instanceAlive = res.status === 200 || res.status === 400 || res.status === 422
+    testResult = { ok: instanceAlive, status: res.status, body: body.slice(0, 300) }
   } catch (e) {
     testResult = { ok: false, body: String(e) }
   }
