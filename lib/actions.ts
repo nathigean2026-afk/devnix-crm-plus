@@ -1626,6 +1626,35 @@ export async function createServiceOrder(data: {
     await db.insert(serviceOrderItems).values(data.items.map(item => ({ id: crypto.randomUUID(), serviceOrderId: orderId, ...item })))
   }
 
+  // Notifica o cliente por WhatsApp ao criar OS manualmente (plano Business+)
+  try {
+    const [profile] = await db.select().from(businessProfile).where(eq(businessProfile.userId, effectiveId)).limit(1)
+    const plan = (profile?.licensePlan ?? "starter").toLowerCase()
+    const hasBusinessPlus = plan === "business" || plan === "enterprise"
+
+    if (hasBusinessPlus) {
+      const [clientRow] = await db
+        .select({ name: clients.name, phone: clients.phone })
+        .from(clients)
+        .where(eq(clients.id, data.clientId))
+        .limit(1)
+
+      if (clientRow?.phone) {
+        const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(data.total))
+        const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://crm.elevanthe.com"
+        const msg =
+          `Olá, *${clientRow.name}*! 👋\n\n` +
+          `*${profile?.name ?? "Prestador"}* criou uma Ordem de Serviço para você:\n\n` +
+          `🔧 *${data.title}* (#${String(number).padStart(4, "0")})\n` +
+          `💰 Total: *${valor}*\n\n` +
+          `Acesse o recibo:\n👉 ${BASE_URL}/ordem-servico/${orderId}`
+        await sendWhatsAppNotification(clientRow.phone, msg)
+      }
+    }
+  } catch {
+    // Falha silenciosa
+  }
+
   revalidatePath("/dashboard/ordens-servico")
   return orderId
 }

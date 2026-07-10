@@ -354,6 +354,18 @@ export const whatsappOtp = pgTable("whatsapp_otp", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
+// ── Avaliações de OS ──────────────────────────────────────────────────────────
+// Pesquisa de satisfação enviada ao cliente após conclusão da OS
+export const serviceReviews = pgTable("service_reviews", {
+  id: text("id").primaryKey(),
+  serviceOrderId: text("serviceOrderId").notNull(),
+  userId: text("userId").notNull(),          // prestador dono da OS
+  clientId: text("clientId").notNull(),
+  rating: integer("rating").notNull(),        // 1–5
+  comment: text("comment"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
 // Histórico de notificações push enviadas pelo admin
 export const pushNotifications = pgTable("push_notifications", {
   id: text("id").primaryKey(),

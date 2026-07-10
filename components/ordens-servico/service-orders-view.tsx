@@ -62,6 +62,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Star,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -268,6 +269,26 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
       toast.success(paymentStatus === "pago" ? "OS marcada como paga!" : "OS marcada como pendente de pagamento.")
     } catch {
       toast.error("Erro ao atualizar pagamento")
+    }
+  }
+
+  async function handleSendReview(serviceOrderId: string) {
+    try {
+      const res = await fetch("/api/whatsapp/send-review-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceOrderId }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        toast.success(`Pesquisa de satisfação enviada para ${data.sentTo}!`)
+      } else if (data.reason === "plan") {
+        toast.error("Recurso disponível nos planos Business e Enterprise.")
+      } else {
+        toast.error(data.error ?? "Erro ao enviar pesquisa.")
+      }
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.")
     }
   }
 
@@ -571,6 +592,15 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                                 className="text-amber-400 cursor-pointer focus:text-amber-400"
                               >
                                 Marcar Pagamento como Pendente
+                              </DropdownMenuItem>
+                            )}
+                            {o.status === "concluido" && (
+                              <DropdownMenuItem
+                                onClick={() => handleSendReview(o.id)}
+                                className="text-foreground cursor-pointer"
+                              >
+                                <Star className="size-4 mr-2 text-amber-400" />
+                                Pedir avaliação por WhatsApp
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator className="bg-border" />

@@ -162,3 +162,68 @@ export function msgParabensAniversario(opts: {
     `Que este novo ano de vida traga muitas conquistas. 🎉`
   )
 }
+
+/** Lembrete de cobrança: enviado ao cliente quando OS está "A Pagar" há vários dias */
+export function msgLembreteCobranca(opts: {
+  clientName: string
+  providerName: string
+  osTitle: string
+  osNumber: number
+  total: number
+  daysOverdue: number
+  receiptLink: string
+}) {
+  const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(opts.total)
+  const dias = opts.daysOverdue === 1 ? "1 dia" : `${opts.daysOverdue} dias`
+  return (
+    `Olá, *${opts.clientName}*! 😊\n\n` +
+    `*${opts.providerName}* aqui. Passando para lembrar que o pagamento da sua OS está pendente:\n\n` +
+    `🔧 *${opts.osTitle}* (#${String(opts.osNumber).padStart(4, "0")})\n` +
+    `💰 Valor: *${valor}*\n` +
+    `📅 Pendente há: ${dias}\n\n` +
+    `Acesse o recibo para mais detalhes:\n👉 ${opts.receiptLink}\n\n` +
+    `_Em caso de dúvidas, entre em contato conosco._`
+  )
+}
+
+/** Confirmação de data de entrega/atendimento para o cliente */
+export function msgConfirmacaoAgendamento(opts: {
+  clientName: string
+  providerName: string
+  osTitle: string
+  osNumber: number
+  scheduledDate: string   // data formatada em pt-BR
+  scheduledTime?: string  // horário opcional
+  address?: string        // local opcional
+  receiptLink: string
+}) {
+  const horario = opts.scheduledTime ? ` às *${opts.scheduledTime}*` : ""
+  const local = opts.address ? `\n📍 Local: ${opts.address}` : ""
+  return (
+    `Olá, *${opts.clientName}*! 📅\n\n` +
+    `*${opts.providerName}* confirmou seu agendamento:\n\n` +
+    `🔧 *${opts.osTitle}* (#${String(opts.osNumber).padStart(4, "0")})\n` +
+    `📆 Data: *${opts.scheduledDate}*${horario}` +
+    local +
+    `\n\nVeja o recibo completo:\n👉 ${opts.receiptLink}\n\n` +
+    `_Para remarcar ou cancelar, entre em contato conosco._`
+  )
+}
+
+/** Pesquisa de satisfação enviada após OS concluída */
+export function msgPesquisaSatisfacao(opts: {
+  clientName: string
+  providerName: string
+  osTitle: string
+  osNumber: number
+  reviewLink: string
+}) {
+  return (
+    `Olá, *${opts.clientName}*! 🌟\n\n` +
+    `*${opts.providerName}* agradece a confiança!\n\n` +
+    `Sua Ordem de Serviço *${opts.osTitle}* foi concluída com sucesso.\n\n` +
+    `Gostaríamos muito de saber sua opinião — leva menos de 1 minuto:\n` +
+    `👉 ${opts.reviewLink}\n\n` +
+    `Sua avaliação nos ajuda a melhorar cada vez mais. Obrigado! 🙏`
+  )
+}
