@@ -705,6 +705,7 @@ export async function getTransactions() {
 export async function createTransaction(data: {
   clientId?: string
   quoteId?: string
+  serviceOrderId?: string
   type: string
   description: string
   amount: string
@@ -718,6 +719,7 @@ export async function createTransaction(data: {
     userId: effectiveId,
     clientId: data.clientId || undefined,
     quoteId: data.quoteId || undefined,
+    serviceOrderId: data.serviceOrderId || undefined,
     type: data.type,
     description: data.description,
     amount: data.amount,
@@ -725,6 +727,23 @@ export async function createTransaction(data: {
     dueDate: data.dueDate || undefined,
     status: data.status || "pendente",
   })
+  // Se a transação for paga e ligada a uma OS, marca a OS como paga
+  if (data.serviceOrderId && (data.status === "pago")) {
+    await db.update(serviceOrders)
+      .set({ paymentStatus: "pago" })
+      .where(and(eq(serviceOrders.id, data.serviceOrderId), eq(serviceOrders.userId, effectiveId)))
+  }
+  revalidatePath("/dashboard/financeiro")
+  revalidatePath("/dashboard/ordens-servico")
+}
+
+export async function updateServiceOrderPaymentStatus(orderId: string, paymentStatus: "pendente" | "pago") {
+  const { effectiveId } = await getEffectiveUserId()
+  await db.update(serviceOrders)
+    .set({ paymentStatus, updatedAt: new Date() })
+    .where(and(eq(serviceOrders.id, orderId), eq(serviceOrders.userId, effectiveId)))
+  revalidatePath("/dashboard/ordens-servico")
+  revalidatePath("/dashboard/relatorios")
   revalidatePath("/dashboard/financeiro")
 }
 
@@ -1834,7 +1853,13 @@ export async function getReportData(days: number = 30) {
   // Totais do período
   const totalReceita = periodTransactions.filter(t => t.type === "receita" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
   const totalDespesa = periodTransactions.filter(t => t.type === "despesa" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
-  const totalPendente = allTransactions.filter(t => t.status === "pendente" && t.type === "receita").reduce((a, t) => a + Number(t.amount), 0)
+  // A Receber = transações pendentes + OS com paymentStatus "pendente" não canceladas e sem transação vinculada
+  const pendingTransactionTotal = allTransactions.filter(t => t.status === "pendente" && t.type === "receita").reduce((a, t) => a + Number(t.amount), 0)
+  const osWithTransaction = new Set(allTransactions.filter(t => t.serviceOrderId).map(t => t.serviceOrderId))
+  const osPendingTotal = allOrders
+    .filter(o => o.paymentStatus !== "pago" && o.status !== "cancelado" && !osWithTransaction.has(o.id))
+    .reduce((a, o) => a + Number(o.total), 0)
+  const totalPendente = pendingTransactionTotal + osPendingTotal
   const totalAprovados = periodQuotes.filter(q => q.status === "aprovado").length
   const totalRecusados = periodQuotes.filter(q => q.status === "recusado").length
   const taxaConversao = periodQuotes.length > 0 ? Math.round((totalAprovados / periodQuotes.length) * 100) : 0

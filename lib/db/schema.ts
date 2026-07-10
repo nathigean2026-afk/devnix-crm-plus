@@ -132,6 +132,7 @@ export const transactions = pgTable("transactions", {
   userId: text("userId").notNull(),
   clientId: text("clientId"),
   quoteId: text("quoteId"),
+  serviceOrderId: text("serviceOrderId"), // vincula transação a uma OS
   type: text("type").notNull(), // receita | despesa
   description: text("description").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
@@ -212,6 +213,7 @@ export const serviceOrders = pgTable("service_orders", {
   cardInstallments: integer("cardInstallments").default(1),
   notes: text("notes"),
   internalNotes: text("internalNotes"),
+  paymentStatus: text("paymentStatus").notNull().default("pendente"), // pendente | pago
   completedAt: timestamp("completedAt"),
   wappSentAt: timestamp("wappSentAt"),   // última vez que enviou por WhatsApp
   createdAt: timestamp("createdAt").notNull().defaultNow(),

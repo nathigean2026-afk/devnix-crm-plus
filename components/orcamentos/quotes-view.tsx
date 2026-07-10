@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createQuote, updateQuote, updateQuoteStatus, deleteQuote, getQuoteWithItems, markWappSent } from "@/lib/actions"
 import type { Client, Quote, Service } from "@/lib/db/schema"
+import { sendDocWhatsApp } from "@/lib/send-whatsapp-doc"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -180,12 +181,16 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   function getClientEmail(q: Quote): string {
     return clients.find(c => c.id === q.clientId)?.email ?? ""
   }
-  function handleShareWhatsApp(q: Quote) {
+  async function handleShareWhatsApp(q: Quote) {
     const client = clients.find(c => c.id === q.clientId)
     const url = `${baseUrl}/orcamento/${q.id}`
     const text = `Olá${client ? ` ${client.name}` : ""}! Segue seu orçamento *#${String(q.number).padStart(4, "0")} — ${q.title}*\nTotal: ${formatCurrency(q.total)}\n\nAcesse aqui: ${url}`
     const phone = getClientPhone(q)
-    window.open(phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
+    if (phone) {
+      await sendDocWhatsApp({ phone, message: text })
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
+    }
     // Grava tag de enviado no banco
     markWappSent("quote", q.id).catch(() => {})
     // Atualiza lista local para exibir tag imediatamente
@@ -213,6 +218,22 @@ export function QuotesView({ initialQuotes, clients, services }: QuotesViewProps
   const subtotal = items.reduce((acc, i) => acc + Number(i.total), 0)
   const discount = Number(form.discount) || 0
   const total = subtotal - discount
+
+  // Ref para rastrear o total anterior e recalcular cashPrice/cardPrice proporcionalmente
+  const prevTotalRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!open) { prevTotalRef.current = null; return }
+    if (prevTotalRef.current === null) { prevTotalRef.current = total; return }
+    const prev = prevTotalRef.current
+    if (prev === total || prev === 0) { prevTotalRef.current = total; return }
+    const ratio = total / prev
+    setForm(f => ({
+      ...f,
+      cashPrice: f.cashPrice ? String(Math.round(Number(f.cashPrice) * ratio * 100) / 100) : f.cashPrice,
+      cardPrice: f.cardPrice ? String(Math.round(Number(f.cardPrice) * ratio * 100) / 100) : f.cardPrice,
+    }))
+    prevTotalRef.current = total
+  }, [total, open])
 
   const addItem = () => {
     setItems((prev) => [...prev, { id: crypto.randomUUID(), description: "", quantity: "1", unitPrice: "0", total: "0" }])

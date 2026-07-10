@@ -460,7 +460,7 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
 
       {/* Dialog editar / criar */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border text-foreground w-[95vw] max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {editClient ? editClient.name : "Novo Cliente"}
@@ -469,12 +469,12 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
 
           {editClient ? (
             <Tabs defaultValue="dados" className="mt-1">
-              <TabsList className="w-full grid grid-cols-2 bg-muted/30">
-                <TabsTrigger value="dados">
-                  <Pencil className="size-3.5 mr-1.5" />Dados
+              <TabsList className="w-full grid grid-cols-2 bg-muted/30 overflow-hidden">
+                <TabsTrigger value="dados" className="flex items-center gap-1.5 min-w-0">
+                  <Pencil className="size-3.5 shrink-0" /><span className="truncate">Dados</span>
                 </TabsTrigger>
-                <TabsTrigger value="historico">
-                  <History className="size-3.5 mr-1.5" />Histórico
+                <TabsTrigger value="historico" className="flex items-center gap-1.5 min-w-0">
+                  <History className="size-3.5 shrink-0" /><span className="truncate">Histórico</span>
                 </TabsTrigger>
               </TabsList>
 

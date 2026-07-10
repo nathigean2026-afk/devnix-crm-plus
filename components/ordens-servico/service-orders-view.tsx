@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import {
   createServiceOrder,
   updateServiceOrderStatus,
+  updateServiceOrderPaymentStatus,
   deleteServiceOrder,
 } from "@/lib/actions"
 import type { Client, Service, ServiceOrder } from "@/lib/db/schema"
@@ -64,6 +65,7 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { sendDocWhatsApp } from "@/lib/send-whatsapp-doc"
 
 interface ServiceOrderItem {
   id: string
@@ -259,6 +261,16 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     setShowCustomInput(false)
   }
 
+  async function handlePaymentStatusChange(id: string, paymentStatus: "pendente" | "pago") {
+    try {
+      await updateServiceOrderPaymentStatus(id, paymentStatus)
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, paymentStatus } : o))
+      toast.success(paymentStatus === "pago" ? "OS marcada como paga!" : "OS marcada como pendente de pagamento.")
+    } catch {
+      toast.error("Erro ao atualizar pagamento")
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!confirm("Deseja excluir esta ordem de serviço?")) return
     try {
@@ -279,15 +291,16 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
     setSendOpen(true)
   }
 
-  function handleShareWhatsApp(order: ServiceOrder, type: "os" | "recibo") {
+  async function handleShareWhatsApp(order: ServiceOrder, type: "os" | "recibo") {
     const text = type === "os"
       ? buildShareText(order, clients, baseUrl)
       : buildReceiptText(order, clients, baseUrl)
     const phone = getClientPhone(order, clients)
-    const url = phone
-      ? `https://wa.me/55${phone}?text=${encodeURIComponent(text)}`
-      : `https://wa.me/?text=${encodeURIComponent(text)}`
-    window.open(url, "_blank")
+    if (phone) {
+      await sendDocWhatsApp({ phone, message: text })
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank")
+    }
   }
 
   function handleShareEmail(order: ServiceOrder, type: "os" | "recibo") {
@@ -450,10 +463,19 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                         {formatCurrency(o.total)}
                       </TableCell>
                       <TableCell>
-                        <Badge className={`${sc.color} flex items-center gap-1 w-fit`}>
-                          <StatusIcon className="size-3 shrink-0" />
-                          {sc.label}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge className={`${sc.color} flex items-center gap-1 w-fit`}>
+                            <StatusIcon className="size-3 shrink-0" />
+                            {sc.label}
+                          </Badge>
+                          <Badge className={`flex items-center gap-1 w-fit text-[10px] px-1.5 py-0.5 ${
+                            (o as ServiceOrder & { paymentStatus?: string }).paymentStatus === "pago"
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                              : "bg-amber-500/15 text-amber-400 border-amber-500/20"
+                          }`}>
+                            {(o as ServiceOrder & { paymentStatus?: string }).paymentStatus === "pago" ? "Pago" : "A Pagar"}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                         {format(new Date(o.createdAt), "dd/MM/yyyy", { locale: ptBR })}
@@ -535,6 +557,22 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
                                 </DropdownMenuItem>
                               )
                             ))}
+                            <DropdownMenuSeparator className="bg-border" />
+                            {(o as ServiceOrder & { paymentStatus?: string }).paymentStatus !== "pago" ? (
+                              <DropdownMenuItem
+                                onClick={() => handlePaymentStatusChange(o.id, "pago")}
+                                className="text-emerald-400 cursor-pointer focus:text-emerald-400"
+                              >
+                                Marcar Pagamento como Pago
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => handlePaymentStatusChange(o.id, "pendente")}
+                                className="text-amber-400 cursor-pointer focus:text-amber-400"
+                              >
+                                Marcar Pagamento como Pendente
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator className="bg-border" />
                             <DropdownMenuItem
                               onClick={() => handleDelete(o.id)}

@@ -18,6 +18,15 @@ function isToday(birthdate: string): boolean {
   return d.getUTCDate() === now.getDate() && (d.getUTCMonth() + 1) === (now.getMonth() + 1)
 }
 
+// Retorna true se o aniversário do mês atual já passou (dia anterior ao de hoje)
+function hasPassed(birthdate: string): boolean {
+  const d = new Date(birthdate)
+  const now = new Date()
+  // Só aplica para o mês atual
+  if ((d.getUTCMonth() + 1) !== (now.getMonth() + 1)) return false
+  return d.getUTCDate() < now.getDate()
+}
+
 // Verifica se já foi enviado parabéns hoje para este cliente
 function sentToday(birthdaySentAt: Date | string | null | undefined): boolean {
   if (!birthdaySentAt) return false
@@ -143,7 +152,10 @@ export function BirthdayClientsCard() {
   const currentMonthName = months[new Date().getMonth()]
 
   const todayBirthdays = clients.filter(c => c.birthdate && isToday(c.birthdate))
-  const restBirthdays  = clients.filter(c => !c.birthdate || !isToday(c.birthdate))
+  // Exclui os que já passaram — só mostra hoje e os que ainda vêm no mês
+  const restBirthdays  = clients.filter(c =>
+    c.birthdate && !isToday(c.birthdate) && !hasPassed(c.birthdate)
+  )
 
   return (
     <Card className="bg-card border-border">
