@@ -101,49 +101,51 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
     .reduce((s, t) => s + Number(t.amount), 0)
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Resumo */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg bg-muted/30 border border-border p-3 text-center">
-          <p className="text-xs text-muted-foreground">OS</p>
-          <p className="text-xl font-bold text-foreground">{history.orders.length}</p>
+    <div className="flex w-full min-w-0 flex-col gap-4">
+      {/* Resumo — cards responsivos */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/30 border border-border p-3 min-w-0">
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <ClipboardList className="size-3 shrink-0" /> OS
+          </span>
+          <span className="text-lg font-bold text-foreground tabular-nums">{history.orders.length}</span>
         </div>
-        <div className="rounded-lg bg-muted/30 border border-border p-3 text-center">
-          <p className="text-xs text-muted-foreground">Orçamentos</p>
-          <p className="text-xl font-bold text-foreground">{history.quotes.length}</p>
+        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/30 border border-border p-3 min-w-0">
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <FileText className="size-3 shrink-0" /> Orçamentos
+          </span>
+          <span className="text-lg font-bold text-foreground tabular-nums">{history.quotes.length}</span>
         </div>
-        <div className="rounded-lg bg-muted/30 border border-border p-3 text-center">
-          <p className="text-xs text-muted-foreground">Recebido</p>
-          <p className="text-sm font-bold text-green-400">{formatCurrency(totalReceita)}</p>
+        <div className="flex flex-col gap-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 min-w-0">
+          <span className="text-[11px] text-emerald-500/80">Recebido</span>
+          <span className="text-sm font-bold text-emerald-400 tabular-nums truncate">{formatCurrency(totalReceita)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 min-w-0">
+          <span className="text-[11px] text-amber-500/80">A receber</span>
+          <span className="text-sm font-bold text-amber-400 tabular-nums truncate">{formatCurrency(totalPendente)}</span>
         </div>
       </div>
 
-      {totalPendente > 0 && (
-        <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 text-sm text-yellow-400">
-          A receber: <span className="font-bold">{formatCurrency(totalPendente)}</span>
-        </div>
-      )}
-
       {/* Ordens de Serviço */}
       {history.orders.length > 0 && (
-        <div>
-          <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-            <ClipboardList className="size-4 text-muted-foreground" /> Ordens de Serviço
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+            <ClipboardList className="size-3.5" /> Ordens de Serviço
           </p>
           <div className="flex flex-col gap-2">
             {history.orders.map(o => (
-              <div key={o.id} className="flex items-center gap-2 justify-between rounded-lg border border-border bg-muted/10 px-3 py-2 w-full overflow-hidden">
+              <div key={o.id} className="flex items-center gap-3 rounded-lg border border-border bg-muted/10 px-3 py-2.5 min-w-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate max-w-[260px]">
+                  <p className="text-sm font-medium text-foreground truncate">
                     #{String(o.number).padStart(4, "0")} — {o.title}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(o.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {format(new Date(o.createdAt), "dd 'de' MMM, yyyy", { locale: ptBR })}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-col items-end gap-1 shrink-0">
                   <span className="text-sm font-semibold text-foreground tabular-nums">{formatCurrency(o.total)}</span>
-                  <Badge className={`text-xs ${statusColorOS[o.status] ?? ""}`}>
+                  <Badge className={`text-[10px] px-1.5 py-0 ${statusColorOS[o.status] ?? ""}`}>
                     {statusLabelOS[o.status] ?? o.status}
                   </Badge>
                 </div>
@@ -155,19 +157,19 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
 
       {/* Orçamentos */}
       {history.quotes.length > 0 && (
-        <div>
-          <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-            <FileText className="size-4 text-muted-foreground" /> Orçamentos
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+            <FileText className="size-3.5" /> Orçamentos
           </p>
           <div className="flex flex-col gap-2">
             {history.quotes.map(q => (
-              <div key={q.id} className="flex items-center gap-2 justify-between rounded-lg border border-border bg-muted/10 px-3 py-2 w-full overflow-hidden">
+              <div key={q.id} className="flex items-center gap-3 rounded-lg border border-border bg-muted/10 px-3 py-2.5 min-w-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate max-w-[280px]">
+                  <p className="text-sm font-medium text-foreground truncate">
                     #{String(q.number).padStart(4, "0")} — {q.title}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(q.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {format(new Date(q.createdAt), "dd 'de' MMM, yyyy", { locale: ptBR })}
                   </p>
                 </div>
                 <span className="text-sm font-semibold text-foreground shrink-0 tabular-nums">
