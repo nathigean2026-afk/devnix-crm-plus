@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { ServiceOrder, ServiceOrderItem, Client, BusinessProfile } from "@/lib/db/schema"
-import Image from "next/image"
 import QRCode from "qrcode"
 import { Building2, Phone, Mail, Globe, MapPin, QrCode, Printer, MessageCircle } from "lucide-react"
 import { BackButton } from "@/components/ui/back-button"
@@ -107,8 +106,9 @@ const statusLabels: Record<string, { label: string; dot: string }> = {
 function getBranding(profile: BusinessProfile | null | undefined) {
   const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
   return {
-    name:        (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-logo-neon.png",
+    name:        profile?.name                 ? profile.name     : "Elevanthe CRM",
+    // Logo sempre usa o do perfil quando disponível, independente do plano
+    logo:        profile?.logo                 ? profile.logo     : "/elevanthe-logo-neon.png",
     document:    (isPaid && profile?.document) ? profile.document : null,
     phone:       (isPaid && profile?.phone)    ? profile.phone    : null,
     email:       (isPaid && profile?.email)    ? profile.email    : null,
@@ -213,13 +213,11 @@ export function PublicServiceOrderView({ order }: PublicServiceOrderViewProps) {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
               <div className="size-16 sm:size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
-                <Image
-                  src={branding.logo}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={branding.logo || "/placeholder.svg"}
                   alt={branding.name}
-                  width={80}
-                  height={80}
-                  style={{ width: 80, height: "auto" }}
-                  className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+                  className="w-full h-auto max-h-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
                 />
               </div>
               <div className="min-w-0 overflow-hidden">

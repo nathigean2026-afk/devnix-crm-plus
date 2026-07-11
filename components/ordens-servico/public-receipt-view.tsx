@@ -1,7 +1,6 @@
 "use client"
 
 import type { ServiceOrder, ServiceOrderItem, Client, BusinessProfile } from "@/lib/db/schema"
-import Image from "next/image"
 import { Building2, Phone, Mail, MapPin, Printer, CheckCircle2, MessageCircle, Send } from "lucide-react"
 import { BackButton } from "@/components/ui/back-button"
 import { sendDocWhatsApp } from "@/lib/send-whatsapp-doc"
@@ -34,7 +33,8 @@ function getBranding(profile: BusinessProfile | null | undefined) {
   const name = profile?.name || "Elevanthe CRM"
   return {
     name,
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : null,
+    // Logo sempre usa o do perfil quando disponível, independente do plano (igual OS e orçamento)
+    logo:        profile?.logo                 ? profile.logo     : null,
     document:    (isPaid && profile?.document) ? profile.document : null,
     accentColor: (isPaid && profile?.docAccentColor) ? profile.docAccentColor : "#059669",
     isPaid,
@@ -127,15 +127,16 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Prestador de Serviços</p>
                 <div className="flex items-start gap-3">
-                  <div className="size-12 rounded-md overflow-hidden flex items-center justify-center shrink-0 bg-white border border-gray-100">
+                  <div
+                    className="size-12 rounded-md overflow-hidden flex items-center justify-center shrink-0 border border-gray-200 p-1"
+                    style={{ backgroundColor: "#0f172a" }}
+                  >
                     {branding.logo ? (
-                      <Image
-                        src={branding.logo}
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={branding.logo || "/placeholder.svg"}
                         alt={branding.name}
-                        width={48}
-                        height={48}
-                        style={{ width: 48, height: "auto" }}
-                        className="object-contain"
+                        className="w-full h-auto max-h-full object-contain"
                       />
                     ) : (
                       <div

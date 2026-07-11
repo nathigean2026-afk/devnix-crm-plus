@@ -152,6 +152,24 @@ function LicenseCard({
   const plan = (profile?.licensePlan ?? "starter").toLowerCase()
   const isStart = plan === "starter" || plan === "start"
 
+  // Cooldown de 2 dias para trocar o número de WhatsApp já verificado.
+  // Baseado na última troca (whatsappChangedAt) ou, na ausência, na verificação inicial.
+  const CHANGE_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000
+  const lastChangeRef = profile?.whatsappChangedAt ?? profile?.whatsappVerifiedAt ?? null
+  const changeUnlockAt = lastChangeRef ? new Date(new Date(lastChangeRef).getTime() + CHANGE_COOLDOWN_MS) : null
+  const changeLocked = !!changeUnlockAt && changeUnlockAt.getTime() > Date.now()
+  const changeUnlockLabel = (() => {
+    if (!changeUnlockAt) return ""
+    const diffMs = changeUnlockAt.getTime() - Date.now()
+    const totalHours = Math.ceil(diffMs / (60 * 60 * 1000))
+    if (totalHours >= 24) {
+      const days = Math.floor(totalHours / 24)
+      const hours = totalHours % 24
+      return hours > 0 ? `${days}d ${hours}h` : `${days}d`
+    }
+    return `${totalHours}h`
+  })()
+
   const expiryStr = expiresAt
     ? expiresAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
     : "—"
@@ -458,18 +476,28 @@ function LicenseCard({
             <>
               {/* Número verificado */}
               {otpVerified && verifiedPhone ? (
-                <div className="flex items-center gap-2 mb-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2 mb-3 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
                   <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
                   <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                     Número verificado: <span className="font-mono">{verifiedPhone}</span>
                   </span>
-                  <button
-                    onClick={() => { setOtpVerified(false); setOtpStep("idle"); setWhatsappPhone("") }}
-                    className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    type="button"
-                  >
-                    Alterar
-                  </button>
+                  {changeLocked ? (
+                    <span
+                      className="ml-auto flex items-center gap-1 text-xs text-muted-foreground cursor-not-allowed"
+                      title={`Por segurança, o número só pode ser alterado a cada 2 dias. Faltam ${changeUnlockLabel}.`}
+                    >
+                      <Clock className="size-3 shrink-0" />
+                      Alterar em {changeUnlockLabel}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => { setOtpVerified(false); setOtpStep("idle"); setWhatsappPhone("") }}
+                      className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      type="button"
+                    >
+                      Alterar
+                    </button>
+                  )}
                 </div>
               ) : otpStep === "cooldown" ? (
                 <div className="flex items-center gap-2 mb-3 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">

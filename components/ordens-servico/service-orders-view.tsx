@@ -239,7 +239,12 @@ export function ServiceOrdersView({ initialOrders, clients, services }: ServiceO
   async function confirmStatusChange(id: string, status: string, paymentMethod: "pix" | "cash" | "card" | "other" | undefined, amount?: string) {
     try {
       await updateServiceOrderStatus(id, status, paymentMethod, amount)
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
+      setOrders(prev => prev.map(o => o.id === id ? {
+        ...o,
+        status,
+        // Se concluída com método de pagamento, marca automaticamente como pago no state
+        ...(status === "concluido" && paymentMethod != null ? { paymentStatus: "pago" } : {}),
+      } : o))
       if (status === "concluido") {
         toast.success("OS concluída! Receita lançada no financeiro.")
       } else if (status === "cancelado") {

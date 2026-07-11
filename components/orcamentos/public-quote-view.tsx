@@ -1,7 +1,6 @@
 "use client"
 
 import type { Client, Quote, QuoteItem, BusinessProfile } from "@/lib/db/schema"
-import Image from "next/image"
 import {
   MapPin, Mail, Phone, Calendar, Hash, Printer,
   MessageCircle, CheckCircle, XCircle, AlertCircle,
@@ -54,8 +53,9 @@ function formatTimestamp(ts: Date | string): string {
 function getBranding(profile: BusinessProfile | null | undefined) {
   const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
   return {
-    name:        (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-logo-neon.png",
+    name:        profile?.name                 ? profile.name     : "Elevanthe CRM",
+    // Logo sempre usa o do perfil quando disponível, independente do plano
+    logo:        profile?.logo                 ? profile.logo     : "/elevanthe-logo-neon.png",
     document:    (isPaid && profile?.document) ? profile.document : null,
     phone:       (isPaid && profile?.phone)    ? profile.phone    : null,
     email:       (isPaid && profile?.email)    ? profile.email    : null,
@@ -188,13 +188,11 @@ export function PublicQuoteView({ quote, client, items, providerPhone, profile }
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 flex-1 min-w-0 overflow-hidden">
               <div className="size-16 sm:size-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
-                <Image
-                  src={branding.logo}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={branding.logo || "/placeholder.svg"}
                   alt={branding.name}
-                  width={80}
-                  height={80}
-                  className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
-                  style={{ width: 80, height: "auto" }}
+                  className="w-full h-auto max-h-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
                 />
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">

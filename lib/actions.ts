@@ -1666,12 +1666,16 @@ export async function updateServiceOrderStatus(
   customAmount?: string
 ) {
   const { effectiveId } = await getEffectiveUserId()
+  // Quando concluída com método de pagamento informado, marca automaticamente como pago
+  const autoMarkPaid = status === "concluido" && paymentMethod != null
+
   await db
     .update(serviceOrders)
     .set({
       status,
       updatedAt: new Date(),
       ...(status === "concluido" ? { completedAt: new Date() } : {}),
+      ...(autoMarkPaid ? { paymentStatus: "pago" } : {}),
     })
     .where(and(eq(serviceOrders.id, id), eq(serviceOrders.userId, effectiveId)))
 
@@ -2429,4 +2433,25 @@ export async function adminDeletePatchNote(id: string) {
   await db.delete(patchNotes).where(eq(patchNotes.id, id))
   revalidatePath("/dashboard/atualizacoes")
   return { ok: true }
+}
+
+/** Salva a meta mensal de faturamento do prestador (em centavos para evitar float). */
+export async function saveRevenueGoal(goalCents: number) {
+  const { effectiveId } = await getEffectiveUserId()
+  await db.update(businessProfile)
+    .set({ revenueGoal: goalCents, updatedAt: new Date() })
+    .where(eq(businessProfile.userId, effectiveId))
+  revalidatePath("/dashboard")
+  return { ok: true }
+}
+
+/** Retorna a meta mensal de faturamento do prestador (em centavos). */
+export async function getRevenueGoal(): Promise<number | null> {
+  const { effectiveId } = await getEffectiveUserId()
+  const [profile] = await db
+    .select({ revenueGoal: businessProfile.revenueGoal })
+    .from(businessProfile)
+    .where(eq(businessProfile.userId, effectiveId))
+    .limit(1)
+  return profile?.revenueGoal ?? null
 }
