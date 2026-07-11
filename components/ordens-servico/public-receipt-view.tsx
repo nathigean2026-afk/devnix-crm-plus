@@ -34,7 +34,8 @@ function getBranding(profile: BusinessProfile | null | undefined) {
   const name = profile?.name || "Elevanthe CRM"
   return {
     name,
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : null,
+    // Logo sempre usa o do perfil quando disponível, independente do plano (igual OS e orçamento)
+    logo:        profile?.logo                 ? profile.logo     : null,
     document:    (isPaid && profile?.document) ? profile.document : null,
     accentColor: (isPaid && profile?.docAccentColor) ? profile.docAccentColor : "#059669",
     isPaid,

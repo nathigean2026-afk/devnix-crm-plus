@@ -460,7 +460,7 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
 
       {/* Dialog editar / criar */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-card border-border text-foreground w-[min(95vw,640px)] max-w-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
+        <DialogContent className="bg-card border-border text-foreground w-[min(95vw,640px)] max-w-none sm:max-w-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {editClient ? editClient.name : "Novo Cliente"}

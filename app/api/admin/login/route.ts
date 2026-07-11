@@ -31,11 +31,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Configuração de servidor ausente." }, { status: 500 })
   }
   // NUNCA retornar o token no JSON — apenas setar via cookie httpOnly
-  // SameSite=None (sem Secure) permite que o cookie funcione dentro do iframe do preview
+  // SameSite=None EXIGE Secure=true, senão o navegador descarta o cookie.
+  // O preview roda em HTTPS, então secure funciona e o cookie é enviado dentro do iframe.
   const res = NextResponse.json({ ok: true })
   res.cookies.set("admin_session", adminSecret, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "none",
     maxAge: 60 * 60 * 8,
     path: "/",

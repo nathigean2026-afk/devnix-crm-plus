@@ -170,7 +170,7 @@ export function FinanceView({ initialTransactions, clients, pendingOrders }: Fin
 
       {/* Modal OS pendentes de recebimento */}
       <Dialog open={pendingOsModalOpen} onOpenChange={setPendingOsModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border text-foreground max-w-none sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
               <Clock className="size-4 text-amber-400" />
@@ -299,7 +299,7 @@ export function FinanceView({ initialTransactions, clients, pendingOrders }: Fin
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-md">
+        <DialogContent className="bg-card border-border text-foreground max-w-none sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground">Novo Lançamento</DialogTitle>
           </DialogHeader>
