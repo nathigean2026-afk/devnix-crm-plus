@@ -132,17 +132,17 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
           </p>
           <div className="flex flex-col gap-2">
             {history.orders.map(o => (
-              <div key={o.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/10 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
+              <div key={o.id} className="flex items-center gap-2 justify-between rounded-lg border border-border bg-muted/10 px-3 py-2 w-full overflow-hidden">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate max-w-[260px]">
                     #{String(o.number).padStart(4, "0")} — {o.title}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(o.createdAt), "dd/MM/yyyy", { locale: ptBR })}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <span className="text-sm font-semibold text-foreground">{formatCurrency(o.total)}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-semibold text-foreground tabular-nums">{formatCurrency(o.total)}</span>
                   <Badge className={`text-xs ${statusColorOS[o.status] ?? ""}`}>
                     {statusLabelOS[o.status] ?? o.status}
                   </Badge>
@@ -161,16 +161,16 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
           </p>
           <div className="flex flex-col gap-2">
             {history.quotes.map(q => (
-              <div key={q.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/10 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
+              <div key={q.id} className="flex items-center gap-2 justify-between rounded-lg border border-border bg-muted/10 px-3 py-2 w-full overflow-hidden">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate max-w-[280px]">
                     #{String(q.number).padStart(4, "0")} — {q.title}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(q.createdAt), "dd/MM/yyyy", { locale: ptBR })}
                   </p>
                 </div>
-                <span className="text-sm font-semibold text-foreground shrink-0 ml-2">
+                <span className="text-sm font-semibold text-foreground shrink-0 tabular-nums">
                   {formatCurrency(q.total)}
                 </span>
               </div>
@@ -460,7 +460,7 @@ export function ClientsTable({ initialClients }: ClientsTableProps) {
 
       {/* Dialog editar / criar */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-card border-border text-foreground w-[95vw] max-w-xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border text-foreground w-[min(95vw,640px)] max-w-2xl max-h-[92vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {editClient ? editClient.name : "Novo Cliente"}

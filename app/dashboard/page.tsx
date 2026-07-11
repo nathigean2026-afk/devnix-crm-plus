@@ -1,4 +1,4 @@
-import { getDashboardStats } from "@/lib/actions"
+import { getDashboardStats, getRevenueGoal } from "@/lib/actions"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { DashboardChart } from "@/components/dashboard/dashboard-chart"
@@ -11,8 +11,9 @@ export const metadata: Metadata = { title: "Dashboard" }
 
 export default async function DashboardPage() {
   let stats
+  let goalCents: number | null = null
   try {
-    stats = await getDashboardStats()
+    ;[stats, goalCents] = await Promise.all([getDashboardStats(), getRevenueGoal()])
   } catch (err: unknown) {
     // Sessão não encontrada — o layout já lida com o redirect, mas se por
     // alguma condição de corrida no carregamento inicial a sessão não estiver
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
 
       {/* Linha com meta de faturamento + aniversariantes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueGoalCard currentRevenue={stats.revenue ?? 0} />
+        <RevenueGoalCard currentRevenue={stats.revenue ?? 0} initialGoalCents={goalCents} />
         <BirthdayClientsCard />
       </div>
 

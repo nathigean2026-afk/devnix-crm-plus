@@ -177,6 +177,7 @@ export const businessProfile = pgTable("business_profile", {
   chatbotSaudacao: text("chatbotSaudacao"),   // mensagem de boas-vindas personalizada
   chatbotHorario: text("chatbotHorario"),     // ex: "Seg–Sex, 8h–18h"
   chatbotContato: text("chatbotContato"),     // email ou tel de contato do prestador
+  revenueGoal: integer("revenueGoal"),                  // meta mensal de faturamento (em centavos)
   whatsappVerifiedAt: timestamp("whatsappVerifiedAt"),  // quando o número foi verificado via OTP
   whatsappChangedAt: timestamp("whatsappChangedAt"),    // quando foi trocado (cooldown 2 dias)
   createdAt: timestamp("createdAt").notNull().defaultNow(),

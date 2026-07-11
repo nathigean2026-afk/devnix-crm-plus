@@ -1,4 +1,4 @@
-import { getTransactions, getClients, getMyPermissions } from "@/lib/actions"
+import { getTransactions, getClients, getMyPermissions, getServiceOrders } from "@/lib/actions"
 import { FinanceView } from "@/components/financeiro/finance-view"
 import { AccessDenied } from "@/components/dashboard/access-denied"
 import type { Metadata } from "next"
@@ -11,9 +11,16 @@ export default async function FinanceiroPage() {
     return <AccessDenied module="Financeiro" />
   }
 
-  const [transactions, clients] = await Promise.all([
+  const [transactions, clients, allOrders] = await Promise.all([
     getTransactions(),
     getClients(),
+    getServiceOrders(),
   ])
-  return <FinanceView initialTransactions={transactions} clients={clients} />
+
+  // OS pendentes de recebimento: concluídas com paymentStatus pendente
+  const pendingOrders = allOrders.filter(
+    o => o.status === "concluido" && o.paymentStatus !== "pago"
+  )
+
+  return <FinanceView initialTransactions={transactions} clients={clients} pendingOrders={pendingOrders} />
 }

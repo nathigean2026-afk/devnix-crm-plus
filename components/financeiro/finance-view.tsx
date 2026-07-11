@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { createTransaction, updateTransaction, deleteTransaction } from "@/lib/actions"
-import type { Client, Transaction } from "@/lib/db/schema"
+import type { Client, Transaction, ServiceOrder } from "@/lib/db/schema"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,13 +14,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, MoreHorizontal, Trash2, Search, DollarSign, TrendingUp, TrendingDown, CheckCircle, Info } from "lucide-react"
+import { Plus, MoreHorizontal, Trash2, Search, DollarSign, TrendingUp, TrendingDown, CheckCircle, Info, Clock, ExternalLink } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 interface FinanceViewProps {
   initialTransactions: Transaction[]
   clients: Client[]
+  pendingOrders: ServiceOrder[]
 }
 
 const statusColors: Record<string, string> = {
@@ -39,13 +40,14 @@ const emptyForm = {
   type: "receita", description: "", amount: "", category: "", clientId: "", dueDate: "", status: "pendente",
 }
 
-export function FinanceView({ initialTransactions, clients }: FinanceViewProps) {
+export function FinanceView({ initialTransactions, clients, pendingOrders }: FinanceViewProps) {
   const [transactions, setTransactions] = useState(initialTransactions)
   const [search, setSearch] = useState("")
   const [tab, setTab] = useState("todos")
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(false)
+  const [pendingOsModalOpen, setPendingOsModalOpen] = useState(false)
 
   const filtered = transactions.filter((t) => {
     const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || (t.category ?? "").toLowerCase().includes(search.toLowerCase())
@@ -56,6 +58,7 @@ export function FinanceView({ initialTransactions, clients }: FinanceViewProps) 
   const totalReceita = transactions.filter(t => t.type === "receita" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
   const totalDespesa = transactions.filter(t => t.type === "despesa" && t.status === "pago").reduce((a, t) => a + Number(t.amount), 0)
   const totalPendente = transactions.filter(t => t.status === "pendente").reduce((a, t) => a + (t.type === "receita" ? Number(t.amount) : -Number(t.amount)), 0)
+  const totalAReceber = pendingOrders.reduce((a, o) => a + Number(o.total), 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +113,7 @@ export function FinanceView({ initialTransactions, clients }: FinanceViewProps) 
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-5 flex items-start gap-4">
             <div className="rounded-lg p-2.5 bg-green-500/10 shrink-0">
@@ -146,7 +149,71 @@ export function FinanceView({ initialTransactions, clients }: FinanceViewProps) 
             </div>
           </CardContent>
         </Card>
+
+        {/* Card A Receber — clicável */}
+        <Card
+          className="bg-card border-border cursor-pointer hover:border-amber-500/40 hover:bg-amber-500/5 transition-colors"
+          onClick={() => setPendingOsModalOpen(true)}
+        >
+          <CardContent className="p-5 flex items-start gap-4">
+            <div className="rounded-lg p-2.5 bg-amber-500/10 shrink-0">
+              <Clock className="size-5 text-amber-400" />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">A Receber</p>
+              <p className="text-xl font-bold text-amber-400">{formatCurrency(totalAReceber)}</p>
+              <p className="text-xs text-muted-foreground">{pendingOrders.length} OS pendente{pendingOrders.length !== 1 ? "s" : ""}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Modal OS pendentes de recebimento */}
+      <Dialog open={pendingOsModalOpen} onOpenChange={setPendingOsModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Clock className="size-4 text-amber-400" />
+              OS Pendentes de Recebimento
+            </DialogTitle>
+          </DialogHeader>
+          {pendingOrders.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <CheckCircle className="size-10 text-green-400/40" />
+              <p className="text-muted-foreground text-sm">Nenhuma OS pendente de recebimento</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 mt-2">
+              {pendingOrders.map((o) => (
+                <div key={o.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-4 py-3 gap-3">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="font-medium text-foreground text-sm truncate">
+                      #{String(o.number).padStart(4, "0")} — {o.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {o.completedAt ? format(new Date(o.completedAt), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-bold text-amber-400 tabular-nums">{formatCurrency(o.total)}</span>
+                    <a
+                      href="/dashboard/ordens-servico"
+                      className="inline-flex items-center justify-center size-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="Ver OS"
+                    >
+                      <ExternalLink className="size-3.5" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-1 pt-2 border-t border-border mt-1">
+                <span className="text-sm text-muted-foreground font-medium">Total a receber</span>
+                <span className="font-bold text-amber-400">{formatCurrency(totalAReceber)}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">

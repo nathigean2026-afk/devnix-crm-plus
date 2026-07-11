@@ -1,42 +1,60 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useTransition } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Target, Pencil, CheckCircle2, TrendingUp } from "lucide-react"
-
-const STORAGE_KEY = "elevanthe_revenue_goal"
+import { saveRevenueGoal } from "@/lib/actions"
+import confetti from "canvas-confetti"
 
 interface RevenueGoalCardProps {
   currentRevenue: number
+  initialGoalCents: number | null
 }
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
 }
 
-export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
-  const [goal, setGoal] = useState<number | null>(null)
+export function RevenueGoalCard({ currentRevenue, initialGoalCents }: RevenueGoalCardProps) {
+  const goalCents = initialGoalCents ?? null
+  const goal = goalCents ? goalCents / 100 : null
+
   const [editing, setEditing] = useState(false)
   const [inputValue, setInputValue] = useState("")
-  const [mounted, setMounted] = useState(false)
+  const [localGoal, setLocalGoal] = useState<number | null>(goal)
+  const [isPending, startTransition] = useTransition()
+  const celebratedRef = useRef(false)
 
+  // Dispara festa quando meta é atingida (apenas uma vez por sessão)
+  const isAchieved = localGoal ? currentRevenue >= localGoal : false
   useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = Number(saved)
-      if (!isNaN(parsed) && parsed > 0) setGoal(parsed)
+    if (isAchieved && !celebratedRef.current) {
+      celebratedRef.current = true
+      // Confetti da esquerda
+      confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } })
+      // Confetti da direita
+      confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } })
+      // Fogos do centro
+      setTimeout(() => {
+        confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, startVelocity: 45 })
+      }, 300)
     }
-  }, [])
+    if (!isAchieved) celebratedRef.current = false
+  }, [isAchieved])
 
   function handleSave() {
-    const parsed = Number(inputValue.replace(/\D/g, "")) / 100
-    if (isNaN(parsed) || parsed <= 0) return
-    setGoal(parsed)
-    localStorage.setItem(STORAGE_KEY, String(parsed))
+    const digits = inputValue.replace(/\D/g, "")
+    if (!digits) return
+    const cents = Number(digits)
+    if (isNaN(cents) || cents <= 0) return
+    const newGoal = cents / 100
+    setLocalGoal(newGoal)
     setEditing(false)
+    startTransition(async () => {
+      await saveRevenueGoal(cents)
+    })
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -51,11 +69,8 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
     return num.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
   }
 
-  if (!mounted) return null
-
-  const percent = goal ? Math.min((currentRevenue / goal) * 100, 100) : 0
-  const isAchieved = goal ? currentRevenue >= goal : false
-  const remaining = goal ? Math.max(goal - currentRevenue, 0) : 0
+  const percent = localGoal ? Math.min((currentRevenue / localGoal) * 100, 100) : 0
+  const remaining = localGoal ? Math.max(localGoal - currentRevenue, 0) : 0
 
   return (
     <Card className="bg-card border-border">
@@ -70,7 +85,7 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
           {!editing && (
             <button
               onClick={() => {
-                setInputValue(goal ? String(Math.round(goal * 100)) : "")
+                setInputValue(localGoal ? String(Math.round(localGoal * 100)) : "")
                 setEditing(true)
               }}
               className="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -81,7 +96,7 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {!goal && !editing ? (
+        {!localGoal && !editing ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <p className="text-sm text-muted-foreground">Defina uma meta mensal de faturamento</p>
             <Button
@@ -106,7 +121,12 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
                 className="pl-9 bg-input border-border text-sm"
               />
             </div>
-            <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isPending}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+            >
               <CheckCircle2 className="size-3.5 mr-1" />
               OK
             </Button>
@@ -116,7 +136,7 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-2xl font-black text-foreground tabular-nums">{formatCurrency(currentRevenue)}</p>
-                <p className="text-xs text-muted-foreground">de {formatCurrency(goal!)} de meta</p>
+                <p className="text-xs text-muted-foreground">de {formatCurrency(localGoal!)} de meta</p>
               </div>
               {isAchieved ? (
                 <div className="flex items-center gap-1.5 text-green-400 text-xs font-semibold">
@@ -131,7 +151,6 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
               )}
             </div>
 
-            {/* Barra de progresso */}
             <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700"
@@ -141,7 +160,7 @@ export function RevenueGoalCard({ currentRevenue }: RevenueGoalCardProps) {
                 }}
               />
             </div>
-            <p className="text-xs text-muted-foreground text-right">{percent.toFixed(0)}% concluído</p>
+            <p className="text-xs text-muted-foreground text-right">{percent.toFixed(0)}% concluido</p>
           </div>
         )}
       </CardContent>

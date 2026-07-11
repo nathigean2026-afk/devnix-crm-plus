@@ -107,8 +107,9 @@ const statusLabels: Record<string, { label: string; dot: string }> = {
 function getBranding(profile: BusinessProfile | null | undefined) {
   const isPaid = profile?.licensePlan === "business" || profile?.licensePlan === "enterprise"
   return {
-    name:        (isPaid && profile?.name)     ? profile.name     : "Elevanthe CRM",
-    logo:        (isPaid && profile?.logo)     ? profile.logo     : "/elevanthe-logo-neon.png",
+    name:        profile?.name                 ? profile.name     : "Elevanthe CRM",
+    // Logo sempre usa o do perfil quando disponível, independente do plano
+    logo:        profile?.logo                 ? profile.logo     : "/elevanthe-logo-neon.png",
     document:    (isPaid && profile?.document) ? profile.document : null,
     phone:       (isPaid && profile?.phone)    ? profile.phone    : null,
     email:       (isPaid && profile?.email)    ? profile.email    : null,
