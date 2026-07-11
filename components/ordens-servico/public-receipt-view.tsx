@@ -127,7 +127,10 @@ export function PublicReceiptView({ order }: PublicReceiptViewProps) {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Prestador de Serviços</p>
                 <div className="flex items-start gap-3">
-                  <div className="size-12 rounded-md overflow-hidden flex items-center justify-center shrink-0 bg-slate-900 border border-gray-200 p-1">
+                  <div
+                    className="size-12 rounded-md overflow-hidden flex items-center justify-center shrink-0 border border-gray-200 p-1"
+                    style={{ backgroundColor: "#0f172a" }}
+                  >
                     {branding.logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
