@@ -174,21 +174,25 @@ function parseIp(ip: string | null) {
 function isCloudflareIp(ip: string | null): boolean {
   if (!ip) return false
   const clean = ip.replace(/^::ffff:/, "")
-  // Ranges IPv4 da Cloudflare mais comuns
-  const cfRanges = [
-    /^172\.(6[4-9]|7[01])\./,   // 172.64.0.0 – 172.71.255.255
-    /^104\.(1[6-9]|2[0-9]|3[01])\./,  // 104.16.0.0 – 104.31.255.255
-    /^162\.158\./,
-    /^103\.(21\.[244-247]|22\.[204-207]|31\.(4|196))\./,
-    /^141\.101\.(6[4-9]|7[0-9]|8[0-9]|9[0-9]|1[0-2][0-9])\./,
-    /^108\.162\.(19[2-9]|2[0-4][0-9]|25[0-5])\./,
-    /^190\.93\.(24[0-7])\./,
-    /^188\.114\.(9[6-9]|10[0-7])\./,
-    /^197\.234\.240\./,
-    /^198\.41\.128\./,
-    /^162\.158\./,
+  // Verificação por prefixos dos blocos CIDR da Cloudflare (sem ranges inválidos em char class)
+  const cfPrefixes = [
+    "173.245.48.", "103.21.244.", "103.21.245.", "103.21.246.", "103.21.247.",
+    "103.22.200.", "103.22.201.", "103.22.202.", "103.22.203.",
+    "103.31.4.", "103.31.196.",
+    "141.101.64.", "141.101.65.", "141.101.66.", "141.101.67.",
+    "108.162.192.", "108.162.193.", "108.162.194.", "108.162.195.",
+    "190.93.240.", "190.93.241.", "190.93.242.", "190.93.243.",
+    "188.114.96.", "188.114.97.", "188.114.98.", "188.114.99.",
+    "197.234.240.", "198.41.128.", "162.158.",
   ]
-  return cfRanges.some(r => r.test(clean))
+  // Ranges maiores verificados por regex segura (sem character class numérica)
+  if (
+    /^172\.(6[4-9]|7[01])\./.test(clean) ||   // 172.64–71.x.x
+    /^104\.1[6-9]\./.test(clean) ||             // 104.16–19.x.x
+    /^104\.2\d\./.test(clean) ||                // 104.20–29.x.x
+    /^104\.3[01]\./.test(clean)                 // 104.30–31.x.x
+  ) return true
+  return cfPrefixes.some(p => clean.startsWith(p))
 }
 
 type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp" | "push" | "logs"
