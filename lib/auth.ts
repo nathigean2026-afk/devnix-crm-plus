@@ -73,5 +73,15 @@ export const auth = betterAuth({
       sameSite: isHttps() ? "none" : "lax",
       secure: isHttps(),
     },
+    // Quando o site fica atrás do Cloudflare, o IP da conexão TCP é do proxy.
+    // O IP real do visitante está em CF-Connecting-IP (injetado pelo Cloudflare).
+    // A ordem importa: o Better Auth usa o primeiro header com IP válido.
+    ipAddress: {
+      ipAddressHeaders: [
+        "cf-connecting-ip",   // IP real do visitante (Cloudflare)
+        "x-real-ip",          // Outros proxies reversos
+        "x-forwarded-for",    // Fallback padrão
+      ],
+    },
   },
 })
