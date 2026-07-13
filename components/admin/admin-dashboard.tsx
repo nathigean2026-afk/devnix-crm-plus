@@ -166,6 +166,31 @@ function parseIp(ip: string | null) {
   return clean
 }
 
+/**
+ * Detecta se um IP pertence aos ranges conhecidos do Cloudflare (proxy/CDN).
+ * Quando o site usa Cloudflare, o IP salvo na sessão pode ser do proxy e não do visitante real.
+ * A correção em auth.ts (cf-connecting-ip) garante que novas sessões salvem o IP real.
+ */
+function isCloudflareIp(ip: string | null): boolean {
+  if (!ip) return false
+  const clean = ip.replace(/^::ffff:/, "")
+  // Ranges IPv4 da Cloudflare mais comuns
+  const cfRanges = [
+    /^172\.(6[4-9]|7[01])\./,   // 172.64.0.0 – 172.71.255.255
+    /^104\.(1[6-9]|2[0-9]|3[01])\./,  // 104.16.0.0 – 104.31.255.255
+    /^162\.158\./,
+    /^103\.(21\.[244-247]|22\.[204-207]|31\.(4|196))\./,
+    /^141\.101\.(6[4-9]|7[0-9]|8[0-9]|9[0-9]|1[0-2][0-9])\./,
+    /^108\.162\.(19[2-9]|2[0-4][0-9]|25[0-5])\./,
+    /^190\.93\.(24[0-7])\./,
+    /^188\.114\.(9[6-9]|10[0-7])\./,
+    /^197\.234\.240\./,
+    /^198\.41\.128\./,
+    /^162\.158\./,
+  ]
+  return cfRanges.some(r => r.test(clean))
+}
+
 type Tab = "visao" | "licencas" | "usuarios" | "codigos" | "suporte" | "metricas" | "pagamentos" | "configuracoes" | "atualizacoes" | "whatsapp" | "push" | "logs"
 
 type AdminLogRow = { id: string; adminEmail: string; action: string; description: string; targetUserId: string | null; targetUserEmail: string | null; meta: string | null; createdAt: Date }
@@ -1066,6 +1091,14 @@ export default function AdminDashboard({
                             </td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/50" : "text-slate-400")}>
                               {(() => {
+                                if (isCloudflareIp(u.lastSessionIp)) {
+                                  return (
+                                    <span className="flex items-center gap-1 text-amber-400/80" title="IP do proxy Cloudflare — localização real disponível no próximo login">
+                                      <AlertTriangle className="size-3 shrink-0" />
+                                      Via proxy
+                                    </span>
+                                  )
+                                }
                                 const geo = u.lastSessionIp ? geoData[u.lastSessionIp] : null
                                 if (!geo) return geoLoading ? <span className="opacity-40">...</span> : <span className="opacity-30">—</span>
                                 return <span>{geo.city}{geo.region ? `, ${geo.region}` : ""}{geo.country ? `, ${geo.country}` : ""}</span>
@@ -1073,6 +1106,9 @@ export default function AdminDashboard({
                             </td>
                             <td className={cn("px-4 py-3 text-xs", darkMode ? "text-white/40" : "text-slate-400")}>
                               {(() => {
+                                if (isCloudflareIp(u.lastSessionIp)) {
+                                  return <span className="text-amber-400/60" title="IP do proxy Cloudflare">Cloudflare (proxy)</span>
+                                }
                                 const geo = u.lastSessionIp ? geoData[u.lastSessionIp] : null
                                 return geo?.isp ? <span>{geo.isp}</span> : <span className="opacity-30">—</span>
                               })()}
